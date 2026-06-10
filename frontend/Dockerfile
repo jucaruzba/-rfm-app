@@ -2,27 +2,26 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copiar dependencias
+# Copiar archivos de dependencias
 COPY package*.json ./
+COPY package-lock.json ./
+
+# Instalar dependencias
 RUN npm ci
 
 # Copiar código fuente
 COPY . .
 
-# Pasar variable de entorno al build
-ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-
-# Compilar
+# Construir la aplicación
 RUN npm run build
 
 # Etapa 2: Servir con Nginx
 FROM nginx:alpine
 
-# Copiar los archivos compilados (Vite genera en 'dist', no 'build')
+# Copiar los archivos compilados (Vite genera en 'dist')
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copiar configuración de nginx para SPA (rutas React)
+# Configuración para SPA (React Router)
 RUN echo 'server { \
     listen 80; \
     server_name localhost; \
