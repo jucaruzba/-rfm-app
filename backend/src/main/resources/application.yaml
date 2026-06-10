@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: application
+  
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: false
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+project:
+  security:
+    enabled: true
+    jwt:
+      secret-key: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION}
+  
+  initial-admin:
+    username: ${ADMIN_USERNAME}
+    email: ${ADMIN_EMAIL}
+    password: ${ADMIN_PASSWORD}
+  
+  storage:
+    root-path: ${STORAGE_ROOT_PATH}
+    root-nass-path: ${STORAGE_ROOT_PATH}/
+    root-activities: ${STORAGE_ROOT_PATH}/activities
+    default-profile-image: ${STORAGE_ROOT_PATH}/profiles/default.png

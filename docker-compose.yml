@@ -1,0 +1,74 @@
+services:
+  db:
+    image: postgres:16
+    container_name: rfm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rfm_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - rfm-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rfm-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_NAME: rfm_db
+      DB_USER: admin
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      STORAGE_ROOT_PATH: ${STORAGE_ROOT_PATH}
+    volumes:
+      - /volume1/rfm_documentos:${STORAGE_ROOT_PATH}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rfm-network
+
+    frontend:
+      build:
+        context: ./frontend
+        dockerfile: Dockerfile
+        args:
+          VITE_API_BASE_URL: http://${BACKEND_HOST:-192.168.4.87}:8080/api/v1
+      container_name: rfm-frontend
+      restart: unless-stopped
+      ports:
+        - "80:80"
+      depends_on:
+        - backend
+      networks:
+        - rfm-network
+
+volumes:
+  postgres_data:
+
+networks:
+  rfm-network:
+    driver: bridge

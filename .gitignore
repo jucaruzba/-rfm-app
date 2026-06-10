@@ -1,0 +1,26 @@
+
+# Archivos generados
+storage/
+NAS/
+target/
+node_modules/
+build/
+dist/
+
+# Configuración local
+.env
+*.log
+*.pid
+*.seed
+
+# IDE
+.idea/
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+EOF

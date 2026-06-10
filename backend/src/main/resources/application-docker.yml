@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: application
+  
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:5432/${DB_NAME:rfm_db}
+    username: ${DB_USER:admin}
+    password: ${DB_PASSWORD}
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: false
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+project:
+  security:
+    enabled: true
+    jwt:
+      secret-key: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION:86400000}
+  
+  initial-admin:
+    username: ${ADMIN_USERNAME:admin}
+    email: ${ADMIN_EMAIL:admin@rfm.com}
+    password: ${ADMIN_PASSWORD}
+  
+  storage:
+    # Cambio CRÍTICO: ruta dentro del contenedor, no de Windows
+    root-path: ${STORAGE_PATH:/app/storage}
+    root-nass-path: ${STORAGE_PATH:/app/storage}/
+    root-activities: ${STORAGE_PATH:/app/storage}/activities
+    default-profile-image: ${STORAGE_PATH:/app/storage}/profiles/default.png
