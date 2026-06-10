@@ -31,6 +31,8 @@ spring:
           writetimeout: 5000
 
 project:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   security:
     enabled: true
     jwt:
@@ -43,8 +45,7 @@ project:
     password: ${ADMIN_PASSWORD}
   
   storage:
-    # Cambio CRÍTICO: ruta dentro del contenedor, no de Windows
     root-path: ${STORAGE_PATH:/app/storage}
     root-nass-path: ${STORAGE_PATH:/app/storage}/
     root-activities: ${STORAGE_PATH:/app/storage}/activities
-    default-profile-image: ${STORAGE_PATH:/app/storage}/profiles/default.png
+    default-profile-image: ${STORAGE_PATH:/app/storage}/profiles/default.pngs
