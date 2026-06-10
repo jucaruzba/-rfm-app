@@ -41,6 +41,7 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       STORAGE_ROOT_PATH: ${STORAGE_ROOT_PATH}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
     volumes:
       - /volume1/rfm_documentos:${STORAGE_ROOT_PATH}
     ports:
