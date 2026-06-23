@@ -33,85 +33,64 @@ const MainLayout = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // ✅ ORDEN ESPECÍFICO QUE QUIERE TU TÍO
   const menuItems = [
     {
       icon: <Bell size={20} />,
       label: "Reminders",
       path: "/reminders",
       roles: ["ADMIN", "ASSISTANT"],
-      description: "Recordatorios y alertas",
+      description: "Private alarms. Time only.",
     },
     {
       icon: <CheckSquare size={20} />,
+      label: "Tasks",
+      path: "/tasks",
+      roles: ["ADMIN"],
+      description: "Work to do (me or team)",
+    },
+    {
+      icon: <AlertCircle size={20} />,
+      label: "Pending",
+      path: "/pending-items",
+      roles: ["ADMIN", "ASSISTANT"],
+      description: "Assigned by me. Awaiting completion.",
+    },
+    {
+      icon: <ClipboardList size={20} />,
       label: "Activities",
       path: "/activities",
       roles: ["ADMIN"],
-      description: "Gestión de actividades",
-    },
-    {
-      icon: <Star size={20} />,
-      label: "My Workspace",
-      path: "/assistant",
-      roles: ["ASSISTANT"],
-      description: "Mi espacio de trabajo",
+      description: "Completed actions. Permanent record.",
     },
     {
       icon: <Building2 size={20} />,
       label: "Companies",
       path: "/companies",
       roles: ["ADMIN"],
-      description: "Gestión de empresas",
-    },
-    {
-      icon: <AlertCircle size={20} />,
-      label: "Pending Items",
-      path: "/pending-items",
-      roles: ["ADMIN", "ASSISTANT"],
-      description: "Elementos pendientes",
-    },
-    {
-      icon: <ClipboardList size={20} />,
-      label: "Tasks",
-      path: "/tasks",
-      roles: ["ADMIN"],
-      description: "Tareas asignadas",
+      description: "Manage companies",
     },
     {
       icon: <FolderTree size={20} />,
       label: "Projects",
       path: "/projects",
       roles: ["ADMIN"],
-      description: "Proyectos activos",
+      description: "Active projects",
     },
     {
       icon: <Users size={20} />,
       label: "Users",
       path: "/users",
       roles: ["ADMIN"],
-      description: "Usuarios del sistema",
+      description: "System users",
     },
-    // Ítems adicionales que puedes habilitar según necesidades
-    // {
-    //   icon: <Home size={20} />,
-    //   label: "Dashboard",
-    //   path: "/dashboard",
-    //   roles: ["ADMIN", "ASSISTANT"],
-    //   description: "Panel principal"
-    // },
-    // {
-    //   icon: <Clock size={20} />,
-    //   label: "Time Tracking",
-    //   path: "/time-tracking",
-    //   roles: ["ADMIN", "ASSISTANT"],
-    //   description: "Seguimiento de tiempo"
-    // },
-    // {
-    //   icon: <FileText size={20} />,
-    //   label: "Reports",
-    //   path: "/reports",
-    //   roles: ["ADMIN"],
-    //   description: "Reportes y estadísticas"
-    // }
+    {
+      icon: <Star size={20} />,
+      label: "My Workspace",
+      path: "/assistant",
+      roles: ["ASSISTANT"],
+      description: "My workspace",
+    },
   ];
 
   const filteredMenu = menuItems.filter((item) =>
@@ -136,7 +115,7 @@ const MainLayout = () => {
         </button>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1.5">
+      <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto pb-4">
         {filteredMenu.map((item) => (
           <Link
             key={item.path}
@@ -157,15 +136,14 @@ const MainLayout = () => {
             >
               {item.icon}
             </span>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <span className="text-xs font-black uppercase tracking-widest block">
                 {item.label}
               </span>
-              {location.pathname === item.path && (
-                <span className="text-[8px] text-blue-300/70 uppercase tracking-wider">
-                  {item.description}
-                </span>
-              )}
+              {/* ✅ LA DESCRIPCIÓN SIEMPRE APARECE */}
+              <span className="text-[8px] text-gray-400/70 uppercase tracking-wider block truncate">
+                {item.description}
+              </span>
             </div>
             <ChevronRight
               size={14}
@@ -179,7 +157,7 @@ const MainLayout = () => {
         ))}
       </nav>
 
-      <div className="p-6 border-t border-white/5 bg-black/10">
+      <div className="p-6 border-t border-white/5 bg-black/10 shrink-0">
         <Link
           to={user?.role === "ASSISTANT" ? "/assistant/profile" : "#"}
           className="flex items-center p-3 mb-6 bg-gradient-to-r from-white/5 to-transparent rounded-2xl border border-white/5 hover:from-white/10 transition-all cursor-pointer group"

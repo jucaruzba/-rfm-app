@@ -49,3 +49,14 @@ project:
     root-nass-path: ${STORAGE_ROOT_PATH}/
     root-activities: ${STORAGE_ROOT_PATH}/activities
     default-profile-image: ${STORAGE_ROOT_PATH}/profiles/default.png
+
+# ✅ LOGS DE DEBUG PARA SPRING SECURITY
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    com.rfm.application: DEBUG
+    org.springframework.security.access: DEBUG
+    org.springframework.security.web.access: DEBUG
+    org.springframework.security.authentication: DEBUG
+    org.springframework.security.authorization: DEBUG
