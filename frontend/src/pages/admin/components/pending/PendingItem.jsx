@@ -18,23 +18,52 @@ import {
   Users,
   ClipboardList,
   ChevronDown,
+  Pencil,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { pendingItemService } from "../../../../services/pendingItemService";
 import { userService } from "../../../../services/userService";
 import TaskDetailView from "../task/TaskDetailView";
 
+// ==========================================
+// COLORES DE SEMÁFORO 🚥
+// ==========================================
 const getStatusColor = (status) => {
   const statusLower = status?.toLowerCase();
   const colors = {
-    pending: "bg-yellow-100 text-yellow-700",
-    in_progress: "bg-blue-100 text-blue-700",
-    "in-progress": "bg-blue-100 text-blue-700",
-    completed: "bg-green-100 text-green-700",
+    pending: "bg-red-100 text-red-700 border border-red-200",
+    in_progress: "bg-yellow-100 text-yellow-700 border border-yellow-200",
+    "in-progress": "bg-yellow-100 text-yellow-700 border border-yellow-200",
+    completed: "bg-green-100 text-green-700 border border-green-200",
   };
-  return colors[statusLower] || "bg-gray-100 text-gray-700";
+  return colors[statusLower] || "bg-gray-100 text-gray-700 border border-gray-200";
 };
 
+// ==========================================
+// COLORES DE SEMÁFORO PARA SELECTOR
+// ==========================================
+const STATUS_OPTIONS = [
+  { 
+    value: "pending", 
+    label: "Pending", 
+    color: "bg-red-100 text-red-700 border border-red-200 hover:bg-red-200" 
+  },
+  { 
+    value: "in_progress", 
+    label: "In Progress", 
+    color: "bg-yellow-100 text-yellow-700 border border-yellow-200 hover:bg-yellow-200" 
+  },
+  { 
+    value: "completed", 
+    label: "Completed", 
+    color: "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200" 
+  },
+];
+
+// ==========================================
+// FORMATO PARA UI
+// ==========================================
 const formatStatusForUI = (status) => {
   const statusLower = status?.toLowerCase();
   const statusMap = {
@@ -46,12 +75,20 @@ const formatStatusForUI = (status) => {
   return statusMap[statusLower] || status?.toUpperCase() || "UNKNOWN";
 };
 
-// Opciones de estado
-const STATUS_OPTIONS = [
-  { value: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-700" },
-  { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700" },
-  { value: "completed", label: "Completed", color: "bg-green-100 text-green-700" },
-];
+// ==========================================
+// INDICADOR DE SEMÁFORO
+// ==========================================
+const StatusDot = ({ status }) => {
+  const statusLower = status?.toLowerCase();
+  const dotColors = {
+    pending: "bg-red-500",
+    in_progress: "bg-yellow-500",
+    "in-progress": "bg-yellow-500",
+    completed: "bg-green-500",
+  };
+  const color = dotColors[statusLower] || "bg-gray-500";
+  return <span className={`inline-block w-2 h-2 rounded-full ${color} mr-1.5`} />;
+};
 
 const PendingItem = () => {
   const { user } = useAuth();
@@ -71,6 +108,14 @@ const PendingItem = () => {
 
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    status: "",
+    assignedTo: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -85,7 +130,6 @@ const PendingItem = () => {
     assignedTo: "",
   });
 
-  // Estados para actualización de estado
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
 
   // ==========================================
@@ -130,7 +174,6 @@ const PendingItem = () => {
     }
   }, [user, page, filters]);
 
-  // Cargar usuarios al montar el componente
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -180,7 +223,75 @@ const PendingItem = () => {
 
   const handleViewItem = (item) => {
     setSelectedItem(item);
+    setEditForm({
+      title: item.title,
+      description: item.description || "",
+      status: item.status,
+      assignedTo: item.assignedTo,
+    });
+    setIsEditing(false);
     setIsViewModalOpen(true);
+  };
+
+  // ==========================================
+  // HANDLERS DE EDICIÓN
+  // ==========================================
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Si está en modo edición y se cancela, restaurar valores originales
+      setEditForm({
+        title: selectedItem.title,
+        description: selectedItem.description || "",
+        status: selectedItem.status,
+        assignedTo: selectedItem.assignedTo,
+      });
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const payload = {
+        title: editForm.title,
+        description: editForm.description,
+        status: editForm.status,
+        createdBy: selectedItem.createdBy,
+        assignedTo: Number(editForm.assignedTo),
+        referenceType: selectedItem.referenceType,
+        referenceId: selectedItem.referenceId,
+      };
+
+      await pendingItemService.update(selectedItem.idPending, payload);
+      toast.success("Pending item updated successfully");
+      
+      // Actualizar el item seleccionado
+      setSelectedItem(prev => ({
+        ...prev,
+        title: editForm.title,
+        description: editForm.description,
+        status: editForm.status,
+        assignedTo: Number(editForm.assignedTo),
+      }));
+      
+      setIsEditing(false);
+      fetchItems();
+    } catch (err) {
+      console.error("Update error", err);
+      toast.error("Failed to update pending item");
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const handleShowTask = () => {
@@ -239,13 +350,10 @@ const PendingItem = () => {
     }
   };
 
-  // Actualizar estado de un pending item
   const handleUpdateStatus = async (id, newStatus) => {
-    // Encontrar el item actual
     const currentItem = pendingItems.find(item => item.idPending === id);
     if (!currentItem) return;
 
-    // Si el estado es el mismo, no hacer nada
     if (currentItem.status === newStatus) return;
 
     setUpdatingStatusId(id);
@@ -263,16 +371,15 @@ const PendingItem = () => {
       await pendingItemService.update(id, payload);
       toast.success(`Status updated to ${newStatus.toUpperCase()}`);
       
-      // Actualizar la lista localmente
       setPendingItems(prev =>
         prev.map(item =>
           item.idPending === id ? { ...item, status: newStatus } : item
         )
       );
       
-      // También actualizar el item seleccionado si está abierto el modal
       if (selectedItem?.idPending === id) {
         setSelectedItem(prev => ({ ...prev, status: newStatus }));
+        setEditForm(prev => ({ ...prev, status: newStatus }));
       }
     } catch (err) {
       console.error("Update status error", err);
@@ -354,9 +461,9 @@ const PendingItem = () => {
               className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
             >
               <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="completed">Completed</option>
+              <option value="pending">🔴 Pending</option>
+              <option value="in_progress">🟡 In Progress</option>
+              <option value="completed">🟢 Completed</option>
             </select>
           </div>
 
@@ -444,7 +551,6 @@ const PendingItem = () => {
                       </span>
                     </td>
                     <td className="p-4">
-                      {/* Selector de estado en la tabla */}
                       {filters.viewType === "assigned" ? (
                         <select
                           value={item.status}
@@ -460,8 +566,9 @@ const PendingItem = () => {
                         </select>
                       ) : (
                         <span
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${getStatusColor(item.status)}`}
+                          className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${getStatusColor(item.status)}`}
                         >
+                          <StatusDot status={item.status} />
                           {formatStatusForUI(item.status)}
                         </span>
                       )}
@@ -524,33 +631,71 @@ const PendingItem = () => {
         )}
       </div>
 
-      {/* MODAL DE VISUALIZACIÓN CON SELECTOR DE ESTADO */}
+      {/* ========================================== */}
+      {/* MODAL DE VISUALIZACIÓN / EDICIÓN */}
+      {/* ========================================== */}
       {isViewModalOpen && selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gradient-to-r from-[#001F3F] to-blue-900">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <FileText size={18} />
-                Pending Item Details
+                {isEditing ? <Pencil size={18} /> : <FileText size={18} />}
+                {isEditing ? "Edit Pending Item" : "Pending Item Details"}
               </h3>
-              <button
-                onClick={() => setIsViewModalOpen(false)}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Botón de Editar/Guardar */}
+                {!isEditing ? (
+                  <button
+                    onClick={handleEditToggle}
+                    className="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                    title="Edit"
+                  >
+                    <Pencil size={18} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleEditToggle}
+                    className="text-red-400 hover:text-red-300 transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                    title="Cancel"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    setIsEditing(false);
+                  }}
+                  className="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-4">
+              {/* TITLE */}
               <div>
                 <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Title
+                  Title *
                 </label>
-                <p className="text-sm font-semibold text-gray-900 bg-gray-50 p-3 rounded-lg">
-                  {selectedItem.title}
-                </p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="title"
+                    value={editForm.title}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold"
+                    placeholder="Enter title..."
+                  />
+                ) : (
+                  <p className="text-sm font-semibold text-gray-900 bg-gray-50 p-3 rounded-lg">
+                    {selectedItem.title}
+                  </p>
+                )}
               </div>
 
+              {/* TYPE */}
               <div>
                 <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                   Type
@@ -560,31 +705,39 @@ const PendingItem = () => {
                 </p>
               </div>
 
+              {/* DESCRIPTION */}
               <div>
                 <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                   Description
                 </label>
-                <div className="bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto">
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {selectedItem.description || "No description provided"}
-                  </p>
-                </div>
+                {isEditing ? (
+                  <textarea
+                    name="description"
+                    value={editForm.description}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none h-20"
+                    placeholder="Enter description..."
+                  />
+                ) : (
+                  <div className="bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {selectedItem.description || "No description provided"}
+                    </p>
+                  </div>
+                )}
               </div>
 
+              {/* STATUS */}
               <div>
                 <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                   Status
                 </label>
-                {/* Selector de estado en el modal - solo visible para assigned to me */}
-                {filters.viewType === "assigned" ? (
+                {isEditing ? (
                   <select
-                    value={selectedItem.status}
-                    onChange={(e) => {
-                      const newStatus = e.target.value;
-                      handleUpdateStatus(selectedItem.idPending, newStatus);
-                    }}
-                    disabled={updatingStatusId === selectedItem.idPending}
-                    className={`w-full text-sm font-bold uppercase tracking-wider px-3 py-2 rounded-lg cursor-pointer transition-all ${getStatusColor(selectedItem.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    name="status"
+                    value={editForm.status}
+                    onChange={handleEditChange}
+                    className={`w-full text-sm font-bold uppercase tracking-wider px-3 py-2 rounded-lg cursor-pointer transition-all ${getStatusColor(editForm.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   >
                     {STATUS_OPTIONS.map(option => (
                       <option key={option.value} value={option.value}>
@@ -594,16 +747,47 @@ const PendingItem = () => {
                   </select>
                 ) : (
                   <span
-                    className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${getStatusColor(selectedItem.status)}`}
+                    className={`inline-flex items-center text-sm font-bold uppercase tracking-wider px-3 py-2 rounded-lg ${getStatusColor(selectedItem.status)}`}
                   >
+                    <StatusDot status={selectedItem.status} />
                     {formatStatusForUI(selectedItem.status)}
                   </span>
                 )}
-                {updatingStatusId === selectedItem.idPending && (
-                  <Loader2 size={14} className="mt-2 animate-spin text-gray-400" />
+              </div>
+
+              {/* ASSIGNED TO */}
+              <div>
+                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
+                  Assigned To *
+                </label>
+                {isEditing ? (
+                  <select
+                    name="assignedTo"
+                    value={editForm.assignedTo}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
+                  >
+                    <option value="">-- Select User --</option>
+                    {allUsers.map((u) => {
+                      const currentId = u.idUser || u.id;
+                      const currentUserId = user?.idUser || user?.id;
+                      return (
+                        <option key={`edit-user-${currentId}`} value={currentId}>
+                          {u.username || u.name}
+                          {currentId === currentUserId && " (You)"}
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg flex items-center gap-2">
+                    <Users size={14} className="text-gray-400" />
+                    {getUserNameById(selectedItem.assignedTo)}
+                  </p>
                 )}
               </div>
 
+              {/* CREATED BY */}
               <div>
                 <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                   Created By
@@ -614,16 +798,7 @@ const PendingItem = () => {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Assigned To
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg flex items-center gap-2">
-                  <Users size={14} className="text-gray-400" />
-                  {getUserNameById(selectedItem.assignedTo)}
-                </p>
-              </div>
-
+              {/* CREATED AT */}
               <div>
                 <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
                   Created At
@@ -646,12 +821,30 @@ const PendingItem = () => {
                 </button>
               )}
               
-              <button
-                onClick={() => setIsViewModalOpen(false)}
-                className="px-5 py-2 text-sm font-semibold bg-[#001F3F] text-white hover:bg-blue-900 rounded-xl transition-colors flex items-center gap-2"
-              >
-                <CheckCircle2 size={16} /> Close
-              </button>
+              {isEditing ? (
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit}
+                  className="px-5 py-2 text-sm font-semibold bg-green-600 text-white hover:bg-green-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {savingEdit ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={16} />
+                  )}
+                  Save Changes
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    setIsEditing(false);
+                  }}
+                  className="px-5 py-2 text-sm font-semibold bg-[#001F3F] text-white hover:bg-blue-900 rounded-xl transition-colors flex items-center gap-2"
+                >
+                  <CheckCircle2 size={16} /> Close
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -763,21 +956,16 @@ const PendingItem = () => {
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
                 >
                   <option value="">-- Select User --</option>
-                  {allUsers &&
-                    allUsers.length > 0 &&
-                    allUsers.map((u) => {
-                      const currentId = u.idUser || u.id;
-                      const currentUserId = user?.idUser || user?.id;
-                      return (
-                        <option 
-                          key={`create-user-${currentId}`} 
-                          value={currentId}
-                        >
-                          {u.username || u.name}
-                          {currentId === currentUserId && " (You)"}
-                        </option>
-                      );
-                    })}
+                  {allUsers.map((u) => {
+                    const currentId = u.idUser || u.id;
+                    const currentUserId = user?.idUser || user?.id;
+                    return (
+                      <option key={`create-user-${currentId}`} value={currentId}>
+                        {u.username || u.name}
+                        {currentId === currentUserId && " (You)"}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>

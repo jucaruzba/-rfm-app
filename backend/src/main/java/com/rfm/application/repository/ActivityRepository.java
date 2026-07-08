@@ -22,4 +22,8 @@ public interface ActivityRepository extends JpaRepository<Activity, Long>{
 	            @Param("endDate") LocalDateTime endDate
 	    );
 	
+	   // Método para contar activities por company
+    @Query("SELECT COUNT(a) FROM Activity a WHERE a.idCompany = :companyId")
+    long countByIdCompany(@Param("companyId") Long companyId);
+	
 }

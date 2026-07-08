@@ -41,4 +41,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 		        @Param("idUser") Long idUser, 
 		        @Param("start") LocalDate start,
 		        @Param("end") LocalDate end);
+	
+	 @Query("SELECT COUNT(t) FROM Task t WHERE t.idCompany = :companyId")
+	    long countByIdCompany(@Param("companyId") Long companyId);
 }

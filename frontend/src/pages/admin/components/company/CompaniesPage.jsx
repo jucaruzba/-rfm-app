@@ -5,9 +5,6 @@ import {
   Plus,
   Search,
   X,
-  ExternalLink,
-  MoreVertical,
-  Globe,
   Briefcase,
   Users,
   Handshake,
@@ -16,30 +13,26 @@ import {
   Loader2,
   Clock,
   Archive,
+  Trash2,
+  RotateCcw,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  FileText,
 } from "lucide-react";
 import { companyService } from "../../../../services/companyService";
 import { fileService } from "../../../../services/fileService";
 import { toast } from "sonner";
 
-// Constantes para los tipos de empresa
+// Company type constants
 const COMPANY_TYPES = [
-  {
-    value: "MY_BUSINESS",
-    label: "My Business",
-    icon: Briefcase,
-    color: "blue",
-  },
+  { value: "MY_BUSINESS", label: "My Business", icon: Briefcase, color: "blue" },
   { value: "CLIENT", label: "Client", icon: Users, color: "green" },
-  {
-    value: "PARTNERSHIP",
-    label: "Partnership",
-    icon: Handshake,
-    color: "purple",
-  },
+  { value: "PARTNERSHIP", label: "Partnership", icon: Handshake, color: "purple" },
   { value: "PERSONAL", label: "Personal", icon: User, color: "orange" },
 ];
 
-// Constantes para los estados de empresa
+// Company status constants
 const COMPANY_STATUSES = [
   { value: "ACTIVE", label: "Active", icon: Circle, color: "green" },
   { value: "IN_PROGRESS", label: "In Progress", icon: Loader2, color: "blue" },
@@ -52,70 +45,157 @@ const CompaniesPage = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
 
-  // --- ESTADOS PARA EL MODAL DE CREACIÓN ---
+  // --- CREATE MODAL STATES ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    type: "MY_BUSINESS", // Valor por defecto
-    status: "ACTIVE", // Valor por defecto
+    type: "MY_BUSINESS",
+    status: "ACTIVE",
+  });
+
+  // --- CONFIRMATION MODAL STATES ---
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    companyId: null,
+    companyName: null,
+    action: null, // 'archive' or 'delete'
+    step: 1,
+    hasData: false,
   });
 
   useEffect(() => {
     fetchCompanies();
-  }, []);
+  }, [showArchived]);
 
   const fetchCompanies = async () => {
     try {
-      const data = await companyService.getCompanies();
+      setLoading(true);
+      let data;
+      if (showArchived) {
+        data = await companyService.getCompaniesIncludingArchived();
+      } else {
+        data = await companyService.getCompanies();
+      }
       setCompanies(data);
     } catch (err) {
-      toast.error("Error al sincronizar el directorio de empresas");
+      toast.error("Error loading companies");
     } finally {
       setLoading(false);
     }
   };
 
-  // --- CONTROLADOR PARA GUARDAR LA EMPRESA ---
+  // --- HANDLE CREATE COMPANY ---
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      toast.error("El nombre de la empresa es obligatorio");
+      toast.error("Company name is required");
       return;
     }
 
     setSubmitting(true);
     try {
       await companyService.createCompany(formData);
-      toast.success("Empresa creada correctamente");
-      setIsModalOpen(false); // Cerrar modal
+      toast.success("Company created successfully");
+      setIsModalOpen(false);
       setFormData({
         name: "",
         description: "",
         type: "MY_BUSINESS",
         status: "ACTIVE",
-      }); // Resetear formulario
-      fetchCompanies(); // Recargar la lista
+      });
+      fetchCompanies();
     } catch (err) {
-      toast.error("Error al crear la empresa");
+      toast.error("Error creating company");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // --- HANDLE RESTORE ---
+  const handleRestore = async (companyId, companyName) => {
+    try {
+      await companyService.restoreCompany(companyId);
+      toast.success(`Company "${companyName}" restored successfully`);
+      fetchCompanies();
+    } catch (err) {
+      toast.error("Error restoring company");
+    }
+  };
+
+  // --- HANDLE DELETE (Show appropriate modal) ---
+  const handleDelete = async (companyId, companyName) => {
+    try {
+      // Check if company has data
+      const hasData = await companyService.checkHasData(companyId);
+
+      // Open modal with appropriate action
+      setConfirmModal({
+        isOpen: true,
+        companyId,
+        companyName,
+        action: hasData ? 'archive' : 'delete',
+        step: 1,
+        hasData,
+      });
+    } catch (err) {
+      toast.error("Error processing company");
+    }
+  };
+
+  // --- HANDLE ARCHIVE (from modal) ---
+  const handleArchiveFromModal = async (companyId, companyName) => {
+    try {
+      await companyService.archiveCompany(companyId);
+      toast.success(`Company "${companyName}" archived successfully`);
+      setConfirmModal({ ...confirmModal, isOpen: false });
+      fetchCompanies();
+    } catch (err) {
+      toast.error("Error archiving company");
+      setConfirmModal({ ...confirmModal, isOpen: false });
+    }
+  };
+
+  // --- HANDLE PERMANENT DELETE (from modal) ---
+  const handleHardDelete = async (companyId, companyName) => {
+    try {
+      await companyService.hardDeleteCompany(companyId);
+      toast.success(`Company "${companyName}" permanently deleted`);
+      setConfirmModal({ ...confirmModal, isOpen: false });
+      fetchCompanies();
+    } catch (err) {
+      toast.error("Error deleting company");
+      setConfirmModal({ ...confirmModal, isOpen: false });
+    }
+  };
+
+  // --- CLOSE CONFIRMATION MODAL ---
+  const closeConfirmModal = () => {
+    setConfirmModal({
+      isOpen: false,
+      companyId: null,
+      companyName: null,
+      action: null,
+      step: 1,
+      hasData: false,
+    });
+  };
+
+  // --- FILTER COMPANIES ---
   const filteredCompanies = companies.filter(
     (c) =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+      c.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Función para obtener el color del estado
+  // Get status color
   const getStatusColor = (status) => {
     const statusConfig = COMPANY_STATUSES.find((s) => s.value === status);
-    if (!statusConfig) return "gray";
+    if (!statusConfig) return "text-gray-600 bg-gray-50";
 
     switch (statusConfig.color) {
       case "green":
@@ -141,12 +221,32 @@ const CompaniesPage = () => {
             <span className="text-gray-300 font-light">Directory</span>
           </h1>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-[#001F3F] text-white px-10 py-3 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
-        >
-          <Plus size={18} strokeWidth={3} /> Add Company
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all ${
+              showArchived
+                ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            {showArchived ? (
+              <>
+                <EyeOff size={16} /> Hide Archived
+              </>
+            ) : (
+              <>
+                <Archive size={16} /> Show Archived
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-[#001F3F] text-white px-10 py-3 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+          >
+            <Plus size={18} strokeWidth={3} /> Add Company
+          </button>
+        </div>
       </div>
 
       {/* SEARCH BAR */}
@@ -179,16 +279,26 @@ const CompaniesPage = () => {
           {filteredCompanies.map((company) => (
             <div
               key={company.idCompany}
-              onClick={() => navigate(`/companies/${company.idCompany}`)}
-              className="group bg-white rounded-3xl border border-gray-100 p-6 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:border-blue-500/30 hover:shadow-[0_20px_50px_rgba(0,31,63,0.06)] relative overflow-hidden"
+              className={`group bg-white rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
+                company.status === "ARCHIVED"
+                  ? "border-gray-200 opacity-75 hover:opacity-100"
+                  : "border-gray-100 hover:border-blue-500/30 hover:shadow-[0_20px_50px_rgba(0,31,63,0.06)]"
+              }`}
             >
-              {/* Efecto de fondo sutil al hacer Hover */}
-              <div className="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-blue-500 to-[#001F3F] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              {/* Background effect */}
+              <div
+                className={`absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-blue-500 to-[#001F3F] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  company.status === "ARCHIVED" ? "bg-gray-400" : ""
+                }`}
+              />
 
               <div>
-                {/* TOP ROW: Logo y Badge */}
+                {/* TOP ROW: Logo and Badge */}
                 <div className="flex items-start justify-between gap-4 mb-6">
-                  <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-300 shrink-0 overflow-hidden">
+                  <div
+                    className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-300 shrink-0 overflow-hidden cursor-pointer"
+                    onClick={() => navigate(`/companies/${company.idCompany}`)}
+                  >
                     {company.logoPath ? (
                       <img
                         src={fileService.getFileUrl(company.logoPath)}
@@ -200,7 +310,6 @@ const CompaniesPage = () => {
                     )}
                   </div>
 
-                  {/* Badge de tipo de empresa */}
                   <div className="flex gap-2">
                     {company.type && (
                       <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-wider">
@@ -212,7 +321,10 @@ const CompaniesPage = () => {
                 </div>
 
                 {/* COMPANY INFO */}
-                <div className="space-y-3">
+                <div
+                  className="space-y-3 cursor-pointer"
+                  onClick={() => navigate(`/companies/${company.idCompany}`)}
+                >
                   <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
                     {company.name}
                   </h2>
@@ -235,25 +347,55 @@ const CompaniesPage = () => {
                 </div>
               </div>
 
-              {/* FOOTER DE LA CARD: Acción visual */}
-              <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between text-gray-400 group-hover:text-blue-600 transition-colors duration-300">
-                <span className="text-[10px] font-bold uppercase tracking-wider">
-                  View Profile
-                </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                  className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300"
+              {/* FOOTER WITH ACTIONS */}
+              <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
+                <button
+                  onClick={() => navigate(`/companies/${company.idCompany}`)}
+                  className="text-[10px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-blue-600 transition-colors duration-300 flex items-center gap-2"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                  />
-                </svg>
+                  View Profile
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2.5}
+                    stroke="currentColor"
+                    className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                    />
+                  </svg>
+                </button>
+
+                {/* Actions: Restore or Delete */}
+                <div className="flex items-center gap-2">
+                  {company.status === "ARCHIVED" ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRestore(company.idCompany, company.name);
+                      }}
+                      className="p-2 rounded-xl text-green-600 hover:bg-green-50 transition-all"
+                      title="Restore company"
+                    >
+                      <RotateCcw size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(company.idCompany, company.name);
+                      }}
+                      className="p-2 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                      title="Delete company"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -261,17 +403,17 @@ const CompaniesPage = () => {
       ) : (
         <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-gray-100 text-center">
           <p className="text-lg font-black text-[#001F3F] uppercase italic">
-            No companies found
+            {showArchived
+              ? "No archived companies found"
+              : "No companies found"}
           </p>
         </div>
       )}
 
-      {/* --- INTERFAZ DEL MODAL ACTUALIZADO --- */}
+      {/* --- CREATE MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          {/* Contenedor principal del Modal */}
           <div className="w-full max-w-lg bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            {/* Botón Cerrar */}
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
@@ -280,7 +422,6 @@ const CompaniesPage = () => {
               <X size={20} />
             </button>
 
-            {/* Encabezado del Modal */}
             <div className="mb-6">
               <h2 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase italic">
                 Create <span className="text-gray-300 font-light">Company</span>
@@ -290,9 +431,7 @@ const CompaniesPage = () => {
               </p>
             </div>
 
-            {/* Formulario */}
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Campo: Nombre */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
                   Company Name *
@@ -309,7 +448,6 @@ const CompaniesPage = () => {
                 />
               </div>
 
-              {/* Campo: Descripción */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
                   Description
@@ -325,7 +463,6 @@ const CompaniesPage = () => {
                 />
               </div>
 
-              {/* Campo: Tipo de Empresa */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
                   Company Type *
@@ -346,7 +483,6 @@ const CompaniesPage = () => {
                 </select>
               </div>
 
-              {/* Campo: Estado de Empresa */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
                   Status *
@@ -367,7 +503,6 @@ const CompaniesPage = () => {
                 </select>
               </div>
 
-              {/* Preview visual de la selección */}
               <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-2xl border border-gray-100">
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
                   Preview
@@ -385,15 +520,15 @@ const CompaniesPage = () => {
                         formData.status === "ACTIVE"
                           ? "bg-green-50 text-green-600"
                           : formData.status === "IN_PROGRESS"
-                            ? "bg-blue-50 text-blue-600"
-                            : formData.status === "ON_HOLD"
-                              ? "bg-yellow-50 text-yellow-600"
-                              : "bg-gray-50 text-gray-600"
+                          ? "bg-blue-50 text-blue-600"
+                          : formData.status === "ON_HOLD"
+                          ? "bg-yellow-50 text-yellow-600"
+                          : "bg-gray-50 text-gray-600"
                       }`}
                     >
                       {
                         COMPANY_STATUSES.find(
-                          (s) => s.value === formData.status,
+                          (s) => s.value === formData.status
                         )?.label
                       }
                     </span>
@@ -401,7 +536,6 @@ const CompaniesPage = () => {
                 </div>
               </div>
 
-              {/* Acciones del formulario */}
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -419,6 +553,145 @@ const CompaniesPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- CONFIRMATION MODAL (Adaptive) --- */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 relative animate-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={closeConfirmModal}
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center">
+              {confirmModal.action === 'archive' ? (
+                // --- ARCHIVE MODAL (Company has data) ---
+                <>
+                  <div className="w-20 h-20 mx-auto bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                    <Archive size={40} className="text-blue-500" />
+                  </div>
+                  <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-2">
+                    Archive Company
+                  </h3>
+                  <p className="text-gray-500 font-medium text-sm mb-2">
+                    <strong className="text-[#001F3F]">{confirmModal.companyName}</strong>{" "}
+                    has important data (activities and/or tasks).
+                  </p>
+                  <p className="text-gray-500 font-medium text-sm mb-6">
+                    This company will be <strong className="text-blue-600">ARCHIVED</strong>.
+                    <br />
+                    <span className="text-gray-400 text-xs">
+                      Data will be preserved and can be restored later.
+                    </span>
+                  </p>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={closeConfirmModal}
+                      className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleArchiveFromModal(
+                          confirmModal.companyId,
+                          confirmModal.companyName
+                        )
+                      }
+                      className="bg-blue-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-blue-600 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                    >
+                      Archive Company
+                    </button>
+                  </div>
+                </>
+              ) : (
+                // --- DELETE MODAL (Company has NO data) - Double confirmation ---
+                confirmModal.step === 1 ? (
+                  <>
+                    <div className="w-20 h-20 mx-auto bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+                      <AlertTriangle size={40} className="text-red-500" />
+                    </div>
+                    <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-2">
+                      Are you sure?
+                    </h3>
+                    <p className="text-gray-500 font-medium text-sm mb-2">
+                      <strong className="text-[#001F3F]">{confirmModal.companyName}</strong>{" "}
+                      has no activities or tasks.
+                    </p>
+                    <p className="text-gray-500 font-medium text-sm mb-6">
+                      This will delete{" "}
+                      <strong className="text-red-600">EVERYTHING</strong> from this company
+                      (configurations, files, history).
+                      <br />
+                      <span className="text-red-500 font-bold">
+                        This action cannot be undone.
+                      </span>
+                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={closeConfirmModal}
+                        className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() =>
+                          setConfirmModal({ ...confirmModal, step: 2 })
+                        }
+                        className="bg-red-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-red-600 transition-all shadow-lg shadow-red-600/20 active:scale-95"
+                      >
+                        Continue
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 mx-auto bg-red-100 rounded-2xl flex items-center justify-center mb-4">
+                      <Trash2 size={40} className="text-red-600" />
+                    </div>
+                    <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-2">
+                      Confirm permanent deletion
+                    </h3>
+                    <p className="text-gray-500 font-medium text-sm mb-6">
+                      This action will permanently delete{" "}
+                      <strong className="text-red-600">
+                        {confirmModal.companyName}
+                      </strong>{" "}
+                      and all its data.
+                      <br />
+                      <span className="text-red-500 font-bold">
+                        This operation is irreversible.
+                      </span>
+                    </p>
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={closeConfirmModal}
+                        className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleHardDelete(
+                            confirmModal.companyId,
+                            confirmModal.companyName
+                          )
+                        }
+                        className="bg-red-600 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-red-700 transition-all shadow-lg shadow-red-600/30 active:scale-95"
+                      >
+                        Delete Permanently
+                      </button>
+                    </div>
+                  </>
+                )
+              )}
+            </div>
           </div>
         </div>
       )}

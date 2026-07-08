@@ -16,9 +16,35 @@ import {
   Building2,
   Menu,
   X,
+  Briefcase,
+  Users,
+  Handshake,
+  User,
 } from "lucide-react";
 import { companyService } from "../../services/companyService";
 import { fileService } from "../../services/fileService";
+
+// Company type config for badges
+const COMPANY_TYPES_CONFIG = {
+  MY_BUSINESS: { label: "My Business", icon: Briefcase, color: "blue" },
+  CLIENT: { label: "Client", icon: Users, color: "green" },
+  PARTNERSHIP: { label: "Partnership", icon: Handshake, color: "purple" },
+  PERSONAL: { label: "Personal", icon: User, color: "orange" },
+};
+
+// Get company type badge color
+const getTypeColor = (type) => {
+  const config = COMPANY_TYPES_CONFIG[type];
+  if (!config) return "bg-gray-500";
+  
+  switch (config.color) {
+    case "blue": return "bg-blue-400";
+    case "green": return "bg-green-400";
+    case "purple": return "bg-purple-400";
+    case "orange": return "bg-orange-400";
+    default: return "bg-gray-500";
+  }
+};
 
 const CompanyWorkspaceLayout = () => {
   const { companyId } = useParams();
@@ -26,7 +52,7 @@ const CompanyWorkspaceLayout = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Estado para guardar los datos reales de la empresa en el Navbar
+  // State for company data
   const [company, setCompany] = useState(null);
 
   useEffect(() => {
@@ -35,7 +61,7 @@ const CompanyWorkspaceLayout = () => {
         const data = await companyService.getCompany(companyId);
         setCompany(data);
       } catch (err) {
-        console.error("Error al cargar datos en la barra de navegación", err);
+        console.error("Error loading company data", err);
       }
     };
     if (companyId) fetchNavbarData();
@@ -64,6 +90,11 @@ const CompanyWorkspaceLayout = () => {
     },
   ];
 
+  // Get type label and icon
+  const getTypeInfo = (type) => {
+    return COMPANY_TYPES_CONFIG[type] || { label: type || "Unknown", icon: Building2, color: "gray" };
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       {/* NAVBAR SUPERIOR INDUSTRIAL */}
@@ -84,23 +115,22 @@ const CompanyWorkspaceLayout = () => {
 
           <div className="h-10 w-[1px] bg-white/10"></div>
 
-          {/* RENDERIZADO DINÁMICO: LOGO Y NOMBRE REAL */}
+          {/* COMPANY NAME & TYPE - SIN LOGO */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg transform -rotate-3 overflow-hidden p-1 shrink-0">
-              {company?.logoPath ? (
-                <img
-                  src={fileService.getFileUrl(company.logoPath)}
-                  alt={company.name}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <Building2 size={22} className="text-[#001F3F]" />
-              )}
-            </div>
-            <div>
-              <h2 className="text-[30px] text-sm font-black uppercase italic tracking-tighter leading-none max-w-[180px] md:max-w-[250px] truncate">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-black uppercase italic tracking-tighter leading-none max-w-[250px] md:max-w-[350px] truncate">
                 {company?.name || "Loading Node..."}
               </h2>
+              
+              {/* COMPANY TYPE BADGE - MÁS GRANDE */}
+              {company?.type && (
+                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm">
+                  <span className="text-xs font-black uppercase tracking-[0.15em] text-white/90">
+                    {getTypeInfo(company.type).label}
+                  </span>
+                  <span className={`w-2 h-2 rounded-full ${getTypeColor(company.type)}`} />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -169,6 +199,21 @@ const CompanyWorkspaceLayout = () => {
               <X size={24} />
             </button>
           </div>
+          
+          {/* Mobile: Company info with type - SIN LOGO */}
+          {company && (
+            <div className="px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
+              <p className="text-sm font-black uppercase tracking-tight truncate">
+                {company.name}
+              </p>
+              {company.type && (
+                <span className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-400">
+                  {getTypeInfo(company.type).label}
+                </span>
+              )}
+            </div>
+          )}
+          
           <nav className="flex flex-col gap-2">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
