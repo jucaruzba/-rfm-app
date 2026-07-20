@@ -1,7 +1,6 @@
 import api from "./api";
 
-const apiBase =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
+const apiBase = `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
 
 export const fileService = {
   getFileUrl: (filePath) => {
