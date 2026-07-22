@@ -19,6 +19,8 @@ import {
   Clock,
   LayoutGrid,
   Eye,
+  Repeat,
+  Tag,
 } from "lucide-react";
 import { projectObjectService } from "../../../services/projectObjectService";
 import { nodeService } from "../../../services/nodeService";
@@ -27,6 +29,12 @@ import { reminderService } from "../../../services/reminderService";
 import { toast } from "sonner";
 import { getUserIdFromToken } from "../../../utils/auth";
 import ConfirmDialog from "../../ui/ConfirmDialog";
+import {
+  format,
+  parseISO,
+  differenceInDays,
+} from "date-fns";
+import { es } from "date-fns/locale";
 
 const ProjectObjectExplorer = () => {
   const { projectId } = useParams();
@@ -47,6 +55,8 @@ const ProjectObjectExplorer = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [reminders, setReminders] = useState([]);
   const [nodes, setNodes] = useState([]);
+  const [completingId, setCompletingId] = useState(null);
+  const [deletingReminderId, setDeletingReminderId] = useState(null);
 
   // Modal para subir archivo
   const [showUpload, setShowUpload] = useState(false);
@@ -64,14 +74,17 @@ const ProjectObjectExplorer = () => {
 
   // Modal para crear recordatorio
   const [showCreateReminder, setShowCreateReminder] = useState(false);
+  const [creatingReminder, setCreatingReminder] = useState(false);
   const [reminderForm, setReminderForm] = useState({
     title: "",
     description: "",
     reminderDate: "",
+    reminderTime: "09:00",
+    repeatType: "NONE",
+    repeatEndDate: "",
   });
-  const [creatingReminder, setCreatingReminder] = useState(false);
 
-  // Estado para el modal de confirmación
+  // Modal de confirmación para eliminar
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     type: "danger",
@@ -84,7 +97,6 @@ const ProjectObjectExplorer = () => {
     itemId: null,
   });
 
-  // Estado para controlar la eliminación
   const [deletingItem, setDeletingItem] = useState(null);
 
   // Cargar objetos raíz al montar
@@ -263,6 +275,7 @@ const ProjectObjectExplorer = () => {
     }
   };
 
+  // 🔥 ACTUALIZADO: Crear recordatorio con repetición
   const handleCreateReminder = async (e) => {
     e.preventDefault();
     if (!reminderForm.title.trim() || !reminderForm.reminderDate) return;
@@ -276,22 +289,33 @@ const ProjectObjectExplorer = () => {
         return;
       }
 
-      const formattedDate =
-        reminderForm.reminderDate.length === 16
-          ? `${reminderForm.reminderDate}:00`
-          : reminderForm.reminderDate;
+      const reminderDateTime = `${reminderForm.reminderDate}T${reminderForm.reminderTime}:00`;
 
-      await reminderService.createReminder({
-        title: reminderForm.title,
-        description: reminderForm.description,
-        reminderDate: formattedDate,
+      const reminderData = {
+        title: reminderForm.title.trim(),
+        description: reminderForm.description.trim() || null,
+        reminderDate: reminderDateTime,
         idObject: currentObjectId,
         idUser: userId,
+        repeatType: reminderForm.repeatType || "NONE",
+        repeatEndDate: reminderForm.repeatEndDate
+          ? `${reminderForm.repeatEndDate}T23:59:59`
+          : null,
+      };
+
+      await reminderService.createReminder(reminderData);
+      
+      setReminderForm({
+        title: "",
+        description: "",
+        reminderDate: "",
+        reminderTime: "09:00",
+        repeatType: "NONE",
+        repeatEndDate: "",
       });
-      setReminderForm({ title: "", description: "", reminderDate: "" });
       setShowCreateReminder(false);
       await loadReminders(currentObjectId);
-      toast.success("Reminder created successfully");
+      toast.success("✨ Reminder created successfully");
     } catch (err) {
       toast.error("Error creating reminder");
       console.error("Reminder creation error:", err);
@@ -300,19 +324,56 @@ const ProjectObjectExplorer = () => {
     }
   };
 
+  // 🔥 ACTUALIZADO: Marcar como completado
   const handleMarkReminderCompleted = async (reminderId) => {
     try {
+      setCompletingId(reminderId);
       await reminderService.markAsCompleted(reminderId);
       await loadReminders(currentObjectId);
-      toast.success("Reminder marked as completed");
+      toast.success("🎉 Task accomplished!");
     } catch (err) {
       toast.error("Error updating reminder");
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
+  // 🔥 NUEVO: Eliminar recordatorio con confirmación
+  const handleDeleteReminderClick = (reminder) => {
+    setConfirmDialog({
+      isOpen: true,
+      type: "danger",
+      title: "Delete Reminder",
+      message: reminder.repeatType !== "NONE"
+        ? `This will delete ALL reminders in the recurring chain for "${reminder.title}"`
+        : `Are you sure you want to delete the reminder "${reminder.title}"?`,
+      confirmText: "Delete",
+      itemName: reminder.title,
+      itemDescription: reminder.repeatType !== "NONE" 
+        ? `Recurring: ${reminder.repeatType} - This will delete all occurrences` 
+        : "This reminder will be permanently deleted.",
+      onConfirm: () => handleConfirmDeleteReminder(reminder.idReminder),
+      itemId: reminder.idReminder,
+    });
+  };
+
+  const handleConfirmDeleteReminder = async (reminderId) => {
+    setDeletingReminderId(reminderId);
+    try {
+      await reminderService.deleteChain(reminderId);
+      await loadReminders(currentObjectId);
+      toast.success("🗑️ Reminder deleted");
+    } catch (err) {
+      toast.error("Failed to delete reminder");
+    } finally {
+      setDeletingReminderId(null);
+      setConfirmDialog(prev => ({ ...prev, isOpen: false }));
     }
   };
 
   // Función para mostrar el diálogo de confirmación para eliminar archivo
   const handleDeleteFileClick = (node, e) => {
-    e.stopPropagation(); // Evitar que se abra el FileViewer
+    e.stopPropagation();
     setConfirmDialog({
       isOpen: true,
       type: "danger",
@@ -329,34 +390,19 @@ const ProjectObjectExplorer = () => {
   // Función para eliminar el archivo
   const handleConfirmDeleteFile = async (idNode) => {
     setDeletingItem(idNode);
-    
-    const toastId = toast.loading("Deleting file...", { closeButton: true });
-    
     try {
       await nodeService.deleteFile(idNode);
-      
-      toast.success("File deleted successfully", { 
-        id: toastId, 
-        closeButton: true 
-      });
-      
-      // Actualizar la lista localmente
+      toast.success("File deleted successfully");
       setNodes(prevNodes => prevNodes.filter(node => node.idNode !== idNode));
-      
-      // Cerrar el modal
       setConfirmDialog(prev => ({ ...prev, isOpen: false }));
     } catch (err) {
       console.error("Delete file error", err);
-      toast.error("Failed to delete file", { 
-        id: toastId, 
-        closeButton: true 
-      });
+      toast.error("Failed to delete file");
     } finally {
       setDeletingItem(null);
     }
   };
 
-  // Función para cerrar el diálogo de confirmación
   const handleCloseConfirmDialog = () => {
     setConfirmDialog(prev => ({ ...prev, isOpen: false }));
   };
@@ -380,6 +426,43 @@ const ProjectObjectExplorer = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // 🔥 NUEVO: Función para obtener prioridad
+  const getPriority = (date) => {
+    const now = new Date();
+    const daysDiff = differenceInDays(parseISO(date), now);
+    if (daysDiff < 0)
+      return {
+        label: "Overdue",
+        color: "bg-red-100 text-red-700 border-red-200",
+      };
+    if (daysDiff === 0)
+      return {
+        label: "Today",
+        color: "bg-blue-100 text-blue-700 border-blue-200",
+      };
+    if (daysDiff <= 3)
+      return {
+        label: "Soon",
+        color: "bg-orange-100 text-orange-700 border-orange-200",
+      };
+    return {
+      label: "Upcoming",
+      color: "bg-green-100 text-green-700 border-green-200",
+    };
+  };
+
+  // 🔥 NUEVO: Función para obtener label de repetición
+  const getRepeatLabel = (repeatType) => {
+    const labels = {
+      NONE: "One time",
+      DAILY: "Daily",
+      WEEKLY: "Weekly",
+      MONTHLY: "Monthly",
+      YEARLY: "Yearly",
+    };
+    return labels[repeatType] || "One time";
   };
 
   return (
@@ -538,7 +621,7 @@ const ProjectObjectExplorer = () => {
                 </div>
               )}
 
-              {/* EXPLORADOR DE ARCHIVOS (NODOS) - ACTUALIZADO CON BOTÓN ELIMINAR */}
+              {/* EXPLORADOR DE ARCHIVOS */}
               {currentObjectId && (
                 <div className="mt-8 pt-8 border-t border-gray-100 space-y-6">
                   <h3 className="text-sm font-black uppercase text-[#001F3F] tracking-widest flex items-center gap-2">
@@ -565,7 +648,6 @@ const ProjectObjectExplorer = () => {
                             {node.name}
                           </p>
                           
-                          {/* Botón de eliminar que aparece al hacer hover */}
                           <button
                             onClick={(e) => handleDeleteFileClick(node, e)}
                             disabled={deletingItem === node.idNode}
@@ -593,7 +675,7 @@ const ProjectObjectExplorer = () => {
               )}
             </div>
 
-            {/* COLUMNA DERECHA: RECORDATORIOS */}
+            {/* COLUMNA DERECHA: RECORDATORIOS ACTUALIZADOS */}
             {currentObjectId && (
               <div className="space-y-6">
                 <div className="space-y-4">
@@ -612,57 +694,123 @@ const ProjectObjectExplorer = () => {
                   </div>
 
                   {reminders.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {reminders.map((reminder) => (
-                        <div
-                          key={reminder.idReminder}
-                          className={`p-4 rounded-xl border transition-all ${
-                            reminder.isCompleted
-                              ? "bg-gray-50 border-gray-200"
-                              : "bg-blue-50 border-blue-200"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <p className="text-[14px] font-black uppercase tracking-widest text-[#001F3F]">
-                                  {reminder.title}
-                                </p>
-                                {reminder.isCompleted && (
-                                  <CheckCircle2
-                                    size={14}
-                                    className="text-green-600"
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                      {reminders.map((reminder) => {
+                        const priority = getPriority(reminder.reminderDate);
+                        const date = parseISO(reminder.reminderDate);
+                        const isCompleted = reminder.isCompleted;
+                        
+                        return (
+                          <div
+                            key={reminder.idReminder}
+                            className={`group relative p-4 rounded-xl border-2 transition-all ${
+                              isCompleted
+                                ? "bg-gray-50 border-gray-200 opacity-60"
+                                : `bg-white border-gray-200 hover:border-blue-300 hover:shadow-md`
+                            }`}
+                          >
+                            {!isCompleted && (
+                              <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-full ${priority.color.split(" ")[0]}`} />
+                            )}
+
+                            <div className={`flex items-start gap-3 ${!isCompleted ? "pl-3" : ""}`}>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div
+                                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                      isCompleted ? "bg-gray-400" : "bg-blue-500"
+                                    }`}
                                   />
+                                  <p className={`text-[13px] font-black uppercase tracking-wider text-[#001F3F] ${
+                                    isCompleted ? "line-through opacity-50" : ""
+                                  }`}>
+                                    {reminder.title}
+                                  </p>
+                                </div>
+
+                                {reminder.description && (
+                                  <p className={`text-[11px] text-gray-500 font-medium mt-1 ${
+                                    isCompleted ? "line-through opacity-50" : ""
+                                  }`}>
+                                    {reminder.description}
+                                  </p>
                                 )}
+
+                                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                  {/* Badge de prioridad */}
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider border ${priority.color}`}>
+                                    <span className={`w-1 h-1 rounded-full ${
+                                      priority.label === "Overdue" ? "bg-red-500" :
+                                      priority.label === "Today" ? "bg-blue-500" :
+                                      priority.label === "Soon" ? "bg-orange-500" : "bg-green-500"
+                                    }`} />
+                                    {priority.label}
+                                  </span>
+
+                                  {/* Badge de hora */}
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[7px] font-black text-gray-600 uppercase tracking-wider">
+                                    <Clock size={10} />
+                                    {format(date, "HH:mm")}
+                                  </span>
+
+                                  {/* Badge de repetición */}
+                                  {reminder.repeatType !== "NONE" && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 border border-purple-200 rounded-full text-[7px] font-black text-purple-700 uppercase tracking-wider">
+                                      <Repeat size={10} />
+                                      {getRepeatLabel(reminder.repeatType)}
+                                    </span>
+                                  )}
+
+                                  {reminder.objectTitle && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-[7px] font-black text-blue-600 uppercase tracking-wider">
+                                      <Tag size={10} />
+                                      {reminder.objectTitle}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              {reminder.description && (
-                                <p className="text-[12px] text-gray-600 mb-2">
-                                  {reminder.description}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-4 text-[10px] text-gray-500 font-bold uppercase">
-                                <span className="flex items-center gap-1">
-                                  <Calendar size={12} />
-                                  {formatDate(reminder.reminderDate)}
-                                </span>
+
+                              {/* Acciones */}
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {!isCompleted && (
+                                  <button
+                                    onClick={() => handleMarkReminderCompleted(reminder.idReminder)}
+                                    disabled={completingId === reminder.idReminder}
+                                    className="p-2 text-gray-400 hover:text-green-600 transition-all rounded-lg hover:bg-green-50 disabled:opacity-50"
+                                    title="Mark as completed"
+                                  >
+                                    {completingId === reminder.idReminder ? (
+                                      <Loader2 size={16} className="animate-spin" />
+                                    ) : (
+                                      <CheckCircle2 size={16} />
+                                    )}
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteReminderClick(reminder)}
+                                  disabled={deletingReminderId === reminder.idReminder}
+                                  className="p-2 text-gray-400 hover:text-red-600 transition-all rounded-lg hover:bg-red-50 disabled:opacity-50"
+                                  title="Delete"
+                                >
+                                  {deletingReminderId === reminder.idReminder ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                  ) : (
+                                    <Trash2 size={16} />
+                                  )}
+                                </button>
                               </div>
                             </div>
-                            {!reminder.isCompleted && (
-                              <button
-                                onClick={() =>
-                                  handleMarkReminderCompleted(
-                                    reminder.idReminder,
-                                  )
-                                }
-                                className="p-2 hover:bg-blue-100 rounded-lg transition-all text-blue-600"
-                                title="Mark as completed"
-                              >
-                                <CheckCircle2 size={24} />
-                              </button>
+
+                            {isCompleted && (
+                              <div className="absolute top-2 right-2">
+                                <span className="text-[8px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                                  ✓ Done
+                                </span>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-400">
@@ -804,10 +952,10 @@ const ProjectObjectExplorer = () => {
         </div>
       )}
 
-      {/* MODAL - CREAR RECORDATORIO */}
+      {/* 🔥 MODAL - CREAR RECORDATORIO ACTUALIZADO CON REPETICIÓN */}
       {showCreateReminder && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full mx-4 animate-in zoom-in-95 shadow-2xl">
+          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full mx-4 animate-in zoom-in-95 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-black uppercase text-[#001F3F] tracking-tight">
                 New Reminder
@@ -821,46 +969,114 @@ const ProjectObjectExplorer = () => {
             </div>
 
             <form onSubmit={handleCreateReminder} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Reminder title"
-                value={reminderForm.title}
-                onChange={(e) =>
-                  setReminderForm({ ...reminderForm, title: e.target.value })
-                }
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
-                required
-              />
-
-              <textarea
-                placeholder="Description (optional)"
-                value={reminderForm.description}
-                onChange={(e) =>
-                  setReminderForm({
-                    ...reminderForm,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F] resize-none h-24"
-              />
-
               <div>
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F] block mb-2">
-                  Reminder Date *
+                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
+                  Title *
                 </label>
                 <input
-                  type="datetime-local"
-                  value={reminderForm.reminderDate}
+                  type="text"
+                  placeholder="Reminder title"
+                  value={reminderForm.title}
                   onChange={(e) =>
-                    setReminderForm({
-                      ...reminderForm,
-                      reminderDate: e.target.value,
-                    })
+                    setReminderForm({ ...reminderForm, title: e.target.value })
                   }
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
                   required
                 />
               </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  placeholder="Description (optional)"
+                  value={reminderForm.description}
+                  onChange={(e) =>
+                    setReminderForm({
+                      ...reminderForm,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F] resize-none h-20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
+                  Date & Time *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="date"
+                    value={reminderForm.reminderDate}
+                    onChange={(e) =>
+                      setReminderForm({
+                        ...reminderForm,
+                        reminderDate: e.target.value,
+                      })
+                    }
+                    min={format(new Date(), "yyyy-MM-dd")}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                    required
+                  />
+                  <input
+                    type="time"
+                    value={reminderForm.reminderTime}
+                    onChange={(e) =>
+                      setReminderForm({
+                        ...reminderForm,
+                        reminderTime: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
+                  Repeat
+                </label>
+                <select
+                  value={reminderForm.repeatType}
+                  onChange={(e) =>
+                    setReminderForm({
+                      ...reminderForm,
+                      repeatType: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                >
+                  <option value="NONE">One time</option>
+                  <option value="DAILY">Daily</option>
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="YEARLY">Yearly</option>
+                </select>
+              </div>
+
+              {reminderForm.repeatType !== "NONE" && (
+                <div>
+                  <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
+                    Repeat Until *
+                  </label>
+                  <input
+                    type="date"
+                    value={reminderForm.repeatEndDate}
+                    onChange={(e) =>
+                      setReminderForm({
+                        ...reminderForm,
+                        repeatEndDate: e.target.value,
+                      })
+                    }
+                    min={reminderForm.reminderDate || format(new Date(), "yyyy-MM-dd")}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -901,7 +1117,7 @@ const ProjectObjectExplorer = () => {
         confirmText={confirmDialog.confirmText}
         itemName={confirmDialog.itemName}
         itemDescription={confirmDialog.itemDescription}
-        isLoading={deletingItem === confirmDialog.itemId}
+        isLoading={deletingItem === confirmDialog.itemId || deletingReminderId === confirmDialog.itemId}
         type={confirmDialog.type}
       />
 
