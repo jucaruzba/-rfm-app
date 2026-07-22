@@ -57,13 +57,6 @@ const MainLayout = () => {
       description: "Assigned by me. Awaiting completion.",
     },
     {
-      icon: <ClipboardList size={20} />,
-      label: "Activities",
-      path: "/activities",
-      roles: ["ADMIN"],
-      description: "Completed actions. Permanent record.",
-    },
-    {
       icon: <Building2 size={20} />,
       label: "Companies",
       path: "/companies",

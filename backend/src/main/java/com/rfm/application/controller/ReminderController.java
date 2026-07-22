@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.rfm.application.enums.RepeatType;
 import com.rfm.application.model.dto.ReminderDTO;
 import com.rfm.application.model.dto.ReminderRequest;
 import com.rfm.application.service.ReminderService;
@@ -39,6 +40,12 @@ public class ReminderController {
         return ResponseEntity.ok(reminderService.findByIdUser(idUser));
     }
 
+    // Nuevo endpoint para obtener solo recordatorios activos (incluye repeticiones)
+    @GetMapping("/active")
+    public ResponseEntity<List<ReminderDTO>> findActiveReminders(@RequestParam Long idUser) {
+        return ResponseEntity.ok(reminderService.findActiveReminders(idUser));
+    }
+
     @GetMapping("/object")
     public ResponseEntity<List<ReminderDTO>> findByIdObject(@RequestParam Long idObject) {
         return ResponseEntity.ok(reminderService.findByIdObject(idObject));
@@ -49,13 +56,30 @@ public class ReminderController {
         return ResponseEntity.ok(reminderService.findById(id));
     }
 
+    // Nuevo endpoint para filtrar por tipo de repetición
+    @GetMapping("/by-repeat-type")
+    public ResponseEntity<List<ReminderDTO>> findByRepeatType(
+            @RequestParam Long idUser,
+            @RequestParam RepeatType repeatType) {
+        return ResponseEntity.ok(reminderService.findByRepeatType(idUser, repeatType));
+    }
+
+    // Nuevo endpoint para obtener recordatorios en un rango de fechas (incluye repeticiones)
+    @GetMapping("/by-date-range")
+    public ResponseEntity<List<ReminderDTO>> findRemindersByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+        return ResponseEntity.ok(reminderService.findRemindersByDateRange(startDate, endDate));
+    }
+
     @GetMapping("/filter")
     public ResponseEntity<List<ReminderDTO>> findWithFilters(
             @RequestParam(required = false) Long idUser,
             @RequestParam(required = false) Boolean isCompleted,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        return ResponseEntity.ok(reminderService.findWithFilters(idUser, isCompleted, startDate, endDate));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) RepeatType repeatType) { // Nuevo parámetro opcional
+        return ResponseEntity.ok(reminderService.findWithFilters(idUser, isCompleted, startDate, endDate, repeatType));
     }
 
     @PutMapping("/{id}")
@@ -68,9 +92,28 @@ public class ReminderController {
         return ResponseEntity.ok(reminderService.markAsCompleted(id));
     }
 
+    // Nuevo endpoint para marcar como completado y crear el siguiente recordatorio
+    @PatchMapping("/{id}/complete-and-next")
+    public ResponseEntity<ReminderDTO> markAsCompletedAndCreateNext(@PathVariable Long id) {
+        return ResponseEntity.ok(reminderService.markAsCompletedAndCreateNext(id));
+    }
+
+    // Nuevo endpoint para obtener la cadena de recordatorios repetitivos
+    @GetMapping("/{id}/chain")
+    public ResponseEntity<List<ReminderDTO>> getReminderChain(@PathVariable Long id) {
+        return ResponseEntity.ok(reminderService.getReminderChain(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         reminderService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Nuevo endpoint para eliminar toda la cadena de recordatorios repetitivos
+    @DeleteMapping("/{id}/chain")
+    public ResponseEntity<Void> deleteChain(@PathVariable Long id) {
+        reminderService.deleteChain(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -2,8 +2,12 @@ package com.rfm.application.model.entity;
 
 import java.time.LocalDateTime;
 
+import com.rfm.application.enums.RepeatType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -48,4 +52,20 @@ public class Reminder {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "repeat_type", nullable = false)
+    private RepeatType repeatType;
+
+    @Column(name = "next_reminder_date")
+    private LocalDateTime nextReminderDate;
+
+    @Column(name = "last_reminder_date")
+    private LocalDateTime lastReminderDate;
+
+    @Column(name = "repeat_end_date")
+    private LocalDateTime repeatEndDate;
+
+    @Column(name = "parent_reminder_id")
+    private Long parentReminderId;
 }

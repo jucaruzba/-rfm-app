@@ -36,13 +36,18 @@ const COMPANY_TYPES_CONFIG = {
 const getTypeColor = (type) => {
   const config = COMPANY_TYPES_CONFIG[type];
   if (!config) return "bg-gray-500";
-  
+
   switch (config.color) {
-    case "blue": return "bg-blue-400";
-    case "green": return "bg-green-400";
-    case "purple": return "bg-purple-400";
-    case "orange": return "bg-orange-400";
-    default: return "bg-gray-500";
+    case "blue":
+      return "bg-blue-400";
+    case "green":
+      return "bg-green-400";
+    case "purple":
+      return "bg-purple-400";
+    case "orange":
+      return "bg-orange-400";
+    default:
+      return "bg-gray-500";
   }
 };
 
@@ -74,11 +79,6 @@ const CompanyWorkspaceLayout = () => {
       path: `/companies/${companyId}`,
     },
     {
-      icon: <Activity size={18} />,
-      label: "Activities",
-      path: `/companies/${companyId}/activities`,
-    },
-    {
       icon: <ClipboardList size={18} />,
       label: "Tasks",
       path: `/companies/${companyId}/tasks`,
@@ -92,7 +92,13 @@ const CompanyWorkspaceLayout = () => {
 
   // Get type label and icon
   const getTypeInfo = (type) => {
-    return COMPANY_TYPES_CONFIG[type] || { label: type || "Unknown", icon: Building2, color: "gray" };
+    return (
+      COMPANY_TYPES_CONFIG[type] || {
+        label: type || "Unknown",
+        icon: Building2,
+        color: "gray",
+      }
+    );
   };
 
   return (
@@ -121,14 +127,16 @@ const CompanyWorkspaceLayout = () => {
               <h2 className="text-xl font-black uppercase italic tracking-tighter leading-none max-w-[250px] md:max-w-[350px] truncate">
                 {company?.name || "Loading Node..."}
               </h2>
-              
+
               {/* COMPANY TYPE BADGE - MÁS GRANDE */}
               {company?.type && (
                 <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm">
                   <span className="text-xs font-black uppercase tracking-[0.15em] text-white/90">
                     {getTypeInfo(company.type).label}
                   </span>
-                  <span className={`w-2 h-2 rounded-full ${getTypeColor(company.type)}`} />
+                  <span
+                    className={`w-2 h-2 rounded-full ${getTypeColor(company.type)}`}
+                  />
                 </div>
               )}
             </div>
@@ -199,7 +207,7 @@ const CompanyWorkspaceLayout = () => {
               <X size={24} />
             </button>
           </div>
-          
+
           {/* Mobile: Company info with type - SIN LOGO */}
           {company && (
             <div className="px-4 py-3 bg-white/5 rounded-2xl border border-white/5">
@@ -213,7 +221,7 @@ const CompanyWorkspaceLayout = () => {
               )}
             </div>
           )}
-          
+
           <nav className="flex flex-col gap-2">
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;

@@ -32,7 +32,7 @@ import ProjectObjectExplorer from "./pages/projects/components/ProjectObjectExpl
 import TasksPage from "./pages/admin/components/task/TaskPage";
 import UserPage from "./pages/admin/components/users/UserPage";
 import PendingItem from "./pages/admin/components/pending/PendingItem";
-import ReminderUser from "./pages/ReminderUser";
+import ReminderCalendar from "./pages/ReminderCalendar";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -134,7 +134,7 @@ function App() {
               path="/reminders"
               element={
                 <ProtectedRoute allowedRoles={["ADMIN", "ASSISTANT"]}>
-                  <ReminderUser />
+                  <ReminderCalendar />
                 </ProtectedRoute>
               }
             />
