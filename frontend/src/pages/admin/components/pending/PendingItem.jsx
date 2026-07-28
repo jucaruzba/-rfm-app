@@ -38,27 +38,31 @@ const getStatusColor = (status) => {
     "in-progress": "bg-yellow-100 text-yellow-700 border border-yellow-200",
     completed: "bg-green-100 text-green-700 border border-green-200",
   };
-  return colors[statusLower] || "bg-gray-100 text-gray-700 border border-gray-200";
+  return (
+    colors[statusLower] || "bg-gray-100 text-gray-700 border border-gray-200"
+  );
 };
 
 // ==========================================
 // COLORES DE SEMÁFORO PARA SELECTOR
 // ==========================================
 const STATUS_OPTIONS = [
-  { 
-    value: "pending", 
-    label: "Pending", 
-    color: "bg-red-100 text-red-700 border border-red-200 hover:bg-red-200" 
+  {
+    value: "pending",
+    label: "Pending",
+    color: "bg-red-100 text-red-700 border border-red-200 hover:bg-red-200",
   },
-  { 
-    value: "in_progress", 
-    label: "In Progress", 
-    color: "bg-yellow-100 text-yellow-700 border border-yellow-200 hover:bg-yellow-200" 
+  {
+    value: "in_progress",
+    label: "In Progress",
+    color:
+      "bg-yellow-100 text-yellow-700 border border-yellow-200 hover:bg-yellow-200",
   },
-  { 
-    value: "completed", 
-    label: "Completed", 
-    color: "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200" 
+  {
+    value: "completed",
+    label: "Completed",
+    color:
+      "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200",
   },
 ];
 
@@ -88,7 +92,9 @@ const StatusDot = ({ status }) => {
     completed: "bg-green-500",
   };
   const color = dotColors[statusLower] || "bg-gray-500";
-  return <span className={`inline-block w-2 h-2 rounded-full ${color} mr-1.5`} />;
+  return (
+    <span className={`inline-block w-2 h-2 rounded-full ${color} mr-1.5`} />
+  );
 };
 
 const PendingItem = () => {
@@ -139,7 +145,8 @@ const PendingItem = () => {
   // ==========================================
   // VERIFICAR SI ES ADMIN
   // ==========================================
-  const isAdmin = user?.role?.toLowerCase() === "admin" || user?.role === "ADMIN";
+  const isAdmin =
+    user?.role?.toLowerCase() === "admin" || user?.role === "ADMIN";
 
   // ==========================================
   // OBTENER DATOS DE LA TABLA
@@ -200,10 +207,15 @@ const PendingItem = () => {
   // ==========================================
   const getUserNameById = (userId) => {
     if (!userId) return "N/A";
-    if (typeof userId === 'string' && (userId.includes('@') || userId.length > 10)) {
+    if (
+      typeof userId === "string" &&
+      (userId.includes("@") || userId.length > 10)
+    ) {
       return userId;
     }
-    const userFound = allUsers.find(u => (u.idUser || u.id) === Number(userId));
+    const userFound = allUsers.find(
+      (u) => (u.idUser || u.id) === Number(userId),
+    );
     return userFound?.username || userFound?.name || `User ${userId}`;
   };
 
@@ -257,14 +269,14 @@ const PendingItem = () => {
     try {
       await pendingItemService.delete(itemToDelete.idPending);
       toast.success("Pending item deleted successfully");
-      
+
       // Cerrar modales si están abiertos
       setIsDeleteModalOpen(false);
       if (isViewModalOpen) {
         setIsViewModalOpen(false);
         setIsEditing(false);
       }
-      
+
       // Refrescar la lista
       fetchItems();
     } catch (error) {
@@ -321,15 +333,15 @@ const PendingItem = () => {
 
       await pendingItemService.update(selectedItem.idPending, payload);
       toast.success("Pending item updated successfully");
-      
-      setSelectedItem(prev => ({
+
+      setSelectedItem((prev) => ({
         ...prev,
         title: editForm.title,
         description: editForm.description,
         status: editForm.status,
         assignedTo: Number(editForm.assignedTo),
       }));
-      
+
       setIsEditing(false);
       fetchItems();
     } catch (err) {
@@ -341,7 +353,10 @@ const PendingItem = () => {
   };
 
   const handleShowTask = () => {
-    if (selectedItem?.referenceType?.toLowerCase() === "task" && selectedItem?.referenceId) {
+    if (
+      selectedItem?.referenceType?.toLowerCase() === "task" &&
+      selectedItem?.referenceId
+    ) {
       setSelectedTaskId(selectedItem.referenceId);
       setIsDetailViewOpen(true);
     }
@@ -397,7 +412,7 @@ const PendingItem = () => {
   };
 
   const handleUpdateStatus = async (id, newStatus) => {
-    const currentItem = pendingItems.find(item => item.idPending === id);
+    const currentItem = pendingItems.find((item) => item.idPending === id);
     if (!currentItem) return;
 
     if (currentItem.status === newStatus) return;
@@ -416,16 +431,16 @@ const PendingItem = () => {
 
       await pendingItemService.update(id, payload);
       toast.success(`Status updated to ${newStatus.toUpperCase()}`);
-      
-      setPendingItems(prev =>
-        prev.map(item =>
-          item.idPending === id ? { ...item, status: newStatus } : item
-        )
+
+      setPendingItems((prev) =>
+        prev.map((item) =>
+          item.idPending === id ? { ...item, status: newStatus } : item,
+        ),
       );
-      
+
       if (selectedItem?.idPending === id) {
-        setSelectedItem(prev => ({ ...prev, status: newStatus }));
-        setEditForm(prev => ({ ...prev, status: newStatus }));
+        setSelectedItem((prev) => ({ ...prev, status: newStatus }));
+        setEditForm((prev) => ({ ...prev, status: newStatus }));
       }
     } catch (err) {
       console.error("Update status error", err);
@@ -447,7 +462,7 @@ const PendingItem = () => {
             <ListTodo className="text-blue-500" /> Pending Items
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            {filters.viewType === "assigned" 
+            {filters.viewType === "assigned"
               ? `Assigned to you (${totalElements} total)`
               : `Created by you (${totalElements} total)`}
           </p>
@@ -550,7 +565,9 @@ const PendingItem = () => {
                 <th className="p-4 font-semibold">Type</th>
                 <th className="p-4 font-semibold">Status</th>
                 <th className="p-4 font-semibold">
-                  {filters.viewType === "assigned" ? "Created By" : "Assigned To"}
+                  {filters.viewType === "assigned"
+                    ? "Created By"
+                    : "Assigned To"}
                 </th>
                 <th className="p-4 font-semibold">Created</th>
                 <th className="p-4 font-semibold text-center">Actions</th>
@@ -600,11 +617,13 @@ const PendingItem = () => {
                       {filters.viewType === "assigned" ? (
                         <select
                           value={item.status}
-                          onChange={(e) => handleUpdateStatus(item.idPending, e.target.value)}
+                          onChange={(e) =>
+                            handleUpdateStatus(item.idPending, e.target.value)
+                          }
                           disabled={updatingStatusId === item.idPending}
                           className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md cursor-pointer transition-all ${getStatusColor(item.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                         >
-                          {STATUS_OPTIONS.map(option => (
+                          {STATUS_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
                             </option>
@@ -619,13 +638,16 @@ const PendingItem = () => {
                         </span>
                       )}
                       {updatingStatusId === item.idPending && (
-                        <Loader2 size={12} className="inline ml-2 animate-spin text-gray-400" />
+                        <Loader2
+                          size={12}
+                          className="inline ml-2 animate-spin text-gray-400"
+                        />
                       )}
                     </td>
                     <td className="p-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <User size={12} className="text-gray-400" />
-                        {filters.viewType === "assigned" 
+                        {filters.viewType === "assigned"
                           ? getUserNameById(item.createdBy)
                           : getUserNameById(item.assignedTo)}
                       </div>
@@ -815,7 +837,7 @@ const PendingItem = () => {
                     onChange={handleEditChange}
                     className={`w-full text-sm font-bold uppercase tracking-wider px-3 py-2 rounded-lg cursor-pointer transition-all ${getStatusColor(editForm.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   >
-                    {STATUS_OPTIONS.map(option => (
+                    {STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -848,7 +870,10 @@ const PendingItem = () => {
                       const currentId = u.idUser || u.id;
                       const currentUserId = user?.idUser || user?.id;
                       return (
-                        <option key={`edit-user-${currentId}`} value={currentId}>
+                        <option
+                          key={`edit-user-${currentId}`}
+                          value={currentId}
+                        >
                           {u.username || u.name}
                           {currentId === currentUserId && " (You)"}
                         </option>
@@ -896,7 +921,7 @@ const PendingItem = () => {
                   <ExternalLink size={16} /> View Task
                 </button>
               )}
-              
+
               {isEditing ? (
                 <button
                   onClick={handleSaveEdit}
@@ -944,35 +969,38 @@ const PendingItem = () => {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-center text-5xl text-red-500 mb-2">
                 <AlertCircle size={64} className="text-red-500" />
               </div>
-              
+
               <h4 className="text-center text-lg font-semibold text-gray-900">
                 Are you sure you want to delete this pending item?
               </h4>
-              
+
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                 <p className="text-sm text-gray-600">
-                  <span className="font-semibold">Title:</span> {itemToDelete.title}
+                  <span className="font-semibold">Title:</span>{" "}
+                  {itemToDelete.title}
                 </p>
                 {itemToDelete.description && (
                   <p className="text-sm text-gray-600 mt-1">
-                    <span className="font-semibold">Description:</span> {itemToDelete.description}
+                    <span className="font-semibold">Description:</span>{" "}
+                    {itemToDelete.description}
                   </p>
                 )}
                 <p className="text-sm text-gray-600 mt-1">
-                  <span className="font-semibold">Status:</span> {formatStatusForUI(itemToDelete.status)}
+                  <span className="font-semibold">Status:</span>{" "}
+                  {formatStatusForUI(itemToDelete.status)}
                 </p>
               </div>
-              
+
               <p className="text-sm text-red-600 text-center font-semibold">
                 ⚠️ This action cannot be undone.
               </p>
             </div>
-            
+
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
               <button
                 onClick={handleCancelDelete}
@@ -1080,7 +1108,7 @@ const PendingItem = () => {
                   }
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
                 >
-                  {STATUS_OPTIONS.map(option => (
+                  {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -1107,7 +1135,10 @@ const PendingItem = () => {
                     const currentId = u.idUser || u.id;
                     const currentUserId = user?.idUser || user?.id;
                     return (
-                      <option key={`create-user-${currentId}`} value={currentId}>
+                      <option
+                        key={`create-user-${currentId}`}
+                        value={currentId}
+                      >
                         {u.username || u.name}
                         {currentId === currentUserId && " (You)"}
                       </option>
