@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Pencil,
   Save,
+  Trash2, // Añadir este icono
 } from "lucide-react";
 import { toast } from "sonner";
 import { pendingItemService } from "../../../../services/pendingItemService";
@@ -131,6 +132,14 @@ const PendingItem = () => {
   });
 
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null); // Nuevo estado para el delete
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Modal de confirmación
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  // ==========================================
+  // VERIFICAR SI ES ADMIN
+  // ==========================================
+  const isAdmin = user?.role?.toLowerCase() === "admin" || user?.role === "ADMIN";
 
   // ==========================================
   // OBTENER DATOS DE LA TABLA
@@ -234,11 +243,49 @@ const PendingItem = () => {
   };
 
   // ==========================================
+  // HANDLERS DE ELIMINACIÓN
+  // ==========================================
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    setDeletingId(itemToDelete.idPending);
+    try {
+      await pendingItemService.delete(itemToDelete.idPending);
+      toast.success("Pending item deleted successfully");
+      
+      // Cerrar modales si están abiertos
+      setIsDeleteModalOpen(false);
+      if (isViewModalOpen) {
+        setIsViewModalOpen(false);
+        setIsEditing(false);
+      }
+      
+      // Refrescar la lista
+      fetchItems();
+    } catch (error) {
+      console.error("Delete error", error);
+      toast.error("Failed to delete pending item");
+    } finally {
+      setDeletingId(null);
+      setItemToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
+  // ==========================================
   // HANDLERS DE EDICIÓN
   // ==========================================
   const handleEditToggle = () => {
     if (isEditing) {
-      // Si está en modo edición y se cancela, restaurar valores originales
       setEditForm({
         title: selectedItem.title,
         description: selectedItem.description || "",
@@ -275,7 +322,6 @@ const PendingItem = () => {
       await pendingItemService.update(selectedItem.idPending, payload);
       toast.success("Pending item updated successfully");
       
-      // Actualizar el item seleccionado
       setSelectedItem(prev => ({
         ...prev,
         title: editForm.title,
@@ -590,13 +636,30 @@ const PendingItem = () => {
                         : "N/A"}
                     </td>
                     <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleViewItem(item)}
-                        className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="View Details"
-                      >
-                        <Eye size={16} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleViewItem(item)}
+                          className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        {/* Botón de eliminar - SOLO PARA ADMIN */}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteClick(item)}
+                            disabled={deletingId === item.idPending}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Delete"
+                          >
+                            {deletingId === item.idPending ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={16} />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -635,7 +698,7 @@ const PendingItem = () => {
       {/* MODAL DE VISUALIZACIÓN / EDICIÓN */}
       {/* ========================================== */}
       {isViewModalOpen && selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/50 backdrop-blur-sm p-10">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gradient-to-r from-[#001F3F] to-blue-900">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -659,6 +722,19 @@ const PendingItem = () => {
                     title="Cancel"
                   >
                     <X size={18} />
+                  </button>
+                )}
+                {/* Botón de eliminar en el modal - SOLO PARA ADMIN */}
+                {isAdmin && !isEditing && (
+                  <button
+                    onClick={() => {
+                      setIsViewModalOpen(false);
+                      handleDeleteClick(selectedItem);
+                    }}
+                    className="text-red-400 hover:text-red-300 transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                    title="Delete"
+                  >
+                    <Trash2 size={18} />
                   </button>
                 )}
                 <button
@@ -845,6 +921,77 @@ const PendingItem = () => {
                   <CheckCircle2 size={16} /> Close
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR */}
+      {/* ========================================== */}
+      {isDeleteModalOpen && itemToDelete && (
+        <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gradient-to-r from-red-600 to-red-700">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Trash2 size={20} />
+                Confirm Deletion
+              </h3>
+              <button
+                onClick={handleCancelDelete}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-center text-5xl text-red-500 mb-2">
+                <AlertCircle size={64} className="text-red-500" />
+              </div>
+              
+              <h4 className="text-center text-lg font-semibold text-gray-900">
+                Are you sure you want to delete this pending item?
+              </h4>
+              
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Title:</span> {itemToDelete.title}
+                </p>
+                {itemToDelete.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    <span className="font-semibold">Description:</span> {itemToDelete.description}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600 mt-1">
+                  <span className="font-semibold">Status:</span> {formatStatusForUI(itemToDelete.status)}
+                </p>
+              </div>
+              
+              <p className="text-sm text-red-600 text-center font-semibold">
+                ⚠️ This action cannot be undone.
+              </p>
+            </div>
+            
+            <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
+              <button
+                onClick={handleCancelDelete}
+                className="px-5 py-2 text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deletingId === itemToDelete.idPending}
+                className="px-5 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {deletingId === itemToDelete.idPending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+                Delete
+              </button>
             </div>
           </div>
         </div>

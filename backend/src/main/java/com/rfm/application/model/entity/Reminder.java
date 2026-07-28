@@ -32,7 +32,7 @@ public class Reminder {
     @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "reminder_date", nullable = false)

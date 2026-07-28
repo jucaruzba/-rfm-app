@@ -27,6 +27,8 @@ public class Task {
     private Long idTask;
 
     private String title;
+    
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
     private String status;
 

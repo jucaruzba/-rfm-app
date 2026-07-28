@@ -26,7 +26,8 @@ public class PendingItem {
     private Long idPending;
 
     private String title;
-
+    
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     private String status;
