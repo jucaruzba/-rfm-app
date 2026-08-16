@@ -7,9 +7,13 @@ export const fileService = {
     if (!filePath) return null;
 
     let cleanPath = filePath.replace(/\\/g, "/");
-    if (cleanPath.includes("/NAS/")) {
+    if (cleanPath.includes("/storage/")) {
+      cleanPath = cleanPath.split("/storage/")[1];
+    } else if (cleanPath.includes("/NAS/")) {
       cleanPath = cleanPath.split("/NAS/")[1];
     }
+
+    cleanPath = cleanPath.replace(/^\/+/, "");
 
     return `${apiBase}/files/${cleanPath}`;
   },
