@@ -384,7 +384,6 @@ const ReminderCalendar = () => {
 
       const data = await reminderService.filterReminders({
         idUser: userId,
-        isCompleted: false,
         startDate,
         endDate,
       });
@@ -423,9 +422,21 @@ const ReminderCalendar = () => {
     try {
       setCompletingId(id);
       await reminderService.markAsCompleted(id);
-      toast.success("🎉 Task accomplished!");
-      setReminders((prev) => prev.filter((r) => r.idReminder !== id));
-      if (selectedReminder?.idReminder === id) setSelectedReminder(null);
+      toast.success("🎉 Reminder marked as Done!");
+      setReminders((prev) =>
+        prev.map((r) =>
+          r.idReminder === id
+            ? { ...r, isCompleted: true, completedAt: new Date().toISOString() }
+            : r,
+        ),
+      );
+      if (selectedReminder?.idReminder === id) {
+        setSelectedReminder((prev) => ({
+          ...prev,
+          isCompleted: true,
+          completedAt: new Date().toISOString(),
+        }));
+      }
     } catch (err) {
       toast.error("Update failed");
     } finally {

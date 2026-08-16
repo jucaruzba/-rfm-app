@@ -29,7 +29,7 @@ const TasksPage = () => {
   const [users, setUsers] = useState([]);
 
   // --- FILTROS PARA EL BACKEND ---
-  const [statusTab, setStatusTab] = useState("ALL");
+  const [statusTab, setStatusTab] = useState("PENDING");
   const [filterUser, setFilterUser] = useState("");
   const [filterCompany, setFilterCompany] = useState(companyId || "");
   const [startDate, setStartDate] = useState("");
@@ -337,10 +337,10 @@ const TasksPage = () => {
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 pt-2 border-t border-gray-50">
           <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl overflow-x-auto">
             {[
-              { id: "ALL", name: "All Workflows" },
               { id: "PENDING", name: "Pending" },
               { id: "IN_PROGRESS", name: "In Progress" },
               { id: "COMPLETED", name: "Completed" },
+              { id: "ALL", name: "All Workflows" },
             ].map((tab) => (
               <button
                 key={`tab-status-${tab.id}`}
@@ -414,7 +414,7 @@ const TasksPage = () => {
                     <h3 className="text-base font-black text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors">
                       {task.title}
                     </h3>
-                    <p className="text-xs text-gray-400 font-medium leading-relaxed mt-0.5">
+                    <p className="text-xs text-gray-400 font-medium leading-relaxed mt-0.5 line-clamp-2">
                       {task.description ||
                         "No execution summary mapped to this directive."}
                     </p>

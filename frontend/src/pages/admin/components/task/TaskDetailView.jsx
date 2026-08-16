@@ -662,16 +662,17 @@ const handleConfirmDeletePending = async (id) => {
                 </p>
                 {isEditing ? (
                   <textarea
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600 rounded-xl p-4 text-[11px] font-medium h-32 outline-none transition-all resize-none"
+                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600 rounded-xl p-4 text-xs font-medium h-36 outline-none transition-all resize-y"
                     value={task.description || ""}
+                    placeholder="Enter detailed task description..."
                     onChange={(e) =>
                       setTask({ ...task, description: e.target.value })
                     }
                   />
                 ) : (
-                  <p className="text-xs text-gray-500 leading-relaxed font-medium italic">
+                  <div className="bg-gray-50/80 border border-gray-100 rounded-xl p-4 text-xs text-gray-600 leading-relaxed font-medium whitespace-pre-wrap break-words">
                     {task.description || "No task description provided."}
-                  </p>
+                  </div>
                 )}
               </div>
 

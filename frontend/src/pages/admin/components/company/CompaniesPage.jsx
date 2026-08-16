@@ -19,6 +19,8 @@ import {
   Eye,
   EyeOff,
   FileText,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { companyService } from "../../../../services/companyService";
 import { fileService } from "../../../../services/fileService";
@@ -46,6 +48,7 @@ const CompaniesPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [viewMode, setViewMode] = useState("icons"); // "icons" or "list"
 
   // --- CREATE MODAL STATES ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -249,22 +252,52 @@ const CompaniesPage = () => {
         </div>
       </div>
 
-      {/* SEARCH BAR */}
-      <div className="relative group">
-        <Search
-          className="absolute left-7 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-all"
-          size={22}
-        />
-        <input
-          type="text"
-          placeholder="Search by corporate name..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-white border border-gray-100 rounded-[1.5rem] py-5 pl-16 pr-8 outline-none focus:border-blue-600 transition-all shadow-sm font-bold text-sm text-[#001F3F]"
-        />
+      {/* SEARCH AND VIEW TOGGLE */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <div className="relative group flex-1">
+          <Search
+            className="absolute left-7 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-all"
+            size={22}
+          />
+          <input
+            type="text"
+            placeholder="Search by corporate name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-white border border-gray-100 rounded-[1.5rem] py-5 pl-16 pr-8 outline-none focus:border-blue-600 transition-all shadow-sm font-bold text-sm text-[#001F3F]"
+          />
+        </div>
+
+        {/* View Mode Toggle: Icons vs List */}
+        <div className="flex items-center bg-white border border-gray-100 p-1.5 rounded-2xl shadow-sm self-end sm:self-auto shrink-0 gap-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("icons")}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+              viewMode === "icons"
+                ? "bg-[#001F3F] text-white shadow-md shadow-blue-900/20"
+                : "text-gray-400 hover:text-[#001F3F] hover:bg-gray-50"
+            }`}
+            title="Icons / Grid View"
+          >
+            <LayoutGrid size={16} /> Icons
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+              viewMode === "list"
+                ? "bg-[#001F3F] text-white shadow-md shadow-blue-900/20"
+                : "text-gray-400 hover:text-[#001F3F] hover:bg-gray-50"
+            }`}
+            title="List View"
+          >
+            <List size={16} /> List
+          </button>
+        </div>
       </div>
 
-      {/* GRID */}
+      {/* COMPANIES VIEW (GRID OR LIST) */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map((n) => (
@@ -275,131 +308,257 @@ const CompaniesPage = () => {
           ))}
         </div>
       ) : filteredCompanies.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCompanies.map((company) => (
-            <div
-              key={company.idCompany}
-              className={`group bg-white rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
-                company.status === "ARCHIVED"
-                  ? "border-gray-200 opacity-75 hover:opacity-100"
-                  : "border-gray-100 hover:border-blue-500/30 hover:shadow-[0_20px_50px_rgba(0,31,63,0.06)]"
-              }`}
-            >
-              {/* Background effect */}
+        viewMode === "icons" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredCompanies.map((company) => (
               <div
-                className={`absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-blue-500 to-[#001F3F] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                  company.status === "ARCHIVED" ? "bg-gray-400" : ""
+                key={company.idCompany}
+                className={`group bg-white rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
+                  company.status === "ARCHIVED"
+                    ? "border-gray-200 opacity-75 hover:opacity-100"
+                    : "border-gray-100 hover:border-blue-500/30 hover:shadow-[0_20px_50px_rgba(0,31,63,0.06)]"
                 }`}
-              />
+              >
+                {/* Background effect */}
+                <div
+                  className={`absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-blue-500 to-[#001F3F] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                    company.status === "ARCHIVED" ? "bg-gray-400" : ""
+                  }`}
+                />
 
-              <div>
-                {/* TOP ROW: Logo and Badge */}
-                <div className="flex items-start justify-between gap-4 mb-6">
+                <div>
+                  {/* TOP ROW: Logo and Badge */}
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <div
+                      className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-300 shrink-0 overflow-hidden cursor-pointer"
+                      onClick={() => navigate(`/companies/${company.idCompany}`)}
+                    >
+                      {company.logoPath ? (
+                        <img
+                          src={fileService.getFileUrl(company.logoPath)}
+                          alt={company.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Building2 size={28} className="text-gray-400" />
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      {company.type && (
+                        <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                          {COMPANY_TYPES.find((t) => t.value === company.type)
+                            ?.label || company.type}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* COMPANY INFO */}
                   <div
-                    className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-300 shrink-0 overflow-hidden cursor-pointer"
+                    className="space-y-3 cursor-pointer"
                     onClick={() => navigate(`/companies/${company.idCompany}`)}
                   >
-                    {company.logoPath ? (
-                      <img
-                        src={fileService.getFileUrl(company.logoPath)}
-                        alt={company.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Building2 size={28} className="text-gray-400" />
-                    )}
-                  </div>
+                    <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
+                      {company.name}
+                    </h2>
 
-                  <div className="flex gap-2">
-                    {company.type && (
-                      <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-wider">
-                        {COMPANY_TYPES.find((t) => t.value === company.type)
-                          ?.label || company.type}
-                      </span>
+                    {/* Status badge */}
+                    {company.status && (
+                      <div
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${getStatusColor(company.status)}`}
+                      >
+                        <Circle size={8} fill="currentColor" />
+                        {COMPANY_STATUSES.find((s) => s.value === company.status)
+                          ?.label || company.status}
+                      </div>
                     )}
+
+                    <p className="text-sm text-gray-500 font-medium leading-relaxed line-clamp-3">
+                      {company.description ||
+                        "No corporate description provided for this operational entity."}
+                    </p>
                   </div>
                 </div>
 
-                {/* COMPANY INFO */}
-                <div
-                  className="space-y-3 cursor-pointer"
-                  onClick={() => navigate(`/companies/${company.idCompany}`)}
-                >
-                  <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
-                    {company.name}
-                  </h2>
-
-                  {/* Status badge */}
-                  {company.status && (
-                    <div
-                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${getStatusColor(company.status)}`}
-                    >
-                      <Circle size={8} fill="currentColor" />
-                      {COMPANY_STATUSES.find((s) => s.value === company.status)
-                        ?.label || company.status}
-                    </div>
-                  )}
-
-                  <p className="text-sm text-gray-500 font-medium leading-relaxed line-clamp-3">
-                    {company.description ||
-                      "No corporate description provided for this operational entity."}
-                  </p>
-                </div>
-              </div>
-
-              {/* FOOTER WITH ACTIONS */}
-              <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
-                <button
-                  onClick={() => navigate(`/companies/${company.idCompany}`)}
-                  className="text-[10px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-blue-600 transition-colors duration-300 flex items-center gap-2"
-                >
-                  View Profile
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2.5}
-                    stroke="currentColor"
-                    className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300"
+                {/* FOOTER WITH ACTIONS */}
+                <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
+                  <button
+                    onClick={() => navigate(`/companies/${company.idCompany}`)}
+                    className="text-[10px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-blue-600 transition-colors duration-300 flex items-center gap-2"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                    />
-                  </svg>
-                </button>
+                    View Profile
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2.5}
+                      stroke="currentColor"
+                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                      />
+                    </svg>
+                  </button>
 
-                {/* Actions: Restore or Delete */}
-                <div className="flex items-center gap-2">
-                  {company.status === "ARCHIVED" ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRestore(company.idCompany, company.name);
-                      }}
-                      className="p-2 rounded-xl text-green-600 hover:bg-green-50 transition-all"
-                      title="Restore company"
-                    >
-                      <RotateCcw size={18} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(company.idCompany, company.name);
-                      }}
-                      className="p-2 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                      title="Delete company"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
+                  {/* Actions: Restore or Delete */}
+                  <div className="flex items-center gap-2">
+                    {company.status === "ARCHIVED" ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRestore(company.idCompany, company.name);
+                        }}
+                        className="p-2 rounded-xl text-green-600 hover:bg-green-50 transition-all"
+                        title="Restore company"
+                      >
+                        <RotateCcw size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(company.idCompany, company.name);
+                        }}
+                        className="p-2 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                        title="Delete company"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          /* LIST VIEW */
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-300">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/80 text-gray-400 text-[10px] font-black uppercase tracking-wider border-b border-gray-100">
+                    <th className="p-4 pl-6">Company</th>
+                    <th className="p-4">Type</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4">Description</th>
+                    <th className="p-4 pr-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredCompanies.map((company) => (
+                    <tr
+                      key={`list-${company.idCompany}`}
+                      className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
+                      onClick={() => navigate(`/companies/${company.idCompany}`)}
+                    >
+                      {/* Name & Logo */}
+                      <td className="p-4 pl-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100 shrink-0 overflow-hidden">
+                            {company.logoPath ? (
+                              <img
+                                src={fileService.getFileUrl(company.logoPath)}
+                                alt={company.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Building2 size={18} className="text-gray-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-black text-sm text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors">
+                              {company.name}
+                            </p>
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
+                              ID: #{company.idCompany}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Type */}
+                      <td className="p-4">
+                        {company.type ? (
+                          <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider">
+                            {COMPANY_TYPES.find((t) => t.value === company.type)
+                              ?.label || company.type}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300 text-xs">--</span>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="p-4">
+                        {company.status ? (
+                          <div
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${getStatusColor(company.status)}`}
+                          >
+                            <Circle size={6} fill="currentColor" />
+                            {COMPANY_STATUSES.find(
+                              (s) => s.value === company.status,
+                            )?.label || company.status}
+                          </div>
+                        ) : (
+                          <span className="text-gray-300 text-xs">--</span>
+                        )}
+                      </td>
+
+                      {/* Description */}
+                      <td className="p-4 max-w-xs md:max-w-md">
+                        <p className="text-xs text-gray-500 font-medium truncate">
+                          {company.description || "No corporate description provided."}
+                        </p>
+                      </td>
+
+                      {/* Actions */}
+                      <td
+                        className="p-4 pr-6 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              navigate(`/companies/${company.idCompany}`)
+                            }
+                            className="px-3 py-1.5 bg-gray-50 hover:bg-[#001F3F] text-[#001F3F] hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                          >
+                            View
+                          </button>
+                          {company.status === "ARCHIVED" ? (
+                            <button
+                              onClick={() =>
+                                handleRestore(company.idCompany, company.name)
+                              }
+                              className="p-2 rounded-xl text-green-600 hover:bg-green-50 transition-all"
+                              title="Restore company"
+                            >
+                              <RotateCcw size={16} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                handleDelete(company.idCompany, company.name)
+                              }
+                              className="p-2 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                              title="Delete company"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+          </div>
+        )
       ) : (
         <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-gray-100 text-center">
           <p className="text-lg font-black text-[#001F3F] uppercase italic">

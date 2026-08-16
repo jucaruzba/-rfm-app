@@ -528,23 +528,7 @@ const PendingItem = () => {
             </select>
           </div>
 
-          <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-              Reference Type
-            </label>
-            <select
-              name="referenceType"
-              value={filters.referenceType}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
-            >
-              <option value="">All Types</option>
-              <option value="task">Task</option>
-              <option value="activity">Activity</option>
-            </select>
-          </div>
-
-          {(filters.status || filters.referenceType) && (
+          {filters.status && (
             <button
               onClick={clearFilters}
               className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors font-semibold"
@@ -562,7 +546,6 @@ const PendingItem = () => {
             <thead>
               <tr className="bg-gray-50/80 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
                 <th className="p-4 font-semibold">Title</th>
-                <th className="p-4 font-semibold">Type</th>
                 <th className="p-4 font-semibold">Status</th>
                 <th className="p-4 font-semibold">
                   {filters.viewType === "assigned"
@@ -576,7 +559,7 @@ const PendingItem = () => {
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-gray-400">
+                  <td colSpan="5" className="p-8 text-center text-gray-400">
                     <div className="flex items-center justify-center gap-2">
                       <Activity size={20} className="animate-spin" />
                       Loading items...
@@ -585,7 +568,7 @@ const PendingItem = () => {
                 </tr>
               ) : pendingItems.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-gray-400">
+                  <td colSpan="5" className="p-8 text-center text-gray-400">
                     <div className="flex flex-col items-center gap-2">
                       <AlertCircle size={24} className="text-gray-400" />
                       <p>No pending items found</p>
@@ -607,11 +590,6 @@ const PendingItem = () => {
                           {item.description}
                         </p>
                       )}
-                    </td>
-                    <td className="p-4">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-gray-100 text-gray-600">
-                        {item.referenceType || "N/A"}
-                      </span>
                     </td>
                     <td className="p-4">
                       {filters.viewType === "assigned" ? (
@@ -791,16 +769,6 @@ const PendingItem = () => {
                     {selectedItem.title}
                   </p>
                 )}
-              </div>
-
-              {/* TYPE */}
-              <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Type
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
-                  {selectedItem.referenceType?.toUpperCase() || "N/A"}
-                </p>
               </div>
 
               {/* DESCRIPTION */}

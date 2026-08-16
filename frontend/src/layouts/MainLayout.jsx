@@ -33,14 +33,13 @@ const MainLayout = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // ✅ ORDEN ESPECÍFICO QUE QUIERE TU TÍO
   const menuItems = [
     {
-      icon: <Bell size={20} />,
-      label: "Reminders",
-      path: "/reminders",
+      icon: <AlertCircle size={20} />,
+      label: "Pending",
+      path: "/pending-items",
       roles: ["ADMIN", "ASSISTANT"],
-      description: "Private alarms. Time only.",
+      description: "Assigned by me. Awaiting completion.",
     },
     {
       icon: <CheckSquare size={20} />,
@@ -50,11 +49,11 @@ const MainLayout = () => {
       description: "Work to do (me or team)",
     },
     {
-      icon: <AlertCircle size={20} />,
-      label: "Pending",
-      path: "/pending-items",
+      icon: <Bell size={20} />,
+      label: "Reminders",
+      path: "/reminders",
       roles: ["ADMIN", "ASSISTANT"],
-      description: "Assigned by me. Awaiting completion.",
+      description: "Private alarms. Time only.",
     },
     {
       icon: <Building2 size={20} />,
