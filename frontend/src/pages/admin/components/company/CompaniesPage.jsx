@@ -188,10 +188,28 @@ const CompaniesPage = () => {
     });
   };
 
-  // --- FILTER COMPANIES ---
-  const filteredCompanies = companies.filter(
+// Status ordering map: Active -> In progress -> On Hold -> Archived
+const STATUS_ORDER = {
+  ACTIVE: 1,
+  IN_PROGRESS: 2,
+  ON_HOLD: 3,
+  ARCHIVED: 4,
+};
+
+  // --- SORT AND FILTER COMPANIES ---
+  // Fixed order: Active, In progress, On Hold, Archived, and stable by idCompany
+  const sortedCompanies = [...companies].sort((a, b) => {
+    const orderA = STATUS_ORDER[a.status] ?? 99;
+    const orderB = STATUS_ORDER[b.status] ?? 99;
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    return (a.idCompany || 0) - (b.idCompany || 0);
+  });
+
+  const filteredCompanies = sortedCompanies.filter(
     (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 

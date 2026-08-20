@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import com.rfm.application.model.dto.NotificationDTO;
 import com.rfm.application.model.entity.Notification;
 import com.rfm.application.repository.NotificationRepository;
-
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 

@@ -47,10 +47,11 @@ public class TaskController {
 	@GetMapping("/filters")
 	public ResponseEntity<Page<TaskDTO>> getFilters(@RequestParam(required = false) Long idCompany,
 			@RequestParam(required = false) String status, @RequestParam(required = false) Long idUserAssigned,
+			@RequestParam(required = false) String title,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate start,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate end,
 			@PageableDefault(page = 0, size = 10, sort = "idTask", direction = Sort.Direction.DESC) Pageable pageable) {
-		Page<TaskDTO> tasksPage = taskService.findWithFilters(idCompany, status, idUserAssigned, start, end, pageable);
+		Page<TaskDTO> tasksPage = taskService.findWithFilters(idCompany, status, idUserAssigned, title, start, end, pageable);
 
 		return ResponseEntity.ok(tasksPage);
 	}
@@ -59,9 +60,10 @@ public class TaskController {
 	@GetMapping("/filter")
 	public ResponseEntity<List<TaskDTO>> getFilter(@RequestParam(required = false) Long idCompany,
 			@RequestParam(required = false) String status, @RequestParam(required = false) Long idUserAssigned,
+			@RequestParam(required = false) String title,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate start,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate end) {
-		List<TaskDTO> tasksList = taskService.findFilters(idCompany, status, idUserAssigned, start, end);
+		List<TaskDTO> tasksList = taskService.findFilters(idCompany, status, idUserAssigned, title, start, end);
 
 		return ResponseEntity.ok(tasksList);
 	}

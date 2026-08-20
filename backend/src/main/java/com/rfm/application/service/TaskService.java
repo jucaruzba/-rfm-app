@@ -111,15 +111,17 @@ public class TaskService {
 				.orElseThrow(() -> new RuntimeException("Task does not exist"));
 	}
 
-	public Page<TaskDTO> findWithFilters(Long idCompany, String status, Long idUser, LocalDate start, LocalDate end,
+	public Page<TaskDTO> findWithFilters(Long idCompany, String status, Long idUser, String title, LocalDate start, LocalDate end,
 			Pageable pageable) {
-		Page<Task> taskPage = taskRepository.findWithFilters(idCompany, status, idUser, start, end, pageable);
+		String titlePattern = (title != null && !title.trim().isEmpty()) ? "%" + title.trim() + "%" : null;
+		Page<Task> taskPage = taskRepository.findWithFilters(idCompany, status, idUser, titlePattern, start, end, pageable);
 
 		return taskPage.map(this::mapToDTO);
 	}
 
-	public List<TaskDTO> findFilters(Long idCompany, String status, Long idUser, LocalDate start, LocalDate end) {
-		List<Task> tasks = taskRepository.findFilters(idCompany, status, idUser, start, end);
+	public List<TaskDTO> findFilters(Long idCompany, String status, Long idUser, String title, LocalDate start, LocalDate end) {
+		String titlePattern = (title != null && !title.trim().isEmpty()) ? "%" + title.trim() + "%" : null;
+		List<Task> tasks = taskRepository.findFilters(idCompany, status, idUser, titlePattern, start, end);
 
 		return tasks.stream().map(this::mapToDTO).collect(Collectors.toList());
 	}

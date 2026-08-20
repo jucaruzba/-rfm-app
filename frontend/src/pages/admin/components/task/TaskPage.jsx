@@ -77,7 +77,7 @@ const TasksPage = () => {
     loadMetadata();
   }, []);
 
-  // Consulta limpia adaptada para recibir la paginación de Spring Boot
+  // Consulta limpia adaptada para recibir la paginación de Spring Boot con búsqueda en backend
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
@@ -85,6 +85,7 @@ const TasksPage = () => {
         idCompany: filterCompany || null,
         status: statusTab,
         idUserAssigned: filterUser ? Number(filterUser) : null,
+        title: searchQuery || null,
         start: startDate || null,
         end: endDate || null,
         page: page,
@@ -104,6 +105,7 @@ const TasksPage = () => {
     filterCompany,
     statusTab,
     filterUser,
+    searchQuery,
     startDate,
     endDate,
     page,
@@ -117,7 +119,7 @@ const TasksPage = () => {
   // Si cambia un filtro crítico de búsqueda, volvemos automáticamente a la página 0
   useEffect(() => {
     setPage(0);
-  }, [filterCompany, statusTab, filterUser, startDate, endDate]);
+  }, [filterCompany, statusTab, filterUser, searchQuery, startDate, endDate]);
 
   const handleStatusChange = async (idTask, newStatus) => {
     try {
@@ -195,12 +197,8 @@ const TasksPage = () => {
     }
   };
 
-  // Filtrado local en memoria por palabras clave (aplica sobre el set paginado actual)
-  const finalFilteredTasks = tasks.filter(
-    (t) =>
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // Las tareas ya vienen filtradas por búsqueda LIKE desde el backend
+  const finalFilteredTasks = tasks;
 
   const getStatusConfig = (status) => {
     switch (status) {

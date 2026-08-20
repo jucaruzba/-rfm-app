@@ -18,12 +18,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 		       "(CAST(:idCompany AS long) IS NULL OR t.idCompany = :idCompany) AND " +
 		       "(CAST(:status AS string) IS NULL OR t.status = :status) AND " +
 		       "(CAST(:idUser AS long) IS NULL OR t.idUserAssigned = :idUser) AND " +
+		       "(CAST(:title AS string) IS NULL OR LOWER(t.title) LIKE LOWER(CAST(:title AS string))) AND " +
 		       "(CAST(:start AS localdate) IS NULL OR t.startDate >= :start) AND " +
 		       "(CAST(:end AS localdate) IS NULL OR t.endDate <= :end)")
 		Page<Task> findWithFilters(
 		        @Param("idCompany") Long idCompany, 
 		        @Param("status") String status, 
 		        @Param("idUser") Long idUser, 
+		        @Param("title") String title, 
 		        @Param("start") LocalDate start,
 		        @Param("end") LocalDate end,
 		        Pageable pageable);
@@ -32,6 +34,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 		       "(CAST(:idCompany AS BIGINT) IS NULL OR id_company = CAST(:idCompany AS BIGINT)) AND " +
 		       "(CAST(:status AS VARCHAR) IS NULL OR status = CAST(:status AS VARCHAR)) AND " +
 		       "(CAST(:idUser AS BIGINT) IS NULL OR id_user_assigned = CAST(:idUser AS BIGINT)) AND " +
+		       "(CAST(:title AS VARCHAR) IS NULL OR LOWER(title) LIKE LOWER(CAST(:title AS VARCHAR))) AND " +
 		       "(CAST(:start AS DATE) IS NULL OR CAST(:end AS DATE) IS NULL OR " +
 		       "   (start_date <= CAST(:end AS DATE) AND end_date >= CAST(:start AS DATE)))", 
 		       nativeQuery = true)
@@ -39,6 +42,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 		        @Param("idCompany") Long idCompany, 
 		        @Param("status") String status, 
 		        @Param("idUser") Long idUser, 
+		        @Param("title") String title, 
 		        @Param("start") LocalDate start,
 		        @Param("end") LocalDate end);
 	

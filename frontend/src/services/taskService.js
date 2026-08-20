@@ -20,6 +20,9 @@ export const taskService = {
     if (filters.status && filters.status !== "ALL")
       params.append("status", filters.status);
 
+    // Filtro de búsqueda por título (Backend LIKE)
+    if (filters.title) params.append("title", filters.title);
+
     // Filtros por Fecha exactos: mapeados a 'start' y 'end' como pide tu @GetMapping
     if (filters.start)
       params.append("start", formatDateToBackend(filters.start));
@@ -41,6 +44,7 @@ export const taskService = {
       params.append("idUserAssigned", filters.idUserAssigned);
     if (filters.status && filters.status !== "ALL")
       params.append("status", filters.status);
+    if (filters.title) params.append("title", filters.title);
     if (filters.start)
       params.append("start", formatDateToBackend(filters.start));
     if (filters.end) params.append("end", formatDateToBackend(filters.end));

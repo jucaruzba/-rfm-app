@@ -117,19 +117,19 @@ public class CompanyService {
 
     // --- FIND METHODS ---
     
-    // Obtener todas las empresas NO archivadas (por defecto)
+    // Obtener todas las empresas NO archivadas (por defecto, con orden fijo: ACTIVE, IN_PROGRESS, ON_HOLD)
     public List<CompanyDTO> findAll() {
-        log.debug("Fetching all active companies (excluding archived)");
-        return companyRepository.findByStatusNot(CompanyStatus.ARCHIVED)
+        log.debug("Fetching all active companies (excluding archived) with fixed status ordering");
+        return companyRepository.findAllActiveOrdered()
                 .stream()
                 .map(this::mapToDTO)
                 .toList();
     }
 
-    // Obtener todas las empresas incluyendo archivadas
+    // Obtener todas las empresas incluyendo archivadas (con orden fijo: ACTIVE, IN_PROGRESS, ON_HOLD, ARCHIVED)
     public List<CompanyDTO> findAllIncludingArchived() {
-        log.debug("Fetching all companies including archived");
-        return companyRepository.findAll()
+        log.debug("Fetching all companies including archived with fixed status ordering");
+        return companyRepository.findAllOrdered()
                 .stream()
                 .map(this::mapToDTO)
                 .toList();
@@ -146,8 +146,8 @@ public class CompanyService {
 
     // Obtener empresas activas (ACTIVE, IN_PROGRESS, ON_HOLD)
     public List<CompanyDTO> findAllActive() {
-        log.debug("Fetching all active companies");
-        return companyRepository.findByStatusNot(CompanyStatus.ARCHIVED)
+        log.debug("Fetching all active companies with fixed status ordering");
+        return companyRepository.findAllActiveOrdered()
                 .stream()
                 .map(this::mapToDTO)
                 .toList();

@@ -68,7 +68,7 @@ const CompanyTasks = () => {
     loadUsers();
   }, []);
 
-  // Fetch tareas de la empresa
+  // Fetch tareas de la empresa con búsqueda en backend
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
@@ -76,6 +76,7 @@ const CompanyTasks = () => {
         idCompany: companyId,
         status: statusTab,
         idUserAssigned: filterUser ? Number(filterUser) : null,
+        title: searchQuery || null,
         start: startDate || null,
         end: endDate || null,
         page: page,
@@ -94,6 +95,7 @@ const CompanyTasks = () => {
     companyId,
     statusTab,
     filterUser,
+    searchQuery,
     startDate,
     endDate,
     page,
@@ -107,7 +109,7 @@ const CompanyTasks = () => {
   // Reset a página 0 cuando cambian filtros críticos
   useEffect(() => {
     setPage(0);
-  }, [statusTab, filterUser, startDate, endDate]);
+  }, [statusTab, filterUser, searchQuery, startDate, endDate]);
 
   const handleStatusChange = async (idTask, newStatus) => {
     try {
@@ -180,12 +182,8 @@ const CompanyTasks = () => {
     }
   };
 
-  // Filtrado local por búsqueda
-  const finalFilteredTasks = tasks.filter(
-    (t) =>
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // Las tareas ya vienen filtradas por búsqueda LIKE desde el backend
+  const finalFilteredTasks = tasks;
 
   const getStatusConfig = (status) => {
     switch (status) {
