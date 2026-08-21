@@ -3,8 +3,12 @@ package com.rfm.application.model.entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.rfm.application.enums.RepeatType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -49,4 +53,17 @@ public class Task {
 
     @Column(name = "id_node")
     private Long idNode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "repeat_type")
+    private RepeatType repeatType;
+
+    @Column(name = "repeat_end_date")
+    private LocalDate repeatEndDate;
+
+    @Column(name = "parent_task_id")
+    private Long parentTaskId;
+
+    @Column(name = "priority")
+    private String priority;
 }

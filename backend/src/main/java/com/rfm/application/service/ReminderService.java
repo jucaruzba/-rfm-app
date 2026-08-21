@@ -321,6 +321,7 @@ public class ReminderService {
             case DAILY -> currentDate.plusDays(1);
             case WEEKLY -> currentDate.plusWeeks(1);
             case MONTHLY -> currentDate.plusMonths(1);
+            case QUARTERLY -> currentDate.plusMonths(3);
             case YEARLY -> currentDate.plusYears(1);
             default -> null;
         };

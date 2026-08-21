@@ -54,7 +54,17 @@ export const taskService = {
   },
 
   createTask: async (taskRequest) => {
-    const { data } = await api.post("/tasks", taskRequest);
+    const payload = { ...taskRequest };
+    if (payload.startDate && payload.startDate.includes("-")) {
+      payload.startDate = formatDateToBackend(payload.startDate);
+    }
+    if (payload.endDate && payload.endDate.includes("-")) {
+      payload.endDate = formatDateToBackend(payload.endDate);
+    }
+    if (payload.repeatEndDate && payload.repeatEndDate.includes("-")) {
+      payload.repeatEndDate = formatDateToBackend(payload.repeatEndDate);
+    }
+    const { data } = await api.post("/tasks", payload);
     return data;
   },
 
@@ -92,7 +102,17 @@ export const taskService = {
   },
 
   updateTask: async (idTask, taskData) => {
-    const { data } = await api.put(`/tasks/${idTask}`, taskData);
+    const payload = { ...taskData };
+    if (payload.startDate && typeof payload.startDate === "string" && payload.startDate.includes("-")) {
+      payload.startDate = formatDateToBackend(payload.startDate);
+    }
+    if (payload.endDate && typeof payload.endDate === "string" && payload.endDate.includes("-")) {
+      payload.endDate = formatDateToBackend(payload.endDate);
+    }
+    if (payload.repeatEndDate && typeof payload.repeatEndDate === "string" && payload.repeatEndDate.includes("-")) {
+      payload.repeatEndDate = formatDateToBackend(payload.repeatEndDate);
+    }
+    const { data } = await api.put(`/tasks/${idTask}`, payload);
     return data;
   },
 

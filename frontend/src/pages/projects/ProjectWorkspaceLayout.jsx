@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { projectService } from "../../services/projectService";
+import clientLogo from "../../assets/logo.png";
 
 const ProjectWorkspaceLayout = () => {
   const { projectId } = useParams();
@@ -57,6 +58,13 @@ const ProjectWorkspaceLayout = () => {
       <nav className="h-20 bg-[#001F3F] text-white shadow-xl px-8 flex items-center justify-between sticky top-0 z-50">
         {/* Left Side: Brand & Return */}
         <div className="flex items-center gap-6">
+          <img
+            src={clientLogo}
+            alt="Logo"
+            className="h-10 w-auto object-contain hidden sm:block drop-shadow-sm cursor-pointer"
+            onClick={() => navigate("/projects")}
+          />
+
           <button
             onClick={() => navigate("/projects")}
             className="flex items-center gap-2 text-blue-400 hover:text-white transition-colors group"

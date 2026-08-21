@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import NotificationDropdown from "../layouts/NotificationDropdown";
+import CriticalAlertBanner from "../components/CriticalAlertBanner";
+import clientLogo from "../assets/logo.png";
 
 const MainLayout = () => {
   const { user, logout } = useAuth();
@@ -93,16 +95,15 @@ const MainLayout = () => {
 
   const NavContent = () => (
     <>
-      <div className="p-8 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white text-sm font-black">RFM</span>
-          </div>
-          <h1 className="text-white text-2xl font-black tracking-tighter italic">
-            RFM<span className="text-blue-400">.</span>
-          </h1>
+      <div className="p-6 flex items-center justify-between border-b border-white/5">
+        <div className="flex items-center justify-center w-full max-w-[210px] py-1">
+          <img
+            src={clientLogo}
+            alt="Logo"
+            className="max-h-14 w-auto max-w-full object-contain drop-shadow-md"
+          />
         </div>
-        <button onClick={toggleMobileMenu} className="lg:hidden text-white">
+        <button onClick={toggleMobileMenu} className="lg:hidden text-white p-1 ml-2">
           <X size={24} />
         </button>
       </div>
@@ -258,6 +259,9 @@ const MainLayout = () => {
             <NotificationDropdown user={user} />
           </div>
         </header>
+
+        {/* CRITICAL ALERT BANNER (PERSISTENTE PARA DIRECTIVAS CRÍTICAS HIGH PRIORITY) */}
+        <CriticalAlertBanner />
 
         {/* ÁREA DE SCROLL */}
         <div className="flex-1 overflow-y-auto custom-scroll p-4 lg:p-8 bg-gradient-to-br from-gray-50 via-white to-gray-50">

@@ -6,5 +6,6 @@ public enum RepeatType {
     DAILY,      // Diario
     WEEKLY,     // Semanal
     MONTHLY,    // Mensual
+    QUARTERLY,  // Trimestral (3 meses)
     YEARLY      // Anual
 }

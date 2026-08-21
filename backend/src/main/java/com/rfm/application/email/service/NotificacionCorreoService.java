@@ -128,5 +128,46 @@ public class NotificacionCorreoService {
             log.error("Error al enviar correo de recordatorio a {}: {}", toEmail, e.getMessage());
         }
     }
-        
+
+    public void sendTaskAlertEmail(String toEmail, String taskTitle, String taskDescription, String dueDateStr, String timeRemainingLabel, String priority) {
+        if (toEmail == null || toEmail.isBlank()) {
+            log.warn("Could not send task alert email: empty recipient email");
+            return;
+        }
+
+        log.info("Sending critical task alert email [HIGH] to: {}", toEmail);
+        try {
+            MimeMessage message = correoJ.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("🚨 [HIGH PRIORITY] Task Due in " + timeRemainingLabel + ": " + taskTitle);
+            helper.setFrom(origen != null && !origen.isBlank() ? origen : "noreply@rfm.com");
+
+            String descContent = (taskDescription != null && !taskDescription.isBlank())
+                    ? "<p style=\"color: #555; margin: 10px 0; font-size: 14px;\">" + taskDescription + "</p>"
+                    : "";
+
+            String html = "<div style=\"font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #ffccd5; border-radius: 12px; background-color: #ffffff;\">"
+                    + "<div style=\"background-color: #dc2626; padding: 18px; border-radius: 8px; margin-bottom: 20px; text-align: center;\">"
+                    + "<span style=\"background-color: #ffffff; color: #dc2626; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px;\">High Priority</span>"
+                    + "<h2 style=\"color: #ffffff; margin: 10px 0 0 0; font-size: 20px; text-transform: uppercase; letter-spacing: 1px;\">Critical Task Alert</h2>"
+                    + "</div>"
+                    + "<p style=\"font-size: 15px; color: #333;\">Attention: You have a <strong>HIGH PRIORITY</strong> task assigned that is due in <strong>" + timeRemainingLabel + "</strong>:</p>"
+                    + "<div style=\"background-color: #fff5f5; padding: 18px; border-left: 5px solid #dc2626; border-radius: 6px; margin: 20px 0;\">"
+                    + "<h3 style=\"margin-top: 0; color: #001F3F; font-size: 18px;\">" + taskTitle + "</h3>"
+                    + descContent
+                    + "<p style=\"margin-bottom: 0; font-size: 14px; color: #991b1b;\"><strong>Scheduled Due Date:</strong> " + dueDateStr + "</p>"
+                    + "</div>"
+                    + "<p style=\"color: #666; font-size: 13px;\">Please log in to the management platform to review and complete this operational directive on time.</p>"
+                    + "<p style=\"color: #888; font-size: 12px; margin-top: 24px; text-align: center; border-top: 1px solid #eee; padding-top: 12px;\">Automated operational notification — RFM Management Application.</p>"
+                    + "</div>";
+
+            helper.setText(html, true);
+            correoJ.send(message);
+            log.info("Critical task alert email successfully sent to {}", toEmail);
+        } catch (Exception e) {
+            log.error("Error sending critical task alert email to {}: {}", toEmail, e.getMessage());
+        }
+    }
 }

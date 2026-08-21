@@ -1,6 +1,7 @@
 package com.rfm.application.model.dto;
 
 import java.time.LocalDate;
+import com.rfm.application.enums.RepeatType;
 
 import lombok.Builder;
 
@@ -17,5 +18,9 @@ public record TaskDTO(
     String externalReferenceName,
     Long idUserAssigned,
     String nameUser,
-    Long idNode
+    Long idNode,
+    RepeatType repeatType,
+    LocalDate repeatEndDate,
+    Long parentTaskId,
+    String priority
 ) {}

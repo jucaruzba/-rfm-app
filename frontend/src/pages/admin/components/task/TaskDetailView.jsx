@@ -24,6 +24,8 @@ import {
   Paperclip,
   Download,
   Eye,
+  Repeat,
+  Flame,
 } from "lucide-react";
 import { useAuth } from "../../../../context/AuthContext";
 import { toast } from "sonner";
@@ -439,9 +441,9 @@ const handleConfirmDeletePending = async (id) => {
   return (
     <>
       <div className="fixed inset-0 z-50 flex justify-end bg-[#001F3F]/30 backdrop-blur-sm animate-in fade-in duration-300">
-        <div className="bg-[#F3F4F6] h-full w-full max-w-xl shadow-[-10px_0_50px_rgba(0,0,0,0.15)] flex flex-col animate-in slide-in-from-right duration-500">
-          {/* HEADER */}
-          <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10 shrink-0">
+        <div className="bg-[#F3F4F6] h-full max-h-screen w-full max-w-xl shadow-[-10px_0_50px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden animate-in slide-in-from-right duration-500">
+          {/* HEADER FIJO */}
+          <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 z-20 shadow-sm">
             <div>
               <h2 className="text-[9px] font-black text-blue-600 uppercase tracking-[0.4em] mb-0.5 italic">
                 Task Management
@@ -458,7 +460,7 @@ const handleConfirmDeletePending = async (id) => {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scroll space-y-6 p-8">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scroll space-y-6 p-8">
             {/* SECCIÓN INFORMACIÓN EDITABLE */}
             <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-white space-y-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-2 h-full bg-[#001F3F]"></div>
@@ -546,6 +548,66 @@ const handleConfirmDeletePending = async (id) => {
                             }
                           />
                         </div>
+                      </div>
+
+                      {/* REPETICIÓN */}
+                      <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-purple-900/60 flex items-center gap-1.5">
+                          <Repeat size={12} className="text-purple-600" /> Recurrence Settings
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
+                              Repeat Frequency
+                            </label>
+                            <select
+                              value={task.repeatType || "NONE"}
+                              onChange={(e) =>
+                                setTask({ ...task, repeatType: e.target.value })
+                              }
+                              className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                            >
+                              <option value="NONE">One time</option>
+                              <option value="WEEKLY">Weekly</option>
+                              <option value="MONTHLY">Monthly</option>
+                              <option value="QUARTERLY">Quarterly (Trimestral)</option>
+                              <option value="YEARLY">Yearly</option>
+                            </select>
+                          </div>
+                          {task.repeatType && task.repeatType !== "NONE" && (
+                            <div className="space-y-1 animate-in fade-in">
+                              <label className="text-[8px] font-black uppercase text-purple-700 tracking-widest">
+                                Repeat Until
+                              </label>
+                              <input
+                                type="date"
+                                className="w-full bg-white border border-purple-200 rounded-xl p-2.5 outline-none focus:border-purple-600 font-bold text-xs text-[#001F3F]"
+                                value={formatDateForInput(task.repeatEndDate)}
+                                onChange={(e) =>
+                                  setTask({ ...task, repeatEndDate: e.target.value })
+                                }
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* PRIORITY */}
+                      <div className="space-y-2">
+                        <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1">
+                          <Flame size={10} className="text-red-500" /> Priority
+                        </label>
+                        <select
+                          value={task.priority || "NORMAL"}
+                          onChange={(e) =>
+                            setTask({ ...task, priority: e.target.value })
+                          }
+                          className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
+                        >
+                          <option value="LOW">Low</option>
+                          <option value="NORMAL">Normal</option>
+                          <option value="HIGH">High</option>
+                        </select>
                       </div>
 
                       {/* EMPRESA O CLIENTE EXTERNO */}
@@ -640,6 +702,27 @@ const handleConfirmDeletePending = async (id) => {
                             <Briefcase size={12} /> {task.externalReferenceName}
                           </span>
                         ) : null}
+                        {task.repeatType && task.repeatType !== "NONE" && (
+                          <span className="flex items-center gap-1.5 text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-100 px-3 py-1 rounded-lg uppercase self-start">
+                            <Repeat size={12} className="text-purple-600" />
+                            Repeat: {task.repeatType === "QUARTERLY" ? "Quarterly" : task.repeatType}
+                            {task.repeatEndDate && ` (Until ${formatDate(task.repeatEndDate)})`}
+                          </span>
+                        )}
+                        {task.priority === "HIGH" ? (
+                          <span className="flex items-center gap-1.5 text-[10px] font-black text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-lg uppercase self-start shadow-2xs">
+                            <Flame size={12} className="text-red-600 fill-red-600" />
+                            High Priority
+                          </span>
+                        ) : task.priority === "LOW" ? (
+                          <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1 rounded-lg uppercase self-start">
+                            Low Priority
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-lg uppercase self-start">
+                            Normal Priority
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -662,7 +745,7 @@ const handleConfirmDeletePending = async (id) => {
                 </p>
                 {isEditing ? (
                   <textarea
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600 rounded-xl p-4 text-xs font-medium h-36 outline-none transition-all resize-y"
+                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600 rounded-xl p-4 text-xs font-medium h-36 max-h-48 overflow-y-auto custom-scroll outline-none transition-all resize-y"
                     value={task.description || ""}
                     placeholder="Enter detailed task description..."
                     onChange={(e) =>
@@ -670,7 +753,7 @@ const handleConfirmDeletePending = async (id) => {
                     }
                   />
                 ) : (
-                  <div className="bg-gray-50/80 border border-gray-100 rounded-xl p-4 text-xs text-gray-600 leading-relaxed font-medium whitespace-pre-wrap break-words">
+                  <div className="bg-gray-50/80 border border-gray-100 rounded-xl p-4 text-xs text-gray-600 leading-relaxed font-medium whitespace-pre-wrap break-words max-h-48 overflow-y-auto custom-scroll select-text">
                     {task.description || "No task description provided."}
                   </div>
                 )}

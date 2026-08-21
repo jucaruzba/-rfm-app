@@ -6,6 +6,7 @@ import { userService } from "../services/userService"; // Import userService for
 import { LogIn, Loader2, Eye, EyeOff, Mail } from "lucide-react"; // Loader y iconos de visibilidad para el feedback visual
 import api from "../services/api"; // Import the api instance
 import { toast } from "sonner"; // Utilería de mensajes
+import clientLogo from "../assets/logo.png";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -87,12 +88,14 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-brand-white">
       <div className="max-w-md w-full p-8 border border-gray-100 shadow-sm rounded-lg bg-white">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-brand-navy tracking-tight">
-            RFM SYSTEM
-          </h2>
-          <p className="text-brand-dark-gray mt-2 font-light">
-            Professional Industrial Management
+        <div className="text-center mb-8 flex flex-col items-center">
+          <img
+            src={clientLogo}
+            alt="Client Logo"
+            className="max-h-24 w-auto object-contain mb-2 drop-shadow-md"
+          />
+          <p className="text-gray-400 font-medium text-xs tracking-wider uppercase">
+            Management Platform
           </p>
         </div>
 

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { companyService } from "../../services/companyService";
 import { fileService } from "../../services/fileService";
+import clientLogo from "../../assets/logo.png";
 
 // Company type config for badges
 const COMPANY_TYPES_CONFIG = {
@@ -107,6 +108,13 @@ const CompanyWorkspaceLayout = () => {
       <nav className="h-20 bg-[#001F3F] text-white shadow-xl px-8 flex items-center justify-between sticky top-0 z-50">
         {/* Left Side: Brand & Return */}
         <div className="flex items-center gap-6">
+          <img
+            src={clientLogo}
+            alt="Logo"
+            className="h-10 w-auto object-contain hidden sm:block drop-shadow-sm cursor-pointer"
+            onClick={() => navigate("/companies")}
+          />
+
           <button
             onClick={() => navigate("/companies")}
             className="flex items-center gap-2 text-blue-400 hover:text-white transition-colors group"

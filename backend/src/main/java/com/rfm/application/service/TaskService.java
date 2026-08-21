@@ -1,6 +1,7 @@
 package com.rfm.application.service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.rfm.application.enums.RepeatType;
 import com.rfm.application.model.dto.CreateFolderDTO;
 import com.rfm.application.model.dto.TaskDTO;
 import com.rfm.application.model.dto.TaskRequest;
@@ -23,7 +25,9 @@ import com.rfm.application.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TaskService {
@@ -56,10 +60,26 @@ public class TaskService {
 		Node taskNode = nodeService.createFolder(new CreateFolderDTO(taskFolderRoot.getIdNode(), folderName,
 				"Folder for task: " + request.title(), request.idCompany()));
 
-		Task task = Task.builder().title(request.title()).description(request.description())
-				.startDate(request.startDate()).endDate(request.endDate()).idCompany(request.idCompany())
-				.externalReferenceName(request.externalReferenceName()).idUserAssigned(request.idUserAssigned())
-				.idNode(taskNode.getIdNode()).status("PENDING").build();
+		RepeatType repeatType = request.repeatType() != null ? request.repeatType() : RepeatType.NONE;
+		String priority = (request.priority() != null && !request.priority().isBlank())
+				? request.priority().toUpperCase()
+				: "NORMAL";
+
+		Task task = Task.builder()
+				.title(request.title())
+				.description(request.description())
+				.startDate(request.startDate())
+				.endDate(request.endDate())
+				.idCompany(request.idCompany())
+				.externalReferenceName(request.externalReferenceName())
+				.idUserAssigned(request.idUserAssigned())
+				.idNode(taskNode.getIdNode())
+				.status("PENDING")
+				.repeatType(repeatType)
+				.repeatEndDate(request.repeatEndDate())
+				.parentTaskId(null)
+				.priority(priority)
+				.build();
 
 		Task savedTask = taskRepository.save(task);
 
@@ -73,7 +93,86 @@ public class TaskService {
 			);
 		}
 
+		// Si es una tarea con repetición, crear las instancias futuras
+		if (repeatType != RepeatType.NONE && request.repeatEndDate() != null && request.startDate() != null) {
+			createAllFutureTasks(savedTask, taskFolderRoot);
+		}
+
 		return mapToDTO(savedTask);
+	}
+
+	private void createAllFutureTasks(Task parent, Node taskFolderRoot) {
+		try {
+			LocalDate currentStart = parent.getStartDate();
+			LocalDate endDate = parent.getRepeatEndDate();
+			long durationDays = (parent.getEndDate() != null && parent.getStartDate() != null)
+					? java.time.temporal.ChronoUnit.DAYS.between(parent.getStartDate(), parent.getEndDate())
+					: 0;
+
+			List<Task> futureTasks = new ArrayList<>();
+			int count = 0;
+
+			while (currentStart.isBefore(endDate) || currentStart.isEqual(endDate)) {
+				LocalDate nextStart = calculateNextDate(currentStart, parent.getRepeatType());
+				if (nextStart == null || nextStart.isAfter(endDate)) {
+					break;
+				}
+
+				LocalDate nextEnd = (parent.getEndDate() != null) ? nextStart.plusDays(durationDays) : null;
+
+				String cleanTitle = parent.getTitle().toUpperCase().replaceAll("[^A-Z0-9]", "_");
+				if (cleanTitle.length() > 30)
+					cleanTitle = cleanTitle.substring(0, 30);
+				String folderName = cleanTitle + "_" + (1000 + new Random().nextInt(9000));
+
+				Node childNode = nodeService.createFolder(new CreateFolderDTO(taskFolderRoot.getIdNode(), folderName,
+						"Folder for recurring task: " + parent.getTitle(), parent.getIdCompany()));
+
+				Task childTask = Task.builder()
+						.title(parent.getTitle())
+						.description(parent.getDescription())
+						.startDate(nextStart)
+						.endDate(nextEnd)
+						.idCompany(parent.getIdCompany())
+						.externalReferenceName(parent.getExternalReferenceName())
+						.idUserAssigned(parent.getIdUserAssigned())
+						.idNode(childNode.getIdNode())
+						.status("PENDING")
+						.repeatType(parent.getRepeatType())
+						.repeatEndDate(parent.getRepeatEndDate())
+						.parentTaskId(parent.getIdTask())
+						.priority(parent.getPriority())
+						.build();
+
+				futureTasks.add(childTask);
+				currentStart = nextStart;
+				count++;
+
+				if (count >= 365) {
+					log.warn("Límite máximo de 365 tareas recurrentes alcanzado para {}", parent.getIdTask());
+					break;
+				}
+			}
+
+			if (!futureTasks.isEmpty()) {
+				taskRepository.saveAll(futureTasks);
+				log.info("Creadas {} tareas recurrentes para tarea padre {}", futureTasks.size(), parent.getIdTask());
+			}
+		} catch (Exception e) {
+			log.error("Error creando tareas recurrentes para tarea padre {}: {}", parent.getIdTask(), e.getMessage(), e);
+		}
+	}
+
+	private LocalDate calculateNextDate(LocalDate currentDate, RepeatType repeatType) {
+		if (currentDate == null || repeatType == null) return null;
+		return switch (repeatType) {
+			case DAILY -> currentDate.plusDays(1);
+			case WEEKLY -> currentDate.plusWeeks(1);
+			case MONTHLY -> currentDate.plusMonths(1);
+			case QUARTERLY -> currentDate.plusMonths(3);
+			case YEARLY -> currentDate.plusYears(1);
+			default -> null;
+		};
 	}
 
 	@Transactional
@@ -90,6 +189,15 @@ public class TaskService {
 		task.setExternalReferenceName(request.externalReferenceName());
 		task.setIdCompany(request.idCompany());
 		task.setIdUserAssigned(request.idUserAssigned());
+		if (request.repeatType() != null) {
+			task.setRepeatType(request.repeatType());
+		}
+		if (request.repeatEndDate() != null) {
+			task.setRepeatEndDate(request.repeatEndDate());
+		}
+		if (request.priority() != null && !request.priority().isBlank()) {
+			task.setPriority(request.priority().toUpperCase());
+		}
 
 		Task savedTask = taskRepository.save(task);
 
@@ -152,6 +260,11 @@ public class TaskService {
 				.status(task.getStatus()).startDate(task.getStartDate()).endDate(task.getEndDate())
 				.idCompany(task.getIdCompany()).nameCompany(nameCompany)
 				.externalReferenceName(task.getExternalReferenceName()).idUserAssigned(task.getIdUserAssigned())
-				.nameUser(nameUser).idNode(task.getIdNode()).build();
+				.nameUser(nameUser).idNode(task.getIdNode())
+				.repeatType(task.getRepeatType())
+				.repeatEndDate(task.getRepeatEndDate())
+				.parentTaskId(task.getParentTaskId())
+				.priority(task.getPriority() != null ? task.getPriority() : "NORMAL")
+				.build();
 	}
 }

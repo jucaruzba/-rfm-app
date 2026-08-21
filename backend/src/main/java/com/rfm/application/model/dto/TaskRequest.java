@@ -2,6 +2,7 @@ package com.rfm.application.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDate;
+import com.rfm.application.enums.RepeatType;
 
 public record TaskRequest(
     String title,
@@ -13,5 +14,9 @@ public record TaskRequest(
     Long idCompany,
     String externalReferenceName,
     Long idUserAssigned,
-    String status
+    String status,
+    RepeatType repeatType,
+    @JsonFormat(pattern = "dd/MM/yyyy")
+    LocalDate repeatEndDate,
+    String priority
 ) {}

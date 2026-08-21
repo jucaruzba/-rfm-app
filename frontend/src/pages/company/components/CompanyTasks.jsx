@@ -13,6 +13,8 @@ import {
   Clock,
   X,
   PlayCircle,
+  Repeat,
+  Flame,
 } from "lucide-react";
 import { taskService } from "../../../services/taskService";
 import { userService } from "../../../services/userService";
@@ -49,6 +51,9 @@ const CompanyTasks = () => {
     endDate: "",
     idUserAssigned: "",
     status: "PENDING",
+    repeatType: "NONE",
+    repeatEndDate: "",
+    priority: "NORMAL",
   });
 
   // --- TASK DETAIL VIEW ---
@@ -157,6 +162,11 @@ const CompanyTasks = () => {
       idCompany: Number(companyId),
       idUserAssigned: Number(formData.idUserAssigned),
       status: formData.status,
+      repeatType: formData.repeatType,
+      repeatEndDate: formData.repeatType !== "NONE" && formData.repeatEndDate
+        ? formatToRequest(formData.repeatEndDate)
+        : null,
+      priority: formData.priority || "NORMAL",
     };
 
     setSubmitting(true);
@@ -172,6 +182,9 @@ const CompanyTasks = () => {
         endDate: "",
         idUserAssigned: "",
         status: "PENDING",
+        repeatType: "NONE",
+        repeatEndDate: "",
+        priority: "NORMAL",
       });
       setPage(0);
       fetchTasks();
@@ -362,6 +375,28 @@ const CompanyTasks = () => {
                     >
                       {currentStatus.icon} {task.status.replace("_", " ")}
                     </span>
+
+                    {task.priority === "HIGH" ? (
+                      <span className="bg-red-50 border border-red-200 text-red-700 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
+                        <Flame size={11} className="text-red-600 fill-red-600" />
+                        High Priority
+                      </span>
+                    ) : task.priority === "LOW" ? (
+                      <span className="bg-gray-50 border border-gray-100 text-gray-500 px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider">
+                        Low Priority
+                      </span>
+                    ) : (
+                      <span className="bg-blue-50/60 border border-blue-100 text-blue-600 px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider">
+                        Normal Priority
+                      </span>
+                    )}
+
+                    {task.repeatType && task.repeatType !== "NONE" && (
+                      <span className="bg-purple-50 border border-purple-100 text-purple-700 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <Repeat size={11} className="text-purple-600" />
+                        {task.repeatType === "QUARTERLY" ? "Quarterly" : task.repeatType}
+                      </span>
+                    )}
 
                     {task.externalReferenceName ? (
                       <span className="bg-gray-50 border border-gray-100 text-gray-400 px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
@@ -577,6 +612,85 @@ const CompanyTasks = () => {
                     }
                     className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
                   />
+                </div>
+              </div>
+
+              {/* REPETICIÓN (RECURRENCIA) */}
+              <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-4">
+                <span className="text-[9px] font-black uppercase tracking-widest text-purple-900/60 flex items-center gap-1.5">
+                  <Repeat size={12} className="text-purple-600" /> Recurrence Settings
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
+                      Repeat Frequency
+                    </label>
+                    <select
+                      value={formData.repeatType}
+                      onChange={(e) =>
+                        setFormData({ ...formData, repeatType: e.target.value })
+                      }
+                      className="w-full bg-white border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
+                    >
+                      <option value="NONE">One time (Sin repetición)</option>
+                      <option value="WEEKLY">Weekly (Semanal)</option>
+                      <option value="MONTHLY">Monthly (Mensual)</option>
+                      <option value="QUARTERLY">Quarterly (Trimestral)</option>
+                      <option value="YEARLY">Yearly (Anual)</option>
+                    </select>
+                  </div>
+
+                  {formData.repeatType !== "NONE" && (
+                    <div className="space-y-1 animate-in fade-in">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-purple-700">
+                        Repeat Until (Fecha Límite) *
+                      </label>
+                      <input
+                        type="date"
+                        required={formData.repeatType !== "NONE"}
+                        value={formData.repeatEndDate}
+                        min={formData.startDate || undefined}
+                        onChange={(e) =>
+                          setFormData({ ...formData, repeatEndDate: e.target.value })
+                        }
+                        className="w-full bg-white border border-purple-200 rounded-xl p-3 outline-none focus:border-purple-600 font-bold text-xs text-[#001F3F]"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* PRIORITY SELECTION */}
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
+                  Priority *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "LOW", label: "Low", color: "border-gray-200 bg-gray-50 text-gray-700" },
+                    { id: "NORMAL", label: "Normal", color: "border-blue-200 bg-blue-50/50 text-blue-700" },
+                    { id: "HIGH", label: "High", color: "border-red-200 bg-red-50 text-red-700" },
+                  ].map((p) => {
+                    const isSelected = (formData.priority || "NORMAL") === p.id;
+                    return (
+                      <button
+                        type="button"
+                        key={`modal-priority-btn-${p.id}`}
+                        onClick={() => setFormData({ ...formData, priority: p.id })}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? `${p.color} ring-2 ring-offset-1 ${p.id === "HIGH" ? "ring-red-400 font-black" : "ring-blue-400 font-bold"}`
+                            : "bg-white border-gray-100 text-gray-400 opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase">
+                          {p.id === "HIGH" && <Flame size={13} className="text-red-500 fill-red-500" />}
+                          {p.label}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
