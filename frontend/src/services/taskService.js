@@ -134,4 +134,12 @@ export const taskService = {
     });
     return data;
   },
+
+  deleteTask: async (idTask, deleteFuture = false) => {
+    const { data } = await api.delete(`/tasks/${idTask}`, {
+      params: { deleteFuture },
+    });
+    return data;
+  },
 };
+

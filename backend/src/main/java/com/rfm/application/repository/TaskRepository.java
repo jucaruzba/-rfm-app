@@ -48,4 +48,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 	
 	 @Query("SELECT COUNT(t) FROM Task t WHERE t.idCompany = :companyId")
 	    long countByIdCompany(@Param("companyId") Long companyId);
+
+	List<Task> findByParentTaskId(Long parentTaskId);
+
+	List<Task> findByParentTaskIdOrderByStartDateDesc(Long parentTaskId);
+
+	@Query("SELECT t FROM Task t WHERE (t.parentTaskId = :parentTaskId OR t.idTask = :parentTaskId)")
+	List<Task> findAllInSeries(@Param("parentTaskId") Long parentTaskId);
+
+	@Query("SELECT t FROM Task t WHERE (t.parentTaskId = :parentTaskId OR t.idTask = :parentTaskId) AND t.startDate >= :startDate")
+	List<Task> findFutureInSeries(@Param("parentTaskId") Long parentTaskId, @Param("startDate") LocalDate startDate);
 }

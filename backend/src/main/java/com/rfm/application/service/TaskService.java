@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.rfm.application.email.service.NotificacionCorreoService;
 import com.rfm.application.enums.RepeatType;
 import com.rfm.application.model.dto.CreateFolderDTO;
 import com.rfm.application.model.dto.TaskDTO;
@@ -19,6 +20,7 @@ import com.rfm.application.model.entity.Task;
 import com.rfm.application.model.entity.Company;
 import com.rfm.application.model.entity.User;
 import com.rfm.application.repository.NodeRepository;
+import com.rfm.application.repository.TaskCommentRepository;
 import com.rfm.application.repository.TaskRepository;
 import com.rfm.application.repository.CompanyRepository;
 import com.rfm.application.repository.UserRepository;
@@ -38,6 +40,8 @@ public class TaskService {
 	private final CompanyRepository companyRepository;
 	private final UserRepository userRepository;
 	private final NotificationService notificationService;
+	private final TaskCommentRepository taskCommentRepository;
+	private final NotificacionCorreoService emailService;
 
 	@Transactional
 	public TaskDTO create(TaskRequest request) {
@@ -83,84 +87,128 @@ public class TaskService {
 
 		Task savedTask = taskRepository.save(task);
 
-		if (savedTask.getIdUserAssigned() != null) {
-			notificationService.create(
-					savedTask.getIdUserAssigned(),
-					"New task assigned",
-					"You have been assigned the task: " + savedTask.getTitle(),
-					"task",
-					savedTask.getIdTask()
-			);
-		}
+		// Rolling recurrence: únicamente creamos la instancia activa inicial.
+		// Las instancias siguientes se crean automáticamente cuando esta tarea se marque como COMPLETED.
 
-		// Si es una tarea con repetición, crear las instancias futuras
-		if (repeatType != RepeatType.NONE && request.repeatEndDate() != null && request.startDate() != null) {
-			createAllFutureTasks(savedTask, taskFolderRoot);
-		}
+		sendTaskAssignmentNotification(savedTask, true);
 
 		return mapToDTO(savedTask);
 	}
 
-	private void createAllFutureTasks(Task parent, Node taskFolderRoot) {
-		try {
-			LocalDate currentStart = parent.getStartDate();
-			LocalDate endDate = parent.getRepeatEndDate();
-			long durationDays = (parent.getEndDate() != null && parent.getStartDate() != null)
-					? java.time.temporal.ChronoUnit.DAYS.between(parent.getStartDate(), parent.getEndDate())
-					: 0;
+	private void sendTaskAssignmentNotification(Task task, boolean isNew) {
+		if (task.getIdUserAssigned() == null) return;
+		String priority = task.getPriority() != null ? task.getPriority().toUpperCase() : "NORMAL";
 
-			List<Task> futureTasks = new ArrayList<>();
-			int count = 0;
-
-			while (currentStart.isBefore(endDate) || currentStart.isEqual(endDate)) {
-				LocalDate nextStart = calculateNextDate(currentStart, parent.getRepeatType());
-				if (nextStart == null || nextStart.isAfter(endDate)) {
-					break;
-				}
-
-				LocalDate nextEnd = (parent.getEndDate() != null) ? nextStart.plusDays(durationDays) : null;
-
-				String cleanTitle = parent.getTitle().toUpperCase().replaceAll("[^A-Z0-9]", "_");
-				if (cleanTitle.length() > 30)
-					cleanTitle = cleanTitle.substring(0, 30);
-				String folderName = cleanTitle + "_" + (1000 + new Random().nextInt(9000));
-
-				Node childNode = nodeService.createFolder(new CreateFolderDTO(taskFolderRoot.getIdNode(), folderName,
-						"Folder for recurring task: " + parent.getTitle(), parent.getIdCompany()));
-
-				Task childTask = Task.builder()
-						.title(parent.getTitle())
-						.description(parent.getDescription())
-						.startDate(nextStart)
-						.endDate(nextEnd)
-						.idCompany(parent.getIdCompany())
-						.externalReferenceName(parent.getExternalReferenceName())
-						.idUserAssigned(parent.getIdUserAssigned())
-						.idNode(childNode.getIdNode())
-						.status("PENDING")
-						.repeatType(parent.getRepeatType())
-						.repeatEndDate(parent.getRepeatEndDate())
-						.parentTaskId(parent.getIdTask())
-						.priority(parent.getPriority())
-						.build();
-
-				futureTasks.add(childTask);
-				currentStart = nextStart;
-				count++;
-
-				if (count >= 365) {
-					log.warn("Límite máximo de 365 tareas recurrentes alcanzado para {}", parent.getIdTask());
-					break;
-				}
-			}
-
-			if (!futureTasks.isEmpty()) {
-				taskRepository.saveAll(futureTasks);
-				log.info("Creadas {} tareas recurrentes para tarea padre {}", futureTasks.size(), parent.getIdTask());
-			}
-		} catch (Exception e) {
-			log.error("Error creando tareas recurrentes para tarea padre {}: {}", parent.getIdTask(), e.getMessage(), e);
+		// LOW -> Sin alerta, solo se ve en el sistema
+		if ("LOW".equalsIgnoreCase(priority)) {
+			return;
 		}
+
+		// NORMAL / HIGH -> Campana (Notification en DB)
+		String notifTitle = isNew ? "New task assigned" : "Task assigned";
+		try {
+			notificationService.create(
+					task.getIdUserAssigned(),
+					notifTitle,
+					"You have been assigned the task: " + task.getTitle(),
+					"task",
+					task.getIdTask()
+			);
+		} catch (Exception e) {
+			log.error("Error creating notification for task {}: {}", task.getIdTask(), e.getMessage());
+		}
+
+		// HIGH -> Campana + Email
+		if ("HIGH".equalsIgnoreCase(priority)) {
+			try {
+				User user = userRepository.findById(task.getIdUserAssigned()).orElse(null);
+				if (user != null && user.getEmail() != null && !user.getEmail().isBlank()) {
+					String dueDateStr = task.getEndDate() != null ? task.getEndDate().toString() : (task.getStartDate() != null ? task.getStartDate().toString() : "N/A");
+					emailService.sendTaskAlertEmail(user.getEmail(), task.getTitle(), task.getDescription(), dueDateStr, "Assigned", priority);
+				}
+			} catch (Exception e) {
+				log.error("Error sending initial HIGH priority task assignment email: {}", e.getMessage());
+			}
+		}
+	}
+
+	public void handleRollingRecurrenceOnComplete(Task completedTask) {
+		if (completedTask.getRepeatType() == null || completedTask.getRepeatType() == RepeatType.NONE) {
+			return;
+		}
+
+		LocalDate currentStart = completedTask.getStartDate();
+		if (currentStart == null) return;
+
+		LocalDate nextStart = calculateNextDate(currentStart, completedTask.getRepeatType());
+		if (nextStart == null) return;
+
+		LocalDate repeatEndDate = completedTask.getRepeatEndDate();
+		if (repeatEndDate != null && nextStart.isAfter(repeatEndDate)) {
+			log.info("Repeat end date {} reached for task {}. No further occurrences created.", repeatEndDate, completedTask.getIdTask());
+			return;
+		}
+
+		Long parentId = completedTask.getParentTaskId() != null ? completedTask.getParentTaskId() : completedTask.getIdTask();
+
+		// Verificar que no exista ya la siguiente ocurrencia para evitar duplicados
+		List<Task> existingFuture = taskRepository.findFutureInSeries(parentId, nextStart);
+		boolean alreadyExists = existingFuture.stream().anyMatch(t -> nextStart.equals(t.getStartDate()) && !t.getIdTask().equals(completedTask.getIdTask()));
+		if (alreadyExists) {
+			log.info("Next occurrence on {} already exists for series {}", nextStart, parentId);
+			return;
+		}
+
+		long durationDays = (completedTask.getEndDate() != null && completedTask.getStartDate() != null)
+				? java.time.temporal.ChronoUnit.DAYS.between(completedTask.getStartDate(), completedTask.getEndDate())
+				: 0;
+		LocalDate nextEnd = (completedTask.getEndDate() != null) ? nextStart.plusDays(durationDays) : null;
+
+		Node taskFolderRoot;
+		if (completedTask.getIdCompany() != null) {
+			taskFolderRoot = nodeRepository.findByIdCompanyAndName(completedTask.getIdCompany(), "TASK")
+					.orElse(null);
+		} else {
+			taskFolderRoot = nodeRepository.findByNameAndIdCompanyIsNull("GTASKS")
+					.orElse(null);
+		}
+
+		Long nodeId = completedTask.getIdNode();
+		if (taskFolderRoot != null) {
+			try {
+				String cleanTitle = completedTask.getTitle().toUpperCase().replaceAll("[^A-Z0-9]", "_");
+				if (cleanTitle.length() > 30) cleanTitle = cleanTitle.substring(0, 30);
+				String folderName = cleanTitle + "_" + (1000 + new Random().nextInt(9000));
+				Node childNode = nodeService.createFolder(new CreateFolderDTO(taskFolderRoot.getIdNode(), folderName,
+						"Folder for recurring task: " + completedTask.getTitle(), completedTask.getIdCompany()));
+				if (childNode != null) {
+					nodeId = childNode.getIdNode();
+				}
+			} catch (Exception e) {
+				log.warn("Could not create specific folder for next recurring occurrence: {}", e.getMessage());
+			}
+		}
+
+		Task nextTask = Task.builder()
+				.title(completedTask.getTitle())
+				.description(completedTask.getDescription())
+				.startDate(nextStart)
+				.endDate(nextEnd)
+				.idCompany(completedTask.getIdCompany())
+				.externalReferenceName(completedTask.getExternalReferenceName())
+				.idUserAssigned(completedTask.getIdUserAssigned())
+				.idNode(nodeId)
+				.status("PENDING")
+				.repeatType(completedTask.getRepeatType())
+				.repeatEndDate(completedTask.getRepeatEndDate())
+				.parentTaskId(parentId)
+				.priority(completedTask.getPriority() != null ? completedTask.getPriority() : "NORMAL")
+				.build();
+
+		Task savedNext = taskRepository.save(nextTask);
+		log.info("Created rolling next occurrence {} for task series {}", savedNext.getIdTask(), parentId);
+
+		sendTaskAssignmentNotification(savedNext, true);
 	}
 
 	private LocalDate calculateNextDate(LocalDate currentDate, RepeatType repeatType) {
@@ -180,6 +228,7 @@ public class TaskService {
 		Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task does not exist"));
 
 		boolean userAssignmentChanged = !java.util.Objects.equals(task.getIdUserAssigned(), request.idUserAssigned());
+		String oldStatus = task.getStatus();
 
 		task.setTitle(request.title());
 		task.setDescription(request.description());
@@ -201,14 +250,13 @@ public class TaskService {
 
 		Task savedTask = taskRepository.save(task);
 
+		// Rolling recurrence check on status update to COMPLETED
+		if ("COMPLETED".equalsIgnoreCase(savedTask.getStatus()) && !"COMPLETED".equalsIgnoreCase(oldStatus)) {
+			handleRollingRecurrenceOnComplete(savedTask);
+		}
+
 		if (userAssignmentChanged && request.idUserAssigned() != null) {
-			notificationService.create(
-					request.idUserAssigned(),
-					"Task assigned",
-					"You have been assigned the task: " + savedTask.getTitle(),
-					"task",
-					savedTask.getIdTask()
-			);
+			sendTaskAssignmentNotification(savedTask, false);
 		}
 
 		return mapToDTO(savedTask);
@@ -237,13 +285,43 @@ public class TaskService {
 	@Transactional
 	public TaskDTO updateStatus(Long id, String status) {
 		Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task not found"));
+		String oldStatus = task.getStatus();
 		task.setStatus(status);
-		return mapToDTO(taskRepository.save(task));
+		Task saved = taskRepository.save(task);
+
+		if ("COMPLETED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(oldStatus)) {
+			handleRollingRecurrenceOnComplete(saved);
+		}
+
+		return mapToDTO(saved);
+	}
+
+	@Transactional
+	public void delete(Long id, boolean deleteFuture) {
+		Task task = taskRepository.findById(id)
+				.orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
+
+		if (deleteFuture) {
+			Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : task.getIdTask();
+			LocalDate filterDate = task.getStartDate() != null ? task.getStartDate() : LocalDate.now();
+			List<Task> futureTasks = taskRepository.findFutureInSeries(parentId, filterDate);
+			for (Task t : futureTasks) {
+				taskCommentRepository.deleteAllByIdActivity(t.getIdTask());
+				taskRepository.delete(t);
+			}
+			// Asegurar que si este task sigue existiendo se elimine
+			if (taskRepository.existsById(id)) {
+				taskCommentRepository.deleteAllByIdActivity(id);
+				taskRepository.delete(task);
+			}
+		} else {
+			taskCommentRepository.deleteAllByIdActivity(id);
+			taskRepository.delete(task);
+		}
 	}
 
 	private TaskDTO mapToDTO(Task task) {
 		String nameCompany = null;
-		// Avoid NullPointerException if idCompany is null
 		if (task.getIdCompany() != null) {
 			nameCompany = companyRepository.findById(task.getIdCompany()).map(Company::getName)
 					.orElse("Unknown Company");

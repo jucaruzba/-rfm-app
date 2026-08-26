@@ -19,6 +19,7 @@ import {
   Repeat,
   CalendarDays,
   Flame,
+  Trash2,
 } from "lucide-react";
 import {
   format,
@@ -37,11 +38,17 @@ import {
 import { taskService } from "../../../../services/taskService";
 import { companyService } from "../../../../services/companyService";
 import { userService } from "../../../../services/userService";
+import { useAuth } from "../../../../context/AuthContext";
 import { toast } from "sonner";
 import TaskDetailView from "./TaskDetailView";
+import MonthYearPicker from "../../../../components/MonthYearPicker";
+import TaskDeleteDialog from "../../../../components/TaskDeleteDialog";
 
 const TasksPage = () => {
   const { companyId } = useParams();
+  const { user: authUser } = useAuth();
+  const isAdmin =
+    authUser?.role?.toLowerCase() === "admin" || authUser?.role === "ADMIN";
 
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
@@ -88,6 +95,12 @@ const TasksPage = () => {
   // --- ESTADO DEL TASK DETAIL VIEW ---
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
+
+  // --- ESTADOS PARA SALTO DE MES Y ELIMINACIÓN ADMIN ---
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   // Cargar catálogos iniciales
   useEffect(() => {
@@ -141,11 +154,12 @@ const TasksPage = () => {
   ]);
 
   // Consulta completa para la vista Calendario (mes completo sin cortes de paginación)
+  // Cambiado a inicio de semana en Domingo (weekStartsOn: 0)
   const fetchCalendarTasks = useCallback(async () => {
     setCalendarLoading(true);
     try {
-      const startMonthDate = format(startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }), "yyyy-MM-dd");
-      const endMonthDate = format(endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 }), "yyyy-MM-dd");
+      const startMonthDate = format(startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 }), "yyyy-MM-dd");
+      const endMonthDate = format(endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 0 }), "yyyy-MM-dd");
 
       const response = await taskService.getTasksList({
         idCompany: filterCompany || null,
@@ -201,6 +215,38 @@ const TasksPage = () => {
   const handleTaskUpdated = () => {
     if (viewMode === "list") fetchTasks();
     else fetchCalendarTasks();
+  };
+
+  const handleDeleteClick = (task) => {
+    setTaskToDelete(task);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (task, deleteFuture) => {
+    if (!task) return;
+    setIsDeletingTask(true);
+    try {
+      await taskService.deleteTask(task.idTask, deleteFuture);
+      toast.success("Task deleted successfully");
+      setIsDeleteModalOpen(false);
+      setTaskToDelete(null);
+      if (selectedTaskId === task.idTask) {
+        setIsDetailViewOpen(false);
+        setSelectedTaskId(null);
+      }
+      if (viewMode === "list") fetchTasks();
+      else fetchCalendarTasks();
+    } catch (error) {
+      console.error("Delete task error:", error);
+      toast.error("Failed to delete task");
+    } finally {
+      setIsDeletingTask(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setTaskToDelete(null);
   };
 
   const handleCreateTask = async (e) => {
@@ -322,12 +368,12 @@ const TasksPage = () => {
     return date;
   };
 
-  // Generación de días del mes para el calendario
+  // Generación de días del mes para el calendario (inicia en Domingo)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentMonth]);
 
@@ -610,7 +656,7 @@ const TasksPage = () => {
                     </div>
 
                     <div
-                      className="shrink-0 flex items-center border-t md:border-t-0 pt-3 md:pt-0 border-gray-50"
+                      className="shrink-0 flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-gray-50"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <select
@@ -625,6 +671,18 @@ const TasksPage = () => {
                         <option value="BLOCK">Blocked</option>
                         <option value="COMPLETED">Completed</option>
                       </select>
+
+                      {/* Botón de eliminar - SOLO PARA ADMIN */}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(task)}
+                          className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-gray-100 hover:border-red-200 cursor-pointer"
+                          title="Delete task (Admin only)"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -713,12 +771,20 @@ const TasksPage = () => {
       {/* ========================================================================= */}
       {viewMode === "calendar" && (
         <div className="bg-white border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-          {/* Barra de Navegación del Mes */}
+          {/* Barra de Navegación del Mes con botón para salto de mes/año */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-black text-[#001F3F] uppercase tracking-tight italic">
-                {format(currentMonth, "MMMM yyyy")}
-              </h2>
+              <button
+                type="button"
+                onClick={() => setIsMonthPickerOpen(true)}
+                className="flex items-center gap-2 group hover:bg-blue-50/70 py-1.5 px-3 -ml-3 rounded-2xl transition-all cursor-pointer border border-transparent hover:border-blue-100"
+                title="Click to jump to another month / year"
+              >
+                <h2 className="text-xl font-black text-[#001F3F] group-hover:text-blue-600 uppercase tracking-tight italic transition-colors">
+                  {format(currentMonth, "MMMM yyyy")}
+                </h2>
+                <CalendarIcon size={16} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+              </button>
               {calendarLoading && (
                 <Loader2 size={16} className="animate-spin text-blue-600" />
               )}
@@ -727,20 +793,20 @@ const TasksPage = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentMonth((prev) => subMonths(prev, 1))}
-                className="p-2 bg-gray-50 hover:bg-gray-100 text-[#001F3F] rounded-xl border border-gray-100 transition-colors"
+                className="p-2 bg-gray-50 hover:bg-gray-100 text-[#001F3F] rounded-xl border border-gray-100 transition-colors cursor-pointer"
                 title="Previous Month"
               >
                 <ChevronLeft size={18} />
               </button>
               <button
                 onClick={() => setCurrentMonth(new Date())}
-                className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-[#001F3F] text-[10px] font-black uppercase tracking-widest rounded-xl border border-gray-100 transition-colors"
+                className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-[#001F3F] text-[10px] font-black uppercase tracking-widest rounded-xl border border-gray-100 transition-colors cursor-pointer"
               >
                 Today
               </button>
               <button
                 onClick={() => setCurrentMonth((prev) => addMonths(prev, 1))}
-                className="p-2 bg-gray-50 hover:bg-gray-100 text-[#001F3F] rounded-xl border border-gray-100 transition-colors"
+                className="p-2 bg-gray-50 hover:bg-gray-100 text-[#001F3F] rounded-xl border border-gray-100 transition-colors cursor-pointer"
                 title="Next Month"
               >
                 <ChevronRight size={18} />
@@ -748,15 +814,15 @@ const TasksPage = () => {
             </div>
           </div>
 
-          {/* Días de la semana */}
+          {/* Días de la semana - Inicia en Domingo (estándar USA) */}
           <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-black uppercase tracking-wider text-gray-400 pb-2">
+            <div>Sun</div>
             <div>Mon</div>
             <div>Tue</div>
             <div>Wed</div>
             <div>Thu</div>
             <div>Fri</div>
             <div>Sat</div>
-            <div>Sun</div>
           </div>
 
           {/* Cuadrícula del mes */}
@@ -1116,6 +1182,23 @@ const TasksPage = () => {
         onClose={handleCloseTaskDetail}
         taskId={selectedTaskId}
         onTaskUpdated={handleTaskUpdated}
+      />
+
+      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN (SOLO ADMIN) */}
+      <TaskDeleteDialog
+        isOpen={isDeleteModalOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        task={taskToDelete}
+        isDeleting={isDeletingTask}
+      />
+
+      {/* SELECTOR DE SALTO DIRECTO DE MES Y AÑO */}
+      <MonthYearPicker
+        isOpen={isMonthPickerOpen}
+        onClose={() => setIsMonthPickerOpen(false)}
+        currentDate={currentMonth}
+        onSelect={(newDate) => setCurrentMonth(newDate)}
       />
     </div>
   );

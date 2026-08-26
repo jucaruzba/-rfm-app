@@ -47,6 +47,7 @@ import {
   addDays,
 } from "date-fns";
 import { es } from "date-fns/locale";
+import MonthYearPicker from "../components/MonthYearPicker";
 
 // Componente DayCell
 const DayCell = ({ date, selectedDate, dayReminders, onDateClick }) => {
@@ -313,6 +314,8 @@ const ReminderCalendar = () => {
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [completingId, setCompletingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [deleteFutureOption, setDeleteFutureOption] = useState(false);
 
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -333,7 +336,7 @@ const ReminderCalendar = () => {
     repeatEndDate: "",
   });
 
-  // Calendario de fechas - CORREGIDO
+  // Calendario de fechas - Inicia la semana en Domingo (weekStartsOn: 0, estándar USA)
   const calendarData = useMemo(() => {
     let start, end;
     // Normalizar fecha para evitar problemas de zona horaria
@@ -346,13 +349,13 @@ const ReminderCalendar = () => {
         end = endOfDay(normalizedDate);
         break;
       case "week":
-        start = startOfWeek(normalizedDate, { weekStartsOn: 1 });
-        end = endOfWeek(normalizedDate, { weekStartsOn: 1 });
+        start = startOfWeek(normalizedDate, { weekStartsOn: 0 });
+        end = endOfWeek(normalizedDate, { weekStartsOn: 0 });
         break;
       case "month":
       default:
-        start = startOfWeek(startOfMonth(normalizedDate), { weekStartsOn: 1 });
-        end = endOfWeek(endOfMonth(normalizedDate), { weekStartsOn: 1 });
+        start = startOfWeek(startOfMonth(normalizedDate), { weekStartsOn: 0 });
+        end = endOfWeek(endOfMonth(normalizedDate), { weekStartsOn: 0 });
         break;
     }
     const days = eachDayOfInterval({ start, end });
@@ -528,6 +531,7 @@ const ReminderCalendar = () => {
   };
 
   const openDeleteModal = (reminder) => {
+    setDeleteFutureOption(false);
     setDeleteModal({
       isOpen: true,
       reminderId: reminder.idReminder,
@@ -537,11 +541,16 @@ const ReminderCalendar = () => {
   };
 
   const confirmDelete = async () => {
-    const { reminderId } = deleteModal;
+    const { reminderId, isRecurring } = deleteModal;
     try {
       setDeletingId(reminderId);
-      await reminderService.deleteChain(reminderId);
-      toast.success("🗑️ Reminder chain deleted");
+      if (isRecurring && deleteFutureOption) {
+        await reminderService.deleteChain(reminderId);
+        toast.success("All future reminders deleted");
+      } else {
+        await reminderService.deleteReminder(reminderId);
+        toast.success("Reminder deleted");
+      }
       setReminders((prev) => prev.filter((r) => r.idReminder !== reminderId));
       if (selectedReminder?.idReminder === reminderId)
         setSelectedReminder(null);
@@ -560,7 +569,7 @@ const ReminderCalendar = () => {
     }
   };
 
-  // 🔥 NAVEGACIÓN CORREGIDA - Usando funciones de date-fns
+  // NAVEGACIÓN - Usando funciones de date-fns
   const navigateDate = (direction) => {
     const amount = direction === "next" ? 1 : -1;
 
@@ -583,8 +592,8 @@ const ReminderCalendar = () => {
       case "day":
         return format(selectedDate, "EEEE, d 'de' MMMM", { locale: es });
       case "week": {
-        const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
-        const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
+        const start = startOfWeek(selectedDate, { weekStartsOn: 0 });
+        const end = endOfWeek(selectedDate, { weekStartsOn: 0 });
         return `${format(start, "d MMM", { locale: es })} - ${format(end, "d MMM, yyyy", { locale: es })}`;
       }
       default:
@@ -696,23 +705,31 @@ const ReminderCalendar = () => {
         <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-3 shadow-sm hover:shadow-md transition-shadow">
           <button
             onClick={() => navigateDate("prev")}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
+            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110 cursor-pointer"
           >
             <ChevronLeft size={20} className="text-gray-600" />
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl">
-              <Sparkles size={16} className="text-blue-600" />
-            </div>
-            <h2 className="text-lg font-black text-[#001F3F] uppercase tracking-tight">
-              {getDateRangeLabel()}
-            </h2>
+            <button
+              type="button"
+              onClick={() => setIsMonthPickerOpen(true)}
+              className="flex items-center gap-2.5 group hover:bg-blue-50/80 py-1.5 px-3 rounded-2xl transition-all cursor-pointer border border-transparent hover:border-blue-100"
+              title="Click to jump to another month / year"
+            >
+              <div className="p-1.5 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl group-hover:from-blue-200 group-hover:to-blue-100 transition-colors">
+                <Sparkles size={16} className="text-blue-600" />
+              </div>
+              <h2 className="text-lg font-black text-[#001F3F] group-hover:text-blue-600 uppercase tracking-tight transition-colors">
+                {getDateRangeLabel()}
+              </h2>
+              <CalendarIcon size={15} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+            </button>
           </div>
 
           <button
             onClick={() => navigateDate("next")}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
+            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110 cursor-pointer"
           >
             <ChevronRight size={20} className="text-gray-600" />
           </button>
@@ -724,7 +741,7 @@ const ReminderCalendar = () => {
           <div className="lg:col-span-3 space-y-4">
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
                   (day) => (
                     <div
                       key={day}
@@ -1087,7 +1104,7 @@ const ReminderCalendar = () => {
       {/* Modal de Confirmación para Eliminar */}
       {deleteModal.isOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative max-w-sm w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="relative max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white/10 rounded-xl">
@@ -1109,22 +1126,69 @@ const ReminderCalendar = () => {
                 <p className="text-sm font-black text-[#001F3F]">
                   "{deleteModal.reminderTitle}"
                 </p>
-                {deleteModal.isRecurring && (
-                  <div className="flex items-center gap-2 mt-2 text-xs font-black text-red-600">
-                    <Repeat size={14} />
-                    <span>
-                      This will delete ALL reminders in this recurring chain
-                    </span>
-                  </div>
-                )}
-                {!deleteModal.isRecurring && (
-                  <p className="text-xs font-medium text-gray-500 mt-2">
-                    This reminder will be permanently deleted.
-                  </p>
-                )}
+                <p className="text-xs font-bold text-red-600 mt-1">
+                  ⚠️ This action cannot be undone.
+                </p>
               </div>
 
-              <div className="flex gap-3">
+              {deleteModal.isRecurring && (
+                <div className="space-y-2 pt-1">
+                  <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                    Recurring Deletion Options
+                  </label>
+                  <div className="space-y-2">
+                    <label
+                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        !deleteFutureOption
+                          ? "bg-blue-50/50 border-blue-200 text-blue-900"
+                          : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="reminderDeleteOption"
+                        checked={!deleteFutureOption}
+                        onChange={() => setDeleteFutureOption(false)}
+                        className="mt-0.5 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-[#001F3F]">
+                          Delete this event only
+                        </div>
+                        <div className="text-[10px] text-gray-500 font-medium mt-0.5">
+                          Removes only this scheduled occurrence
+                        </div>
+                      </div>
+                    </label>
+
+                    <label
+                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        deleteFutureOption
+                          ? "bg-red-50/60 border-red-200 text-red-900"
+                          : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="reminderDeleteOption"
+                        checked={deleteFutureOption}
+                        onChange={() => setDeleteFutureOption(true)}
+                        className="mt-0.5 text-red-600 focus:ring-red-500"
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-red-700">
+                          Delete all future events
+                        </div>
+                        <div className="text-[10px] text-gray-500 font-medium mt-0.5">
+                          Removes this reminder and all subsequent instances
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() =>
                     setDeleteModal({
@@ -1134,14 +1198,14 @@ const ReminderCalendar = () => {
                       isRecurring: false,
                     })
                   }
-                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-black text-gray-600 uppercase tracking-wider transition-all"
+                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-black text-gray-600 uppercase tracking-wider transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDelete}
                   disabled={deletingId === deleteModal.reminderId}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl text-xs font-black text-white uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl text-xs font-black text-white uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 cursor-pointer"
                 >
                   {deletingId === deleteModal.reminderId ? (
                     <>
@@ -1160,6 +1224,14 @@ const ReminderCalendar = () => {
           </div>
         </div>
       )}
+
+      {/* Selector de salto directo de Mes y Año */}
+      <MonthYearPicker
+        isOpen={isMonthPickerOpen}
+        onClose={() => setIsMonthPickerOpen(false)}
+        currentDate={selectedDate}
+        onSelect={(newDate) => setSelectedDate(newDate)}
+      />
     </>
   );
 };

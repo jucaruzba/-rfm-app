@@ -37,9 +37,13 @@ import { companyService } from "../../../../services/companyService";
 import { pendingItemService } from "../../../../services/pendingItemService";
 import { nodeService } from "../../../../services/nodeService";
 import ConfirmDialog from "../../../ui/ConfirmDialog"; // Ajusta la ruta según tu estructura
+import TaskDeleteDialog from "../../../../components/TaskDeleteDialog";
 
 const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
   const { user: authUser } = useAuth();
+  const isAdmin =
+    authUser?.role?.toLowerCase() === "admin" || authUser?.role === "ADMIN";
+
   const [task, setTask] = useState(null);
   const [nodes, setNodes] = useState([]);
   const [comments, setComments] = useState([]);
@@ -56,6 +60,8 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
   const [users, setUsers] = useState([]);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [isCreatePendingModalOpen, setIsCreatePendingModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [pendingFormData, setPendingFormData] = useState({
     title: "",
     description: "",
@@ -210,6 +216,23 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
     } catch (err) {
       console.error("Update error", err);
       toast.error("Update failed");
+    }
+  };
+
+  const handleConfirmDeleteTask = async (taskToDelete, deleteFuture) => {
+    if (!taskToDelete) return;
+    setIsDeletingTask(true);
+    try {
+      await taskService.deleteTask(taskToDelete.idTask, deleteFuture);
+      toast.success("Task deleted successfully");
+      setIsDeleteModalOpen(false);
+      onClose();
+      if (onTaskUpdated) onTaskUpdated();
+    } catch (error) {
+      console.error("Delete task error:", error);
+      toast.error("Failed to delete task");
+    } finally {
+      setIsDeletingTask(false);
     }
   };
 
@@ -727,16 +750,29 @@ const handleConfirmDeletePending = async (id) => {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={isEditing ? handleUpdate : () => setIsEditing(true)}
-                  className={`p-3 rounded-2xl transition-all shadow-lg ${
-                    isEditing
-                      ? "bg-green-600 text-white"
-                      : "bg-[#001F3F] text-white"
-                  }`}
-                >
-                  {isEditing ? <Save size={20} /> : <Edit3 size={20} />}
-                </button>
+                <div className="flex items-center gap-2">
+                  {isAdmin && !isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="p-3 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl transition-all shadow-md hover:shadow-red-600/20 border border-red-200 cursor-pointer"
+                      title="Delete Task (Admin only)"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
+                  <button
+                    onClick={isEditing ? handleUpdate : () => setIsEditing(true)}
+                    className={`p-3 rounded-2xl transition-all shadow-lg cursor-pointer ${
+                      isEditing
+                        ? "bg-green-600 text-white hover:bg-green-700"
+                        : "bg-[#001F3F] text-white hover:bg-blue-900"
+                    }`}
+                    title={isEditing ? "Save Changes" : "Edit Task"}
+                  >
+                    {isEditing ? <Save size={20} /> : <Edit3 size={20} />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2 border-t border-gray-50 pt-6">
@@ -1200,6 +1236,15 @@ const handleConfirmDeletePending = async (id) => {
           (deletingPending === confirmDialog.itemId)
         }
         type={confirmDialog.type}
+      />
+
+      {/* Modal de confirmación de eliminación de tarea (Admin Only) */}
+      <TaskDeleteDialog
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDeleteTask}
+        task={task}
+        isDeleting={isDeletingTask}
       />
     </>
   );

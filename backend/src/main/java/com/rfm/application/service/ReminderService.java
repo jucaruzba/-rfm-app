@@ -51,82 +51,15 @@ public class ReminderService {
         // Guardar el padre primero
         parentReminder = reminderRepository.save(parentReminder);
         
-        // Si es un recordatorio con repetición, crear todos los futuros
-        if (repeatType != RepeatType.NONE && request.repeatEndDate() != null) {
-            createAllFutureReminders(parentReminder);
-        }
+        // Rolling recurrence: solo creamos la primera ocurrencia activa.
+        // Las siguientes ocurrencias se crearán cuando se marque como completado.
 
         return mapToDTO(parentReminder);
     }
 
-    private void createAllFutureReminders(Reminder parent) {
-        try {
-            LocalDateTime currentDate = parent.getReminderDate();
-            LocalDateTime endDate = parent.getRepeatEndDate();
-            List<Reminder> futureReminders = new ArrayList<>();
-            int count = 0;
-            
-            // Generar hasta 365 días en el futuro o hasta la fecha de fin
-            while (currentDate.isBefore(endDate) || currentDate.isEqual(endDate)) {
-                // Calcular siguiente fecha
-                LocalDateTime nextDate = calculateNextDate(currentDate, parent.getRepeatType());
-                
-                // Si no hay siguiente fecha o ya pasó la fecha de fin, salir
-                if (nextDate == null || nextDate.isAfter(endDate)) {
-                    break;
-                }
-                
-                // Crear el siguiente recordatorio
-                Reminder nextReminder = Reminder.builder()
-                        .title(parent.getTitle())
-                        .description(parent.getDescription())
-                        .reminderDate(nextDate)
-                        .idUser(parent.getIdUser())
-                        .idObject(parent.getIdObject())
-                        .isCompleted(false)
-                        .createdAt(LocalDateTime.now())
-                        .repeatType(parent.getRepeatType())
-                        .repeatEndDate(parent.getRepeatEndDate())
-                        .parentReminderId(parent.getIdReminder()) // Apunta al padre
-                        .build();
-                
-                futureReminders.add(nextReminder);
-                currentDate = nextDate;
-                count++;
-                
-                // Evitar crear demasiados (máximo 365 para no saturar)
-                if (count >= 365) {
-                    log.warn("Se alcanzó el límite máximo de 365 recordatorios para el padre {}", parent.getIdReminder());
-                    break;
-                }
-            }
-            
-            // Guardar todos los recordatorios futuros
-            if (!futureReminders.isEmpty()) {
-                reminderRepository.saveAll(futureReminders);
-                
-                // Actualizar la próxima fecha del padre
-                parent.setNextReminderDate(futureReminders.get(0).getReminderDate());
-                reminderRepository.save(parent);
-                
-                log.info("Creados {} recordatorios futuros para el padre {}", futureReminders.size(), parent.getIdReminder());
-            }
-            
-        } catch (Exception e) {
-            log.error("Error creando recordatorios futuros para padre {}: {}", parent.getIdReminder(), e.getMessage(), e);
-            throw new RuntimeException("Error al crear los recordatorios repetitivos: " + e.getMessage());
-        }
-    }
-
     @Transactional
     public ReminderDTO markAsCompleted(Long id) {
-        Reminder reminder = reminderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reminder not found with id: " + id));
-
-        reminder.setIsCompleted(true);
-        reminder.setCompletedAt(LocalDateTime.now());
-        reminder = reminderRepository.save(reminder);
-        return mapToDTO(reminder);
+        return markAsCompletedAndCreateNext(id);
     }
 
     @Transactional
@@ -272,17 +205,9 @@ public class ReminderService {
 
     @Transactional
     public void delete(Long id) {
-        Reminder reminder = reminderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reminder not found with id: " + id));
-        
-        // Si es padre, eliminar también los hijos
-        if (reminder.getParentReminderId() == null) {
-            List<Reminder> children = reminderRepository.findByParentReminderId(reminder.getIdReminder());
-            if (!children.isEmpty()) {
-                reminderRepository.deleteAll(children);
-            }
+        if (!reminderRepository.existsById(id)) {
+            throw new RuntimeException("Reminder not found with id: " + id);
         }
-        
         reminderRepository.deleteById(id);
     }
 

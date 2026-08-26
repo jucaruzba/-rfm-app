@@ -87,6 +87,10 @@ public class TaskAlertScheduler {
         Long userId = task.getIdUserAssigned();
         Long taskId = task.getIdTask();
         String priority = task.getPriority() != null ? task.getPriority().toUpperCase() : "NORMAL";
+        if ("LOW".equalsIgnoreCase(priority)) {
+            // Low priority: Sin alerta, solo se visualiza en el sistema
+            return;
+        }
         boolean isHighPriority = "HIGH".equalsIgnoreCase(priority);
 
         String labelTag = "(" + timeframeLabel + ")";

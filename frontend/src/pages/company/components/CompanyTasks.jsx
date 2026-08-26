@@ -15,18 +15,29 @@ import {
   PlayCircle,
   Repeat,
   Flame,
+  Trash2,
 } from "lucide-react";
 import { taskService } from "../../../services/taskService";
 import { userService } from "../../../services/userService";
+import { useAuth } from "../../../context/AuthContext";
 import { toast } from "sonner";
 import TaskDetailView from "../../admin/components/task/TaskDetailView";
+import TaskDeleteDialog from "../../../components/TaskDeleteDialog";
 
 const CompanyTasks = () => {
   const { companyId } = useParams();
+  const { user: authUser } = useAuth();
+  const isAdmin =
+    authUser?.role?.toLowerCase() === "admin" || authUser?.role === "ADMIN";
 
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
+
+  // --- ESTADOS DE ELIMINACIÓN ---
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   // --- FILTROS ---
   const [statusTab, setStatusTab] = useState("PENDING");
@@ -138,6 +149,37 @@ const CompanyTasks = () => {
 
   const handleTaskUpdated = () => {
     fetchTasks();
+  };
+
+  const handleDeleteClick = (task) => {
+    setTaskToDelete(task);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (task, deleteFuture) => {
+    if (!task) return;
+    setIsDeletingTask(true);
+    try {
+      await taskService.deleteTask(task.idTask, deleteFuture);
+      toast.success("Task deleted successfully");
+      setIsDeleteModalOpen(false);
+      setTaskToDelete(null);
+      if (selectedTaskId === task.idTask) {
+        setIsDetailViewOpen(false);
+        setSelectedTaskId(null);
+      }
+      fetchTasks();
+    } catch (error) {
+      console.error("Delete task error:", error);
+      toast.error("Failed to delete task");
+    } finally {
+      setIsDeletingTask(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setTaskToDelete(null);
   };
 
   const handleCreateTask = async (e) => {
@@ -434,7 +476,7 @@ const CompanyTasks = () => {
                 </div>
 
                 <div
-                  className="shrink-0 flex items-center border-t md:border-t-0 pt-3 md:pt-0 border-gray-50"
+                  className="shrink-0 flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-gray-50"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <select
@@ -449,6 +491,18 @@ const CompanyTasks = () => {
                     <option value="BLOCK">Blocked</option>
                     <option value="COMPLETED">Completed</option>
                   </select>
+
+                  {/* Botón de eliminar - SOLO PARA ADMIN */}
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteClick(task)}
+                      className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-gray-100 hover:border-red-200 cursor-pointer"
+                      title="Delete task (Admin only)"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -742,6 +796,15 @@ const CompanyTasks = () => {
         onClose={handleCloseTaskDetail}
         taskId={selectedTaskId}
         onTaskUpdated={handleTaskUpdated}
+      />
+
+      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN (SOLO ADMIN) */}
+      <TaskDeleteDialog
+        isOpen={isDeleteModalOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        task={taskToDelete}
+        isDeleting={isDeletingTask}
       />
     </div>
   );
