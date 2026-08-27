@@ -16,4 +16,4 @@ jobs:
           password: ${{ secrets.NAS_PASSWORD }}
           script: |
             cd /docker/rfm
-            docker-compose up -d --build backend frontend
+            /usr/local/bin/docker-compose up -d --build backend frontend
