@@ -20,6 +20,7 @@ import com.rfm.application.model.entity.Task;
 import com.rfm.application.model.entity.Company;
 import com.rfm.application.model.entity.User;
 import com.rfm.application.repository.NodeRepository;
+import com.rfm.application.repository.ReminderRepository;
 import com.rfm.application.repository.TaskCommentRepository;
 import com.rfm.application.repository.TaskRepository;
 import com.rfm.application.repository.CompanyRepository;
@@ -42,6 +43,7 @@ public class TaskService {
 	private final NotificationService notificationService;
 	private final TaskCommentRepository taskCommentRepository;
 	private final NotificacionCorreoService emailService;
+	private final ReminderRepository reminderRepository;
 
 	@Transactional
 	public TaskDTO create(TaskRequest request) {
@@ -306,18 +308,44 @@ public class TaskService {
 			LocalDate filterDate = task.getStartDate() != null ? task.getStartDate() : LocalDate.now();
 			List<Task> futureTasks = taskRepository.findFutureInSeries(parentId, filterDate);
 			for (Task t : futureTasks) {
-				taskCommentRepository.deleteAllByIdActivity(t.getIdTask());
-				taskRepository.delete(t);
+				deleteTaskAndRelated(t);
 			}
-			// Asegurar que si este task sigue existiendo se elimine
+			// Ensure the current task is also deleted if it still exists
 			if (taskRepository.existsById(id)) {
-				taskCommentRepository.deleteAllByIdActivity(id);
-				taskRepository.delete(task);
+				deleteTaskAndRelated(task);
 			}
 		} else {
-			taskCommentRepository.deleteAllByIdActivity(id);
-			taskRepository.delete(task);
+			deleteTaskAndRelated(task);
 		}
+	}
+
+	/**
+	 * Deletes a single task along with all its related data:
+	 * comments, reminders, and the associated node (folder + files on NAS).
+	 */
+	private void deleteTaskAndRelated(Task task) {
+		Long taskId = task.getIdTask();
+
+		// 1. Delete task comments
+		taskCommentRepository.deleteAllByIdActivity(taskId);
+
+		// 2. Delete reminders associated with this task (by idObject = taskId)
+		List<com.rfm.application.model.entity.Reminder> reminders = reminderRepository.findByIdObject(taskId);
+		if (!reminders.isEmpty()) {
+			reminderRepository.deleteAll(reminders);
+		}
+
+		// 3. Delete the node (folder) and all its content recursively (files + subfolders on NAS)
+		if (task.getIdNode() != null) {
+			try {
+				nodeService.deleteNodeRecursively(task.getIdNode());
+			} catch (Exception e) {
+				log.warn("Could not fully delete node {} for task {}: {}", task.getIdNode(), taskId, e.getMessage());
+			}
+		}
+
+		// 4. Delete the task itself
+		taskRepository.delete(task);
 	}
 
 	private TaskDTO mapToDTO(Task task) {

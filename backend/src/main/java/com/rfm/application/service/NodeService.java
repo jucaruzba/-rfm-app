@@ -109,6 +109,59 @@ public class NodeService {
     }
     
     /**
+     * DELETE NODE RECURSIVELY - Removes a folder and ALL its children (files + subfolders) from DB and disk.
+     * Safe to call on task nodes when deleting a task.
+     */
+    @Transactional
+    public void deleteNodeRecursively(Long idNode) {
+        Node node = nodeRepository.findById(idNode).orElse(null);
+        if (node == null) {
+            log.warn("Node {} not found, skipping recursive delete.", idNode);
+            return;
+        }
+
+        // Delete children first (depth-first)
+        List<Node> children = nodeRepository.findByIdParent(idNode);
+        for (Node child : children) {
+            deleteNodeRecursively(child.getIdNode());
+        }
+
+        // If it's a FILE, delete the physical file from disk
+        if ("FILE".equals(node.getNodeType())) {
+            try {
+                Path filePath = Paths.get(node.getRealPath());
+                if (Files.exists(filePath)) {
+                    Files.delete(filePath);
+                    log.info("Physical file deleted: {}", filePath);
+                }
+            } catch (IOException e) {
+                log.warn("Could not delete physical file {}: {}", node.getRealPath(), e.getMessage());
+            }
+        }
+
+        // If it's a FOLDER, try to delete the physical directory (only if empty after children removal)
+        if ("FOLDER".equals(node.getNodeType())) {
+            try {
+                Path folderPath = Paths.get(node.getRealPath());
+                if (Files.exists(folderPath)) {
+                    Files.walk(folderPath)
+                         .sorted(java.util.Comparator.reverseOrder())
+                         .forEach(p -> {
+                             try { Files.deleteIfExists(p); } catch (IOException ignored) {}
+                         });
+                    log.info("Physical folder deleted: {}", folderPath);
+                }
+            } catch (IOException e) {
+                log.warn("Could not delete physical folder {}: {}", node.getRealPath(), e.getMessage());
+            }
+        }
+
+        // Delete the DB record
+        nodeRepository.delete(node);
+        log.info("Node deleted from DB: id={}, name={}", idNode, node.getName());
+    }
+
+    /**
      * DELETE FILE ONLY - Removes file from database and disk
      */
     @Transactional

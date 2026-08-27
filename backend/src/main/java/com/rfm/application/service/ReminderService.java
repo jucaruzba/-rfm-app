@@ -222,6 +222,24 @@ public class ReminderService {
         reminderRepository.deleteChain(chainStartId);
     }
 
+    private void createAllFutureReminders(Reminder parentReminder) {
+        if (parentReminder.getRepeatType() == RepeatType.NONE || parentReminder.getRepeatEndDate() == null) {
+            return;
+        }
+
+        LocalDateTime nextDate = calculateNextDate(parentReminder.getReminderDate(), parentReminder.getRepeatType());
+
+        while (nextDate != null &&
+               (nextDate.isBefore(parentReminder.getRepeatEndDate()) || nextDate.isEqual(parentReminder.getRepeatEndDate()))) {
+            // Solo crear si no existe ya un recordatorio con esta fecha para este padre
+            if (!reminderRepository.existsByParentReminderIdAndReminderDate(parentReminder.getIdReminder(), nextDate)) {
+                Reminder child = createNextReminder(parentReminder, nextDate);
+                reminderRepository.save(child);
+            }
+            nextDate = calculateNextDate(nextDate, parentReminder.getRepeatType());
+        }
+    }
+
     private Reminder createNextReminder(Reminder parent, LocalDateTime nextDate) {
         Long parentId = parent.getParentReminderId() != null ? 
                        parent.getParentReminderId() : 
