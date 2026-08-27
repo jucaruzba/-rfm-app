@@ -204,19 +204,18 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
 
   const handleUpdate = async () => {
     try {
+      const dateFormatted = formatDateToBackend(task.startDate);
       const updatedPayload = {
         title: task.title,
         description: task.description,
-        startDate: formatDateToBackend(task.startDate),
-        endDate: formatDateToBackend(task.endDate),
+        startDate: dateFormatted,
+        endDate: dateFormatted,
         idCompany: task.idCompany || null,
         externalReferenceName: task.externalReferenceName || null,
         idUserAssigned: task.idUserAssigned,
         status: task.status,
         repeatType: task.repeatType || "NONE",
-        repeatEndDate: task.repeatType && task.repeatType !== "NONE" && task.repeatEndDate
-          ? formatDateToBackend(task.repeatEndDate)
-          : null,
+        repeatEndDate: null,
         priority: task.priority || "NORMAL",
       };
 
@@ -550,78 +549,48 @@ const handleConfirmDeletePending = async (id) => {
                         </select>
                       </div>
 
-                      {/* FECHAS */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                            <Calendar size={10} className="inline mr-1" /> Start
-                            Date
-                          </label>
-                          <input
-                            type="date"
-                            className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
-                            value={formatDateForInput(task.startDate)}
-                            onChange={(e) =>
-                              setTask({ ...task, startDate: e.target.value })
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                            <Calendar size={10} className="inline mr-1" /> End
-                            Date
-                          </label>
-                          <input
-                            type="date"
-                            className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
-                            value={formatDateForInput(task.endDate)}
-                            onChange={(e) =>
-                              setTask({ ...task, endDate: e.target.value })
-                            }
-                          />
-                        </div>
+                      {/* FECHA */}
+                      <div className="space-y-2">
+                        <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
+                          <Calendar size={10} className="inline mr-1" /> Date
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                          value={formatDateForInput(task.startDate)}
+                          onChange={(e) =>
+                            setTask({
+                              ...task,
+                              startDate: e.target.value,
+                              endDate: e.target.value,
+                            })
+                          }
+                        />
                       </div>
 
                       {/* RECURRENCE SETTINGS */}
-                      <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-4">
+                      <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3">
                         <span className="text-[9px] font-black uppercase tracking-widest text-purple-900/60 flex items-center gap-1.5">
                           <Repeat size={12} className="text-purple-600" /> Recurrence Settings
                         </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                              Repeat Frequency
-                            </label>
-                            <select
-                              value={task.repeatType || "NONE"}
-                              onChange={(e) =>
-                                setTask({ ...task, repeatType: e.target.value })
-                              }
-                              className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
-                            >
-                              <option value="NONE">One time (No repeat)</option>
-                              <option value="DAILY">Daily (Every day)</option>
-                              <option value="WEEKLY">Weekly (Every week)</option>
-                              <option value="MONTHLY">Monthly (Every month)</option>
-                              <option value="QUARTERLY">Quarterly (Every 3 months)</option>
-                              <option value="YEARLY">Yearly (Every year)</option>
-                            </select>
-                          </div>
-                          {task.repeatType && task.repeatType !== "NONE" && (
-                            <div className="space-y-1 animate-in fade-in">
-                              <label className="text-[8px] font-black uppercase text-purple-700 tracking-widest">
-                                Repeat Until (Optional - Leave blank for Never)
-                              </label>
-                              <input
-                                type="date"
-                                className="w-full bg-white border border-purple-200 rounded-xl p-2.5 outline-none focus:border-purple-600 font-bold text-xs text-[#001F3F]"
-                                value={formatDateForInput(task.repeatEndDate)}
-                                onChange={(e) =>
-                                  setTask({ ...task, repeatEndDate: e.target.value })
-                                }
-                              />
-                            </div>
-                          )}
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
+                            Repeat Frequency
+                          </label>
+                          <select
+                            value={task.repeatType || "NONE"}
+                            onChange={(e) =>
+                              setTask({ ...task, repeatType: e.target.value })
+                            }
+                            className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
+                          >
+                            <option value="NONE">One time (No repeat)</option>
+                            <option value="DAILY">Daily (Every day)</option>
+                            <option value="WEEKLY">Weekly (Every week)</option>
+                            <option value="MONTHLY">Monthly (Every month)</option>
+                            <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                            <option value="YEARLY">Yearly (Every year)</option>
+                          </select>
                         </div>
                       </div>
 
@@ -723,8 +692,7 @@ const handleConfirmDeletePending = async (id) => {
                           {task.nameUser || "Unassigned"}
                         </span>
                         <span className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                          <Calendar size={12} /> {formatDate(task.startDate)} —{" "}
-                          {formatDate(task.endDate)}
+                          <Calendar size={12} /> {formatDate(task.startDate)}
                         </span>
                         {task.nameCompany ? (
                           <span className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg uppercase self-start">
@@ -739,7 +707,6 @@ const handleConfirmDeletePending = async (id) => {
                           <span className="flex items-center gap-1.5 text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-100 px-3 py-1 rounded-lg uppercase self-start">
                             <Repeat size={12} className="text-purple-600" />
                             Repeat: {task.repeatType === "QUARTERLY" ? "Quarterly" : task.repeatType}
-                            {task.repeatEndDate && ` (Until ${formatDate(task.repeatEndDate)})`}
                           </span>
                         )}
                         {task.priority === "HIGH" ? (

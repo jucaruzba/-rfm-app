@@ -44,7 +44,7 @@ public class ReminderService {
                 .isCompleted(false)
                 .createdAt(now)
                 .repeatType(repeatType)
-                .repeatEndDate(request.repeatEndDate())
+                .repeatEndDate(null)
                 .parentReminderId(null) // Es el padre
                 .build();
 
@@ -305,9 +305,7 @@ public class ReminderService {
         if (request.repeatType() != null) {
             reminder.setRepeatType(request.repeatType());
         }
-        if (request.repeatEndDate() != null) {
-            reminder.setRepeatEndDate(request.repeatEndDate());
-        }
+        reminder.setRepeatEndDate(null);
 
         reminder = reminderRepository.save(reminder);
         return mapToDTO(reminder);

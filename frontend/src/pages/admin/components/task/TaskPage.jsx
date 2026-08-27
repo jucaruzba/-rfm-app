@@ -254,26 +254,25 @@ const TasksPage = () => {
     e.preventDefault();
 
     if (!formData.title.trim()) return toast.error("Title is required");
-    if (!formData.startDate || !formData.endDate)
-      return toast.error("Execution dates are required");
+    if (!formData.startDate)
+      return toast.error("Execution date is required");
     if (!formData.idUserAssigned)
       return toast.error("A technical operator must be assigned");
 
     const parsedUserId = Number(formData.idUserAssigned);
+    const dateFormatted = formatDateToBackend(formData.startDate);
 
     const taskRequest = {
       title: formData.title.trim(),
       description: formData.description.trim() || null,
-      startDate: formatDateToBackend(formData.startDate),
-      endDate: formatDateToBackend(formData.endDate),
+      startDate: dateFormatted,
+      endDate: dateFormatted,
       idCompany: formData.idCompany ? Number(formData.idCompany) : null,
       externalReferenceName: formData.externalReferenceName.trim() || null,
       idUserAssigned: parsedUserId,
       status: formData.status,
       repeatType: formData.repeatType,
-      repeatEndDate: formData.repeatType !== "NONE" && formData.repeatEndDate
-        ? formatDateToBackend(formData.repeatEndDate)
-        : null,
+      repeatEndDate: null,
       priority: formData.priority || "NORMAL",
     };
 
@@ -632,10 +631,9 @@ const TasksPage = () => {
                           </span>
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <CalendarIcon size={13} className="text-gray-300" /> Timeline:{" "}
+                          <CalendarIcon size={13} className="text-gray-300" /> Date:{" "}
                           <span className="text-gray-600 font-mono font-bold">
-                            {displayDate(task.startDate)} —{" "}
-                            {displayDate(task.endDate)}
+                            {displayDate(task.startDate)}
                           </span>
                         </span>
                       </div>
@@ -945,81 +943,50 @@ const TasksPage = () => {
                 />
               </div>
 
-              {/* FECHAS DE EJECUCIÓN */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.startDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startDate: e.target.value })
-                    }
-                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.endDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endDate: e.target.value })
-                    }
-                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
-                  />
-                </div>
+              {/* FECHA */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
+                  Date *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.startDate}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      startDate: e.target.value,
+                      endDate: e.target.value,
+                    })
+                  }
+                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                />
               </div>
 
               {/* REPETICIÓN (RECURRENCIA) */}
-              <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-4">
+              <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3">
                 <span className="text-[9px] font-black uppercase tracking-widest text-purple-900/60 flex items-center gap-1.5">
                   <Repeat size={12} className="text-purple-600" /> Recurrence Settings
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                      Repeat Frequency
-                    </label>
-                    <select
-                      value={formData.repeatType}
-                      onChange={(e) =>
-                        setFormData({ ...formData, repeatType: e.target.value })
-                      }
-                      className="w-full bg-white border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
-                    >
-                      <option value="NONE">One time (No repeat)</option>
-                      <option value="DAILY">Daily (Every day)</option>
-                      <option value="WEEKLY">Weekly (Every week)</option>
-                      <option value="MONTHLY">Monthly (Every month)</option>
-                      <option value="QUARTERLY">Quarterly (Every 3 months)</option>
-                      <option value="YEARLY">Yearly (Every year)</option>
-                    </select>
-                  </div>
-
-                  {formData.repeatType !== "NONE" && (
-                    <div className="space-y-1 animate-in fade-in">
-                      <label className="text-[9px] font-black uppercase tracking-wider text-purple-700">
-                        Repeat Until (Optional - Leave blank for Never)
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.repeatEndDate}
-                        min={formData.startDate || undefined}
-                        onChange={(e) =>
-                          setFormData({ ...formData, repeatEndDate: e.target.value })
-                        }
-                        className="w-full bg-white border border-purple-200 rounded-xl p-3 outline-none focus:border-purple-600 font-bold text-xs text-[#001F3F]"
-                      />
-                    </div>
-                  )}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
+                    Repeat Frequency
+                  </label>
+                  <select
+                    value={formData.repeatType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, repeatType: e.target.value })
+                    }
+                    className="w-full bg-white border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
+                  >
+                    <option value="NONE">One time (No repeat)</option>
+                    <option value="DAILY">Daily (Every day)</option>
+                    <option value="WEEKLY">Weekly (Every week)</option>
+                    <option value="MONTHLY">Monthly (Every month)</option>
+                    <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                    <option value="YEARLY">Yearly (Every year)</option>
+                  </select>
                 </div>
               </div>
 

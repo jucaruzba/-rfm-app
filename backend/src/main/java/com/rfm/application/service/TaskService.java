@@ -77,18 +77,21 @@ public class TaskService {
 		// Generate a shared series_id for all occurrences if this is a recurring task
 		String seriesId = (repeatType != RepeatType.NONE) ? UUID.randomUUID().toString() : null;
 
+		LocalDate startDate = request.startDate();
+		LocalDate endDate = request.endDate() != null ? request.endDate() : startDate;
+
 		Task task = Task.builder()
 				.title(request.title())
 				.description(request.description())
-				.startDate(request.startDate())
-				.endDate(request.endDate())
+				.startDate(startDate)
+				.endDate(endDate)
 				.idCompany(request.idCompany())
 				.externalReferenceName(request.externalReferenceName())
 				.idUserAssigned(request.idUserAssigned())
 				.idNode(taskNode.getIdNode())
 				.status("PENDING")
 				.repeatType(repeatType)
-				.repeatEndDate(request.repeatEndDate())
+				.repeatEndDate(null)
 				.parentTaskId(null)
 				.priority(priority)
 				.seriesId(seriesId)
@@ -240,11 +243,14 @@ public class TaskService {
 		boolean userAssignmentChanged = !java.util.Objects.equals(task.getIdUserAssigned(), request.idUserAssigned());
 		String oldStatus = task.getStatus();
 
+		LocalDate startDate = request.startDate();
+		LocalDate endDate = request.endDate() != null ? request.endDate() : startDate;
+
 		task.setTitle(request.title());
 		task.setDescription(request.description());
 		task.setStatus(request.status());
-		task.setStartDate(request.startDate());
-		task.setEndDate(request.endDate());
+		task.setStartDate(startDate);
+		task.setEndDate(endDate);
 		task.setExternalReferenceName(request.externalReferenceName());
 		task.setIdCompany(request.idCompany());
 		task.setIdUserAssigned(request.idUserAssigned());
@@ -254,9 +260,7 @@ public class TaskService {
 				task.setSeriesId(UUID.randomUUID().toString());
 			}
 		}
-		if (request.repeatEndDate() != null) {
-			task.setRepeatEndDate(request.repeatEndDate());
-		}
+		task.setRepeatEndDate(null);
 		if (request.priority() != null && !request.priority().isBlank()) {
 			task.setPriority(request.priority().toUpperCase());
 		}

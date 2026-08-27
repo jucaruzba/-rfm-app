@@ -241,13 +241,6 @@ const ReminderCard = ({
               </span>
             )}
           </div>
-
-          {!isCompact && reminder.repeatEndDate && (
-            <div className="flex items-center gap-1 mt-2 text-[8px] font-black text-gray-400 uppercase tracking-wider">
-              <CalendarIcon size={10} />
-              Until {formatUsDate(reminder.repeatEndDate)}
-            </div>
-          )}
         </div>
 
         {!isCompact && (
@@ -1044,29 +1037,6 @@ const ReminderCalendar = () => {
                     <option value="YEARLY">Yearly (Every year)</option>
                   </select>
                 </div>
-
-                {newReminder.repeatType !== "NONE" && (
-                  <div>
-                    <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-2">
-                      Repeat Until (Optional - Leave blank for Never)
-                    </label>
-                    <input
-                      type="date"
-                      value={newReminder.repeatEndDate}
-                      onChange={(e) =>
-                        setNewReminder({
-                          ...newReminder,
-                          repeatEndDate: e.target.value,
-                        })
-                      }
-                      min={
-                        newReminder.reminderDate ||
-                        format(new Date(), "yyyy-MM-dd")
-                      }
-                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    />
-                  </div>
-                )}
 
                 <div className="flex gap-3 pt-2">
                   <button

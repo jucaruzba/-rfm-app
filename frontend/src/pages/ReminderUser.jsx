@@ -49,7 +49,6 @@ const ReminderUser = () => {
     reminderDate: "",
     reminderTime: "12:00",
     repeatType: "NONE",
-    repeatEndDate: "",
   });
 
   const fetchReminders = async () => {
@@ -142,9 +141,7 @@ const ReminderUser = () => {
         idUser: userId,
         idObject: null, // Recordatorio global
         repeatType: newReminder.repeatType || "NONE",
-        repeatEndDate: newReminder.repeatType !== "NONE" && newReminder.repeatEndDate
-          ? `${newReminder.repeatEndDate}T23:59:59`
-          : null,
+        repeatEndDate: null,
       };
 
       await reminderService.createReminder(reminderData);
@@ -157,7 +154,6 @@ const ReminderUser = () => {
         reminderDate: "",
         reminderTime: "12:00",
         repeatType: "NONE",
-        repeatEndDate: "",
       });
       setIsModalOpen(false);
       
@@ -562,49 +558,27 @@ const ReminderUser = () => {
               </div>
 
               {/* Recurrence Settings */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-400">
-                    Repeat
-                  </label>
-                  <select
-                    value={newReminder.repeatType}
-                    onChange={(e) =>
-                      setNewReminder({
-                        ...newReminder,
-                        repeatType: e.target.value,
-                      })
-                    }
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-[#001F3F] outline-none focus:border-blue-600 transition-colors cursor-pointer"
-                  >
-                    <option value="NONE">One time (No repeat)</option>
-                    <option value="DAILY">Daily (Every day)</option>
-                    <option value="WEEKLY">Weekly (Every week)</option>
-                    <option value="MONTHLY">Monthly (Every month)</option>
-                    <option value="QUARTERLY">Quarterly (Every 3 months)</option>
-                    <option value="YEARLY">Yearly (Every year)</option>
-                  </select>
-                </div>
-
-                {newReminder.repeatType !== "NONE" && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-purple-700">
-                      Repeat Until (Optional - Never)
-                    </label>
-                    <input
-                      type="date"
-                      value={newReminder.repeatEndDate}
-                      onChange={(e) =>
-                        setNewReminder({
-                          ...newReminder,
-                          repeatEndDate: e.target.value,
-                        })
-                      }
-                      min={newReminder.reminderDate || undefined}
-                      className="w-full bg-gray-50 border border-purple-200 rounded-xl p-3 text-sm font-bold text-[#001F3F] outline-none focus:border-purple-600 transition-colors"
-                    />
-                  </div>
-                )}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                  Repeat
+                </label>
+                <select
+                  value={newReminder.repeatType}
+                  onChange={(e) =>
+                    setNewReminder({
+                      ...newReminder,
+                      repeatType: e.target.value,
+                    })
+                  }
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-[#001F3F] outline-none focus:border-blue-600 transition-colors cursor-pointer"
+                >
+                  <option value="NONE">One time (No repeat)</option>
+                  <option value="DAILY">Daily (Every day)</option>
+                  <option value="WEEKLY">Weekly (Every week)</option>
+                  <option value="MONTHLY">Monthly (Every month)</option>
+                  <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                  <option value="YEARLY">Yearly (Every year)</option>
+                </select>
               </div>
 
               {/* Botones de acción */}
