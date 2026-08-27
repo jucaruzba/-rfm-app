@@ -20,6 +20,7 @@ import com.rfm.application.model.entity.Task;
 import com.rfm.application.model.entity.Company;
 import com.rfm.application.model.entity.User;
 import com.rfm.application.repository.NodeRepository;
+import com.rfm.application.repository.NotificationRepository;
 import com.rfm.application.repository.ReminderRepository;
 import com.rfm.application.repository.TaskCommentRepository;
 import com.rfm.application.repository.TaskRepository;
@@ -44,6 +45,7 @@ public class TaskService {
 	private final TaskCommentRepository taskCommentRepository;
 	private final NotificacionCorreoService emailService;
 	private final ReminderRepository reminderRepository;
+	private final NotificationRepository notificationRepository;
 
 	@Transactional
 	public TaskDTO create(TaskRequest request) {
@@ -304,15 +306,24 @@ public class TaskService {
 				.orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
 		if (deleteFuture) {
+			// Determine the root of the series
 			Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : task.getIdTask();
 			LocalDate filterDate = task.getStartDate() != null ? task.getStartDate() : LocalDate.now();
+
+			// Find this task and all future tasks in the series
 			List<Task> futureTasks = taskRepository.findFutureInSeries(parentId, filterDate);
-			for (Task t : futureTasks) {
-				deleteTaskAndRelated(t);
+
+			// Collect IDs to delete to avoid stale entity issues
+			List<Long> idsToDelete = futureTasks.stream().map(Task::getIdTask).collect(Collectors.toList());
+
+			// Make sure the current task id is included (in case it was the parent with startDate before filterDate)
+			if (!idsToDelete.contains(id)) {
+				idsToDelete.add(id);
 			}
-			// Ensure the current task is also deleted if it still exists
-			if (taskRepository.existsById(id)) {
-				deleteTaskAndRelated(task);
+
+			// Delete each task by reloading fresh from DB to avoid stale state
+			for (Long taskId : idsToDelete) {
+				taskRepository.findById(taskId).ifPresent(this::deleteTaskAndRelated);
 			}
 		} else {
 			deleteTaskAndRelated(task);
@@ -321,7 +332,7 @@ public class TaskService {
 
 	/**
 	 * Deletes a single task along with all its related data:
-	 * comments, reminders, and the associated node (folder + files on NAS).
+	 * comments, reminders, notifications, and the associated node (folder + files on NAS).
 	 */
 	private void deleteTaskAndRelated(Task task) {
 		Long taskId = task.getIdTask();
@@ -335,7 +346,13 @@ public class TaskService {
 			reminderRepository.deleteAll(reminders);
 		}
 
-		// 3. Delete the node (folder) and all its content recursively (files + subfolders on NAS)
+		// 3. Delete notifications pointing to this task
+		List<com.rfm.application.model.entity.Notification> notifications = notificationRepository.findByReferenceTypeAndReferenceId("task", taskId);
+		if (!notifications.isEmpty()) {
+			notificationRepository.deleteAll(notifications);
+		}
+
+		// 4. Delete the node (folder) and all its content recursively (files + subfolders on NAS)
 		if (task.getIdNode() != null) {
 			try {
 				nodeService.deleteNodeRecursively(task.getIdNode());
@@ -344,7 +361,7 @@ public class TaskService {
 			}
 		}
 
-		// 4. Delete the task itself
+		// 5. Delete the task itself
 		taskRepository.delete(task);
 	}
 

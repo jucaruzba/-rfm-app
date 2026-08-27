@@ -16,6 +16,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     List<Notification> findByIdUserAndIsReadFalseOrderByCreatedAtDesc(Long idUser);
     boolean existsByIdUserAndReferenceTypeAndReferenceId(Long idUser, String referenceType, Long referenceId);
 
+    List<Notification> findByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
+
     @Query("SELECT COUNT(n) > 0 FROM Notification n WHERE n.idUser = :idUser AND n.referenceId = :referenceId AND n.title LIKE CAST(:labelPattern AS string)")
     boolean existsReminderAlert(
             @Param("idUser") Long idUser,
