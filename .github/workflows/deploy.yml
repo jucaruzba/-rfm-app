@@ -3,7 +3,7 @@ name: Deploy to Synology NAS
 on:
   push:
     branches: [ "master" ]
-    
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -15,4 +15,4 @@ jobs:
           username: ${{ secrets.NAS_USER }}
           password: ${{ secrets.NAS_PASSWORD }}
           script: |
-            /usr/local/bin/docker-compose -f /docker/rfm/docker-compose.yml up -d --build backend frontend
+            sudo /usr/local/bin/docker-compose -f /docker/rfm/docker-compose.yml up -d --build backend frontend
