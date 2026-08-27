@@ -15,4 +15,4 @@ jobs:
           username: ${{ secrets.NAS_USER }}
           password: ${{ secrets.NAS_PASSWORD }}
           script: |
-            sudo /usr/local/bin/docker-compose -f /docker/rfm/docker-compose.yml up -d --build backend frontend
+            echo '${{ secrets.NAS_PASSWORD }}' | sudo -S /usr/local/bin/docker-compose -f /docker/rfm/docker-compose.yml up -d --build backend frontend
