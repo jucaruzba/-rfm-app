@@ -46,8 +46,9 @@ import {
   subDays,
   addDays,
 } from "date-fns";
-import { es } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 import MonthYearPicker from "../components/MonthYearPicker";
+import { formatUsDate, formatUsTime, formatUsDateTime } from "../utils/dateUtils";
 
 // Componente DayCell
 const DayCell = ({ date, selectedDate, dayReminders, onDateClick }) => {
@@ -126,6 +127,7 @@ const ReminderCard = ({
       DAILY: "Daily",
       WEEKLY: "Weekly",
       MONTHLY: "Monthly",
+      QUARTERLY: "Quarterly",
       YEARLY: "Yearly",
     };
     return labels[repeatType] || "One time";
@@ -222,7 +224,7 @@ const ReminderCard = ({
 
             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-full text-[8px] font-black text-gray-600 uppercase tracking-wider">
               <Clock size={10} />
-              {format(date, "HH:mm")}
+              {formatUsTime(date)}
             </span>
 
             {reminder.repeatType !== "NONE" && (
@@ -243,10 +245,7 @@ const ReminderCard = ({
           {!isCompact && reminder.repeatEndDate && (
             <div className="flex items-center gap-1 mt-2 text-[8px] font-black text-gray-400 uppercase tracking-wider">
               <CalendarIcon size={10} />
-              Until{" "}
-              {format(parseISO(reminder.repeatEndDate), "MMM d, yyyy", {
-                locale: es,
-              })}
+              Until {formatUsDate(reminder.repeatEndDate)}
             </div>
           )}
         </div>
@@ -590,14 +589,14 @@ const ReminderCalendar = () => {
   const getDateRangeLabel = () => {
     switch (viewMode) {
       case "day":
-        return format(selectedDate, "EEEE, d 'de' MMMM", { locale: es });
+        return format(selectedDate, "EEEE, MMMM d, yyyy", { locale: enUS });
       case "week": {
         const start = startOfWeek(selectedDate, { weekStartsOn: 0 });
         const end = endOfWeek(selectedDate, { weekStartsOn: 0 });
-        return `${format(start, "d MMM", { locale: es })} - ${format(end, "d MMM, yyyy", { locale: es })}`;
+        return `${format(start, "MMM d", { locale: enUS })} - ${format(end, "MMM d, yyyy", { locale: enUS })}`;
       }
       default:
-        return format(selectedDate, "MMMM yyyy", { locale: es });
+        return format(selectedDate, "MMMM yyyy", { locale: enUS });
     }
   };
 
@@ -1035,20 +1034,21 @@ const ReminderCalendar = () => {
                         repeatType: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
                   >
-                    <option value="NONE">One time</option>
-                    <option value="DAILY">Daily</option>
-                    <option value="WEEKLY">Weekly</option>
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="YEARLY">Yearly</option>
+                    <option value="NONE">One time (No repeat)</option>
+                    <option value="DAILY">Daily (Every day)</option>
+                    <option value="WEEKLY">Weekly (Every week)</option>
+                    <option value="MONTHLY">Monthly (Every month)</option>
+                    <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                    <option value="YEARLY">Yearly (Every year)</option>
                   </select>
                 </div>
 
                 {newReminder.repeatType !== "NONE" && (
                   <div>
                     <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-2">
-                      Repeat Until
+                      Repeat Until (Optional - Leave blank for Never)
                     </label>
                     <input
                       type="date"
@@ -1064,7 +1064,6 @@ const ReminderCalendar = () => {
                         format(new Date(), "yyyy-MM-dd")
                       }
                       className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                      required
                     />
                   </div>
                 )}

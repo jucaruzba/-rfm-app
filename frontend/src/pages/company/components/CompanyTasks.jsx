@@ -23,6 +23,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { toast } from "sonner";
 import TaskDetailView from "../../admin/components/task/TaskDetailView";
 import TaskDeleteDialog from "../../../components/TaskDeleteDialog";
+import { formatUsDate, formatDateToBackend } from "../../../utils/dateUtils";
 
 const CompanyTasks = () => {
   const { companyId } = useParams();
@@ -191,22 +192,17 @@ const CompanyTasks = () => {
     if (!formData.idUserAssigned)
       return toast.error("A technical operator must be assigned");
 
-    const formatToRequest = (dateStr) => {
-      const [year, month, day] = dateStr.split("-");
-      return `${day}/${month}/${year}`;
-    };
-
     const taskRequest = {
       title: formData.title.trim(),
       description: formData.description.trim() || null,
-      startDate: formatToRequest(formData.startDate),
-      endDate: formatToRequest(formData.endDate),
+      startDate: formatDateToBackend(formData.startDate),
+      endDate: formatDateToBackend(formData.endDate),
       idCompany: Number(companyId),
       idUserAssigned: Number(formData.idUserAssigned),
       status: formData.status,
       repeatType: formData.repeatType,
       repeatEndDate: formData.repeatType !== "NONE" && formData.repeatEndDate
-        ? formatToRequest(formData.repeatEndDate)
+        ? formatDateToBackend(formData.repeatEndDate)
         : null,
       priority: formData.priority || "NORMAL",
     };
@@ -214,7 +210,7 @@ const CompanyTasks = () => {
     setSubmitting(true);
     try {
       await taskService.createTask(taskRequest);
-      toast.success("Nueva tarea desplegada correctamente");
+      toast.success("Task deployed successfully");
       setIsModalOpen(false);
 
       setFormData({
@@ -266,12 +262,7 @@ const CompanyTasks = () => {
   };
 
   const displayDate = (date) => {
-    if (!date) return "--/--/----";
-    if (Array.isArray(date)) {
-      const [y, m, d] = date;
-      return `${d.toString().padStart(2, "0")}/${m.toString().padStart(2, "0")}/${y}`;
-    }
-    return date;
+    return formatUsDate(date);
   };
 
   return (
@@ -687,22 +678,22 @@ const CompanyTasks = () => {
                       }
                       className="w-full bg-white border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
                     >
-                      <option value="NONE">One time (Sin repetición)</option>
-                      <option value="WEEKLY">Weekly (Semanal)</option>
-                      <option value="MONTHLY">Monthly (Mensual)</option>
-                      <option value="QUARTERLY">Quarterly (Trimestral)</option>
-                      <option value="YEARLY">Yearly (Anual)</option>
+                      <option value="NONE">One time (No repeat)</option>
+                      <option value="DAILY">Daily (Every day)</option>
+                      <option value="WEEKLY">Weekly (Every week)</option>
+                      <option value="MONTHLY">Monthly (Every month)</option>
+                      <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                      <option value="YEARLY">Yearly (Every year)</option>
                     </select>
                   </div>
 
                   {formData.repeatType !== "NONE" && (
                     <div className="space-y-1 animate-in fade-in">
                       <label className="text-[9px] font-black uppercase tracking-wider text-purple-700">
-                        Repeat Until (Fecha Límite) *
+                        Repeat Until (Optional - Leave blank for Never)
                       </label>
                       <input
                         type="date"
-                        required={formData.repeatType !== "NONE"}
                         value={formData.repeatEndDate}
                         min={formData.startDate || undefined}
                         onChange={(e) =>

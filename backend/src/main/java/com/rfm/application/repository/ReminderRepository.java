@@ -138,4 +138,10 @@ public interface ReminderRepository extends JpaRepository<Reminder, Long> {
     
     // Verificar si existe un recordatorio con la misma fecha para un padre
     boolean existsByParentReminderIdAndReminderDate(Long parentId, LocalDateTime reminderDate);
+
+    // Buscar recordatorios raíz recurrentes para proyección en calendario
+    @Query("SELECT r FROM Reminder r WHERE " +
+           "(:idUser IS NULL OR r.idUser = :idUser) AND " +
+           "r.repeatType IS NOT NULL AND r.repeatType != 'NONE' AND r.parentReminderId IS NULL")
+    List<Reminder> findRootRecurringReminders(@Param("idUser") Long idUser);
 }

@@ -67,9 +67,13 @@ public class ReminderController {
     // Nuevo endpoint para obtener recordatorios en un rango de fechas (incluye repeticiones)
     @GetMapping("/by-date-range")
     public ResponseEntity<List<ReminderDTO>> findRemindersByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        return ResponseEntity.ok(reminderService.findRemindersByDateRange(startDate, endDate));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        LocalDateTime effectiveStart = startDate != null ? startDate : from;
+        LocalDateTime effectiveEnd = endDate != null ? endDate : to;
+        return ResponseEntity.ok(reminderService.findRemindersByDateRange(effectiveStart, effectiveEnd));
     }
 
     @GetMapping("/filter")
@@ -78,8 +82,12 @@ public class ReminderController {
             @RequestParam(required = false) Boolean isCompleted,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(required = false) RepeatType repeatType) { // Nuevo parámetro opcional
-        return ResponseEntity.ok(reminderService.findWithFilters(idUser, isCompleted, startDate, endDate, repeatType));
+        LocalDateTime effectiveStart = startDate != null ? startDate : from;
+        LocalDateTime effectiveEnd = endDate != null ? endDate : to;
+        return ResponseEntity.ok(reminderService.findWithFilters(idUser, isCompleted, effectiveStart, effectiveEnd, repeatType));
     }
 
     @PutMapping("/{id}")

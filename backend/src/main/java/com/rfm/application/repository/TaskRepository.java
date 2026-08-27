@@ -65,4 +65,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 	/** Find tasks in a series starting from a given date (for "delete this and future") */
 	@Query("SELECT t FROM Task t WHERE t.seriesId = :seriesId AND t.startDate >= :startDate ORDER BY t.startDate ASC")
 	List<Task> findBySeriesIdAndStartDateGreaterThanEqual(@Param("seriesId") String seriesId, @Param("startDate") LocalDate startDate);
+
+	/** Find root/template recurring tasks to project virtual occurrences across calendar ranges */
+	@Query("SELECT t FROM Task t WHERE " +
+	       "(CAST(:idCompany AS long) IS NULL OR t.idCompany = :idCompany) AND " +
+	       "(CAST(:idUser AS long) IS NULL OR t.idUserAssigned = :idUser) AND " +
+	       "t.repeatType IS NOT NULL AND t.repeatType != 'NONE' AND t.parentTaskId IS NULL")
+	List<Task> findRootRecurringTasks(@Param("idCompany") Long idCompany, @Param("idUser") Long idUser);
 }

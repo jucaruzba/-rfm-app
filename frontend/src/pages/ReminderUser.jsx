@@ -28,6 +28,11 @@ import {
   isToday,
   parseISO,
 } from "date-fns";
+import {
+  formatUsDate,
+  formatUsTime,
+  formatUsDateTime,
+} from "../utils/dateUtils";
 
 const ReminderUser = () => {
   const [reminders, setReminders] = useState([]);
@@ -43,6 +48,8 @@ const ReminderUser = () => {
     description: "",
     reminderDate: "",
     reminderTime: "12:00",
+    repeatType: "NONE",
+    repeatEndDate: "",
   });
 
   const fetchReminders = async () => {
@@ -134,6 +141,10 @@ const ReminderUser = () => {
         reminderDate: reminderDateTime,
         idUser: userId,
         idObject: null, // Recordatorio global
+        repeatType: newReminder.repeatType || "NONE",
+        repeatEndDate: newReminder.repeatType !== "NONE" && newReminder.repeatEndDate
+          ? `${newReminder.repeatEndDate}T23:59:59`
+          : null,
       };
 
       await reminderService.createReminder(reminderData);
@@ -145,6 +156,8 @@ const ReminderUser = () => {
         description: "",
         reminderDate: "",
         reminderTime: "12:00",
+        repeatType: "NONE",
+        repeatEndDate: "",
       });
       setIsModalOpen(false);
       
@@ -248,19 +261,19 @@ const ReminderUser = () => {
             </p>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-lg text-[9px] font-black text-gray-400 uppercase tracking-widest">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-lg text-[9px] font-black text-gray-500 uppercase tracking-widest">
                 <Clock size={12} />
-                {format(parseISO(item.reminderDate), "HH:mm aaa")}
+                {formatUsTime(item.reminderDate)}
               </div>
               {!isTodayItem && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 rounded-lg text-[9px] font-black text-blue-600 uppercase tracking-widest">
                   <Calendar size={12} />
-                  {format(parseISO(item.reminderDate), "MMM dd")}
+                  {formatUsDate(item.reminderDate)}
                 </div>
               )}
               {isCompleted && item.completedAt && (
                 <span className="text-[9px] font-bold text-green-600">
-                  Completed: {format(parseISO(item.completedAt), "MMM dd, HH:mm")}
+                  Completed: {formatUsDateTime(item.completedAt)}
                 </span>
               )}
             </div>
@@ -546,6 +559,52 @@ const ReminderUser = () => {
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-[#001F3F] outline-none focus:border-blue-600 transition-colors"
                   />
                 </div>
+              </div>
+
+              {/* Recurrence Settings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-gray-400">
+                    Repeat
+                  </label>
+                  <select
+                    value={newReminder.repeatType}
+                    onChange={(e) =>
+                      setNewReminder({
+                        ...newReminder,
+                        repeatType: e.target.value,
+                      })
+                    }
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-[#001F3F] outline-none focus:border-blue-600 transition-colors cursor-pointer"
+                  >
+                    <option value="NONE">One time (No repeat)</option>
+                    <option value="DAILY">Daily (Every day)</option>
+                    <option value="WEEKLY">Weekly (Every week)</option>
+                    <option value="MONTHLY">Monthly (Every month)</option>
+                    <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                    <option value="YEARLY">Yearly (Every year)</option>
+                  </select>
+                </div>
+
+                {newReminder.repeatType !== "NONE" && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-purple-700">
+                      Repeat Until (Optional - Never)
+                    </label>
+                    <input
+                      type="date"
+                      value={newReminder.repeatEndDate}
+                      onChange={(e) =>
+                        setNewReminder({
+                          ...newReminder,
+                          repeatEndDate: e.target.value,
+                        })
+                      }
+                      min={newReminder.reminderDate || undefined}
+                      className="w-full bg-gray-50 border border-purple-200 rounded-xl p-3 text-sm font-bold text-[#001F3F] outline-none focus:border-purple-600 transition-colors"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Botones de acción */}

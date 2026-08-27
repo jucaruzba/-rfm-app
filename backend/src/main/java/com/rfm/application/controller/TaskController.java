@@ -50,20 +50,27 @@ public class TaskController {
 			@RequestParam(required = false) String title,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate start,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate end,
+			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate to,
 			@PageableDefault(page = 0, size = 10, sort = "idTask", direction = Sort.Direction.DESC) Pageable pageable) {
-		Page<TaskDTO> tasksPage = taskService.findWithFilters(idCompany, status, idUserAssigned, title, start, end, pageable);
+		LocalDate effectiveStart = start != null ? start : from;
+		LocalDate effectiveEnd = end != null ? end : to;
+		Page<TaskDTO> tasksPage = taskService.findWithFilters(idCompany, status, idUserAssigned, title, effectiveStart, effectiveEnd, pageable);
 
 		return ResponseEntity.ok(tasksPage);
 	}
-	
 	
 	@GetMapping("/filter")
 	public ResponseEntity<List<TaskDTO>> getFilter(@RequestParam(required = false) Long idCompany,
 			@RequestParam(required = false) String status, @RequestParam(required = false) Long idUserAssigned,
 			@RequestParam(required = false) String title,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate start,
-			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate end) {
-		List<TaskDTO> tasksList = taskService.findFilters(idCompany, status, idUserAssigned, title, start, end);
+			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate end,
+			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate to) {
+		LocalDate effectiveStart = start != null ? start : from;
+		LocalDate effectiveEnd = end != null ? end : to;
+		List<TaskDTO> tasksList = taskService.findFilters(idCompany, status, idUserAssigned, title, effectiveStart, effectiveEnd);
 
 		return ResponseEntity.ok(tasksList);
 	}

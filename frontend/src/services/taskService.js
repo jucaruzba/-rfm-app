@@ -1,11 +1,5 @@
 import api from "./api";
-
-// Convierte el formato HTML (YYYY-MM-DD) al formato de tu @DateTimeFormat (DD/MM/YYYY)
-const formatDateToBackend = (dateString) => {
-  if (!dateString) return null;
-  const [year, month, day] = dateString.split("-");
-  return `${day}/${month}/${year}`;
-};
+import { formatDateToBackend } from "../utils/dateUtils";
 
 export const taskService = {
   getTasks: async (filters = {}) => {

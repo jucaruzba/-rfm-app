@@ -276,6 +276,42 @@ public class TaskService {
 	}
 
 	public TaskDTO findById(Long id) {
+		if (id != null && id < 0) {
+			long pos = -id;
+			long epochDay = pos % 10000000L;
+			long parentTaskId = pos / 10000000L;
+			LocalDate occStart = LocalDate.ofEpochDay(epochDay);
+
+			Task parent = taskRepository.findById(parentTaskId)
+					.orElseThrow(() -> new RuntimeException("Parent task not found for virtual occurrence"));
+
+			long durationDays = (parent.getEndDate() != null && parent.getStartDate() != null)
+					? java.time.temporal.ChronoUnit.DAYS.between(parent.getStartDate(), parent.getEndDate())
+					: 0;
+			LocalDate occEnd = (parent.getEndDate() != null) ? occStart.plusDays(durationDays) : null;
+
+			TaskDTO parentDto = mapToDTO(parent);
+			return TaskDTO.builder()
+					.idTask(id)
+					.title(parentDto.title())
+					.description(parentDto.description())
+					.status("PENDING")
+					.startDate(occStart)
+					.endDate(occEnd)
+					.idCompany(parentDto.idCompany())
+					.nameCompany(parentDto.nameCompany())
+					.externalReferenceName(parentDto.externalReferenceName())
+					.idUserAssigned(parentDto.idUserAssigned())
+					.nameUser(parentDto.nameUser())
+					.idNode(parentDto.idNode())
+					.repeatType(parentDto.repeatType())
+					.repeatEndDate(parentDto.repeatEndDate())
+					.parentTaskId(parentTaskId)
+					.priority(parentDto.priority())
+					.seriesId(parentDto.seriesId())
+					.build();
+		}
+
 		return taskRepository.findById(id).map(this::mapToDTO)
 				.orElseThrow(() -> new RuntimeException("Task does not exist"));
 	}
@@ -291,12 +327,137 @@ public class TaskService {
 	public List<TaskDTO> findFilters(Long idCompany, String status, Long idUser, String title, LocalDate start, LocalDate end) {
 		String titlePattern = (title != null && !title.trim().isEmpty()) ? "%" + title.trim() + "%" : null;
 		List<Task> tasks = taskRepository.findFilters(idCompany, status, idUser, titlePattern, start, end);
+		List<TaskDTO> resultList = new ArrayList<>(tasks.stream().map(this::mapToDTO).toList());
 
-		return tasks.stream().map(this::mapToDTO).collect(Collectors.toList());
+		// Proyección de ocurrencias virtuales de tareas recurrentes para rango de calendario
+		if (start != null && end != null) {
+			List<Task> rootRecurring = taskRepository.findRootRecurringTasks(idCompany, idUser);
+			for (Task root : rootRecurring) {
+				if (root.getStartDate() == null || root.getRepeatType() == null || root.getRepeatType() == RepeatType.NONE) {
+					continue;
+				}
+				if (titlePattern != null && root.getTitle() != null && !root.getTitle().toLowerCase().contains(title.trim().toLowerCase())) {
+					continue;
+				}
+
+				Long parentId = root.getIdTask();
+				long durationDays = (root.getEndDate() != null && root.getStartDate() != null)
+						? java.time.temporal.ChronoUnit.DAYS.between(root.getStartDate(), root.getEndDate())
+						: 0;
+
+				LocalDate occStart = root.getStartDate();
+				LocalDate limitEnd = root.getRepeatEndDate();
+
+				while (occStart != null && !occStart.isAfter(end)) {
+					if (limitEnd != null && occStart.isAfter(limitEnd)) {
+						break;
+					}
+
+					if (!occStart.isBefore(start)) {
+						final LocalDate currentOccDate = occStart;
+						// Evitar duplicar si ya existe en BD para esta serie en esta fecha
+						boolean alreadyInDb = resultList.stream().anyMatch(dto -> 
+							(parentId.equals(dto.parentTaskId()) || parentId.equals(dto.idTask())) &&
+							currentOccDate.equals(dto.startDate())
+						);
+
+						if (!alreadyInDb) {
+							// Generar ID virtual determinista negativo
+							long virtualId = -(parentId * 10000000L + currentOccDate.toEpochDay());
+							LocalDate occEnd = (root.getEndDate() != null) ? currentOccDate.plusDays(durationDays) : null;
+
+							TaskDTO virtualDto = TaskDTO.builder()
+									.idTask(virtualId)
+									.title(root.getTitle())
+									.description(root.getDescription())
+									.status("PENDING")
+									.startDate(currentOccDate)
+									.endDate(occEnd)
+									.idCompany(root.getIdCompany())
+									.nameCompany(root.getIdCompany() != null ? companyRepository.findById(root.getIdCompany()).map(Company::getName).orElse(null) : "Global / No Company")
+									.externalReferenceName(root.getExternalReferenceName())
+									.idUserAssigned(root.getIdUserAssigned())
+									.nameUser(root.getIdUserAssigned() != null ? userRepository.findById(root.getIdUserAssigned()).map(User::getUsername).orElse(null) : null)
+									.idNode(root.getIdNode())
+									.repeatType(root.getRepeatType())
+									.repeatEndDate(root.getRepeatEndDate())
+									.parentTaskId(parentId)
+									.priority(root.getPriority() != null ? root.getPriority() : "NORMAL")
+									.seriesId(root.getSeriesId())
+									.build();
+
+							resultList.add(virtualDto);
+						}
+					}
+
+					occStart = calculateNextDate(occStart, root.getRepeatType());
+				}
+			}
+		}
+
+		// Filtrar por status si se especificó y no es ALL
+		if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+			resultList = resultList.stream().filter(t -> status.equalsIgnoreCase(t.status())).collect(Collectors.toList());
+		}
+
+		// Ordenar por fecha de inicio
+		resultList.sort((a, b) -> {
+			if (a.startDate() == null) return 1;
+			if (b.startDate() == null) return -1;
+			return a.startDate().compareTo(b.startDate());
+		});
+
+		return resultList;
 	}
 
 	@Transactional
 	public TaskDTO updateStatus(Long id, String status) {
+		if (id != null && id < 0) {
+			// Persistir ocurrencia virtual al completarse o cambiar de estado
+			long pos = -id;
+			long epochDay = pos % 10000000L;
+			long parentTaskId = pos / 10000000L;
+			LocalDate occStart = LocalDate.ofEpochDay(epochDay);
+
+			Task parent = taskRepository.findById(parentTaskId)
+					.orElseThrow(() -> new RuntimeException("Parent task not found for virtual occurrence"));
+
+			// Verificar si ya existe una tarea persistida para esta serie en esta fecha
+			List<Task> series = taskRepository.findAllInSeries(parentTaskId);
+			Task existing = series.stream().filter(t -> occStart.equals(t.getStartDate())).findFirst().orElse(null);
+			if (existing != null) {
+				return updateStatus(existing.getIdTask(), status);
+			}
+
+			long durationDays = (parent.getEndDate() != null && parent.getStartDate() != null)
+					? java.time.temporal.ChronoUnit.DAYS.between(parent.getStartDate(), parent.getEndDate())
+					: 0;
+			LocalDate occEnd = (parent.getEndDate() != null) ? occStart.plusDays(durationDays) : null;
+
+			Task newChild = Task.builder()
+					.title(parent.getTitle())
+					.description(parent.getDescription())
+					.startDate(occStart)
+					.endDate(occEnd)
+					.idCompany(parent.getIdCompany())
+					.externalReferenceName(parent.getExternalReferenceName())
+					.idUserAssigned(parent.getIdUserAssigned())
+					.idNode(parent.getIdNode())
+					.status(status)
+					.repeatType(parent.getRepeatType())
+					.repeatEndDate(parent.getRepeatEndDate())
+					.parentTaskId(parentTaskId)
+					.priority(parent.getPriority() != null ? parent.getPriority() : "NORMAL")
+					.seriesId(parent.getSeriesId())
+					.build();
+
+			Task saved = taskRepository.save(newChild);
+			if ("COMPLETED".equalsIgnoreCase(status)) {
+				handleRollingRecurrenceOnComplete(saved);
+			}
+			return mapToDTO(saved);
+		}
+
 		Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task not found"));
 		String oldStatus = task.getStatus();
 		task.setStatus(status);

@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import TaskDetailView from "./TaskDetailView";
 import MonthYearPicker from "../../../../components/MonthYearPicker";
 import TaskDeleteDialog from "../../../../components/TaskDeleteDialog";
+import { formatUsDate, formatDateToBackend } from "../../../../utils/dateUtils";
 
 const TasksPage = () => {
   const { companyId } = useParams();
@@ -258,30 +259,20 @@ const TasksPage = () => {
     if (!formData.idUserAssigned)
       return toast.error("A technical operator must be assigned");
 
-    if (formData.repeatType !== "NONE" && !formData.repeatEndDate) {
-      return toast.error("Please provide a repeat end date");
-    }
-
-    const formatToRequest = (dateStr) => {
-      if (!dateStr) return null;
-      const [year, month, day] = dateStr.split("-");
-      return `${day}/${month}/${year}`;
-    };
-
     const parsedUserId = Number(formData.idUserAssigned);
 
     const taskRequest = {
       title: formData.title.trim(),
       description: formData.description.trim() || null,
-      startDate: formatToRequest(formData.startDate),
-      endDate: formatToRequest(formData.endDate),
+      startDate: formatDateToBackend(formData.startDate),
+      endDate: formatDateToBackend(formData.endDate),
       idCompany: formData.idCompany ? Number(formData.idCompany) : null,
       externalReferenceName: formData.externalReferenceName.trim() || null,
       idUserAssigned: parsedUserId,
       status: formData.status,
       repeatType: formData.repeatType,
       repeatEndDate: formData.repeatType !== "NONE" && formData.repeatEndDate
-        ? formatToRequest(formData.repeatEndDate)
+        ? formatDateToBackend(formData.repeatEndDate)
         : null,
       priority: formData.priority || "NORMAL",
     };
@@ -289,7 +280,7 @@ const TasksPage = () => {
     setSubmitting(true);
     try {
       await taskService.createTask(taskRequest);
-      toast.success("Nueva tarea desplegada correctamente");
+      toast.success("Task deployed successfully");
       setIsModalOpen(false);
 
       setFormData({
@@ -360,12 +351,7 @@ const TasksPage = () => {
   };
 
   const displayDate = (date) => {
-    if (!date) return "--/--/----";
-    if (Array.isArray(date)) {
-      const [y, m, d] = date;
-      return `${d.toString().padStart(2, "0")}/${m.toString().padStart(2, "0")}/${y}`;
-    }
-    return date;
+    return formatUsDate(date);
   };
 
   // Generación de días del mes para el calendario (inicia en Domingo)
@@ -1009,22 +995,22 @@ const TasksPage = () => {
                       }
                       className="w-full bg-white border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
                     >
-                      <option value="NONE">One time (Sin repetición)</option>
-                      <option value="WEEKLY">Weekly (Semanal)</option>
-                      <option value="MONTHLY">Monthly (Mensual)</option>
-                      <option value="QUARTERLY">Quarterly (Trimestral)</option>
-                      <option value="YEARLY">Yearly (Anual)</option>
+                      <option value="NONE">One time (No repeat)</option>
+                      <option value="DAILY">Daily (Every day)</option>
+                      <option value="WEEKLY">Weekly (Every week)</option>
+                      <option value="MONTHLY">Monthly (Every month)</option>
+                      <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                      <option value="YEARLY">Yearly (Every year)</option>
                     </select>
                   </div>
 
                   {formData.repeatType !== "NONE" && (
                     <div className="space-y-1 animate-in fade-in">
                       <label className="text-[9px] font-black uppercase tracking-wider text-purple-700">
-                        Repeat Until (Fecha Límite) *
+                        Repeat Until (Optional - Leave blank for Never)
                       </label>
                       <input
                         type="date"
-                        required={formData.repeatType !== "NONE"}
                         value={formData.repeatEndDate}
                         min={formData.startDate || undefined}
                         onChange={(e) =>
