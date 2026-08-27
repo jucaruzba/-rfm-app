@@ -12,7 +12,6 @@ import com.rfm.application.model.entity.ActivityComment;
 import com.rfm.application.model.entity.User;
 import com.rfm.application.repository.ActivityCommentRepository;
 import com.rfm.application.repository.UserRepository;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -47,7 +46,8 @@ public class ActivityCommentService {
                 .orElseThrow(() -> new RuntimeException("Comment not found with ID: " + idComment));
 
         if (!comment.getIdUser().equals(idUser)) {
-            throw new RuntimeException("Access denied: You are not allowed to delete a comment that does not belong to you.");
+            throw new RuntimeException(
+                    "Access denied: You are not allowed to delete a comment that does not belong to you.");
         }
 
         commentRepository.delete(comment);
