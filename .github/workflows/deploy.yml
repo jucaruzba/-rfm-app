@@ -3,7 +3,7 @@ name: Deploy to Synology NAS
 on:
   push:
     branches: [ "master" ]
-
+    
 jobs:
   deploy:
     runs-on: ubuntu-latest
