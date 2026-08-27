@@ -22,6 +22,7 @@ RUN npm run build
 # Servir con Nginx
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
+RUN chmod -R 755 /usr/share/nginx/html
 
 # Configuración para SPA
 RUN echo 'server { \

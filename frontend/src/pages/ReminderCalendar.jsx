@@ -771,8 +771,8 @@ const ReminderCalendar = () => {
                   </div>
                   <div>
                     <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">
-                      {format(selectedDate, "EEEE, d 'de' MMMM", {
-                        locale: es,
+                      {format(selectedDate, "EEEE, MMMM d, yyyy", {
+                        locale: enUS,
                       })}
                     </h3>
                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
@@ -855,8 +855,8 @@ const ReminderCalendar = () => {
                         <p className="text-[10px] font-bold text-gray-600">
                           {format(
                             parseISO(selectedReminder.createdAt),
-                            "MMM d",
-                            { locale: es },
+                            "MMM d, yyyy",
+                            { locale: enUS },
                           )}
                         </p>
                       </div>

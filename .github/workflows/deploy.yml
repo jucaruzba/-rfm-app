@@ -15,7 +15,4 @@ jobs:
           username: ${{ secrets.NAS_USER }}
           password: ${{ secrets.NAS_PASSWORD }}
           script: |
-            cd /docker/rfm
-            git fetch origin master
-            git reset --hard origin/master
-            echo '${{ secrets.NAS_PASSWORD }}' | sudo -S /usr/local/bin/docker-compose -f /docker/rfm/docker-compose.yml up -d --build backend frontend
+            echo '${{ secrets.NAS_PASSWORD }}' | sudo -S sh -c "cd /docker/rfm && git config --global --add safe.directory /docker/rfm && git fetch origin master && git reset --hard origin/master && /usr/local/bin/docker-compose -f /docker/rfm/docker-compose.yml up -d --build --force-recreate backend frontend"
