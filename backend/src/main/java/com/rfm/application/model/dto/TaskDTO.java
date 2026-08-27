@@ -22,5 +22,6 @@ public record TaskDTO(
     RepeatType repeatType,
     LocalDate repeatEndDate,
     Long parentTaskId,
-    String priority
-) {}
+    String priority,
+    String seriesId
+) {}

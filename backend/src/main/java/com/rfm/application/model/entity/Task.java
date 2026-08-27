@@ -66,4 +66,8 @@ public class Task {
 
     @Column(name = "priority")
     private String priority;
+
+    /** Shared identifier for all occurrences in a recurring series. Null for non-recurring tasks. */
+    @Column(name = "series_id")
+    private String seriesId;
 }

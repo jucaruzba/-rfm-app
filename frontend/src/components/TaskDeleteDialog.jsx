@@ -19,7 +19,7 @@ const TaskDeleteDialog = ({
   if (!isOpen || !task) return null;
 
   const isRecurring =
-    (task.repeatType && task.repeatType !== "NONE") || task.parentTaskId;
+    (task.repeatType && task.repeatType !== "NONE") || task.parentTaskId || !!task.seriesId;
 
   const handleConfirm = () => {
     onConfirm(task, deleteFuture);

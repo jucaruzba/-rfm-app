@@ -58,4 +58,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
 	@Query("SELECT t FROM Task t WHERE (t.parentTaskId = :parentTaskId OR t.idTask = :parentTaskId) AND t.startDate >= :startDate")
 	List<Task> findFutureInSeries(@Param("parentTaskId") Long parentTaskId, @Param("startDate") LocalDate startDate);
+
+	/** Find all tasks belonging to a series by its shared series_id */
+	List<Task> findBySeriesId(String seriesId);
+
+	/** Find tasks in a series starting from a given date (for "delete this and future") */
+	@Query("SELECT t FROM Task t WHERE t.seriesId = :seriesId AND t.startDate >= :startDate ORDER BY t.startDate ASC")
+	List<Task> findBySeriesIdAndStartDateGreaterThanEqual(@Param("seriesId") String seriesId, @Param("startDate") LocalDate startDate);
 }

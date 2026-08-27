@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -73,6 +74,9 @@ public class TaskService {
 				? request.priority().toUpperCase()
 				: "NORMAL";
 
+		// Generate a shared series_id for all occurrences if this is a recurring task
+		String seriesId = (repeatType != RepeatType.NONE) ? UUID.randomUUID().toString() : null;
+
 		Task task = Task.builder()
 				.title(request.title())
 				.description(request.description())
@@ -87,6 +91,7 @@ public class TaskService {
 				.repeatEndDate(request.repeatEndDate())
 				.parentTaskId(null)
 				.priority(priority)
+				.seriesId(seriesId)
 				.build();
 
 		Task savedTask = taskRepository.save(task);
@@ -207,6 +212,7 @@ public class TaskService {
 				.repeatEndDate(completedTask.getRepeatEndDate())
 				.parentTaskId(parentId)
 				.priority(completedTask.getPriority() != null ? completedTask.getPriority() : "NORMAL")
+				.seriesId(completedTask.getSeriesId()) // Propagate the shared series identifier
 				.build();
 
 		Task savedNext = taskRepository.save(nextTask);
@@ -244,6 +250,9 @@ public class TaskService {
 		task.setIdUserAssigned(request.idUserAssigned());
 		if (request.repeatType() != null) {
 			task.setRepeatType(request.repeatType());
+			if (request.repeatType() != RepeatType.NONE && task.getSeriesId() == null) {
+				task.setSeriesId(UUID.randomUUID().toString());
+			}
 		}
 		if (request.repeatEndDate() != null) {
 			task.setRepeatEndDate(request.repeatEndDate());
@@ -306,22 +315,30 @@ public class TaskService {
 				.orElseThrow(() -> new RuntimeException("Task not found with id: " + id));
 
 		if (deleteFuture) {
-			// Determine the root of the series
-			Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : task.getIdTask();
-			LocalDate filterDate = task.getStartDate() != null ? task.getStartDate() : LocalDate.now();
+			List<Long> idsToDelete;
 
-			// Find this task and all future tasks in the series
-			List<Task> futureTasks = taskRepository.findFutureInSeries(parentId, filterDate);
+			if (task.getSeriesId() != null) {
+				// ✅ New approach: use series_id to find all future occurrences in O(1)
+				LocalDate filterDate = task.getStartDate() != null ? task.getStartDate() : LocalDate.now();
+				idsToDelete = taskRepository
+						.findBySeriesIdAndStartDateGreaterThanEqual(task.getSeriesId(), filterDate)
+						.stream().map(Task::getIdTask).collect(Collectors.toList());
+			} else {
+				// Fallback: legacy parent-child approach for tasks created before series_id
+				Long parentId = task.getParentTaskId() != null ? task.getParentTaskId() : task.getIdTask();
+				LocalDate filterDate = task.getStartDate() != null ? task.getStartDate() : LocalDate.now();
+				idsToDelete = taskRepository.findFutureInSeries(parentId, filterDate)
+						.stream().map(Task::getIdTask).collect(Collectors.toList());
+			}
 
-			// Collect IDs to delete to avoid stale entity issues
-			List<Long> idsToDelete = futureTasks.stream().map(Task::getIdTask).collect(Collectors.toList());
-
-			// Make sure the current task id is included (in case it was the parent with startDate before filterDate)
+			// Always include the current task
 			if (!idsToDelete.contains(id)) {
 				idsToDelete.add(id);
 			}
 
-			// Delete each task by reloading fresh from DB to avoid stale state
+			log.info("Deleting {} tasks from series (seriesId={})", idsToDelete.size(), task.getSeriesId());
+
+			// Delete each task fresh from DB to avoid stale entity issues
 			for (Long taskId : idsToDelete) {
 				taskRepository.findById(taskId).ifPresent(this::deleteTaskAndRelated);
 			}
@@ -388,6 +405,7 @@ public class TaskService {
 				.repeatEndDate(task.getRepeatEndDate())
 				.parentTaskId(task.getParentTaskId())
 				.priority(task.getPriority() != null ? task.getPriority() : "NORMAL")
+				.seriesId(task.getSeriesId())
 				.build();
 	}
 }
