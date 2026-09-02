@@ -1,18 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
-  ClipboardList,
   Plus,
   Search,
   Calendar,
   User,
   Briefcase,
   Loader2,
-  CheckCircle2,
   AlertCircle,
-  Clock,
   X,
-  PlayCircle,
   Repeat,
   Flame,
   Trash2,
@@ -35,25 +31,25 @@ const CompanyTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
 
-  // --- ESTADOS DE ELIMINACIÓN ---
+  // --- DELETE STATE ---
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
 
-  // --- FILTROS ---
+  // --- FILTERS ---
   const [statusTab, setStatusTab] = useState("PENDING");
   const [filterUser, setFilterUser] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // --- PAGINACIÓN ---
+  // --- PAGINATION ---
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // --- MODAL DE CREAR TAREA ---
+  // --- CREATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -72,7 +68,6 @@ const CompanyTasks = () => {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
 
-  // Cargar usuarios
   useEffect(() => {
     const loadUsers = async () => {
       try {
@@ -85,7 +80,6 @@ const CompanyTasks = () => {
     loadUsers();
   }, []);
 
-  // Fetch tareas de la empresa con búsqueda en backend
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     try {
@@ -104,7 +98,7 @@ const CompanyTasks = () => {
       setTotalPages(response.totalPages || 0);
       setTotalElements(response.totalElements || 0);
     } catch (err) {
-      toast.error("Error syncing task flow");
+      toast.error("Error loading tasks");
     } finally {
       setLoading(false);
     }
@@ -123,7 +117,6 @@ const CompanyTasks = () => {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Reset a página 0 cuando cambian filtros críticos
   useEffect(() => {
     setPage(0);
   }, [statusTab, filterUser, searchQuery, startDate, endDate]);
@@ -131,10 +124,10 @@ const CompanyTasks = () => {
   const handleStatusChange = async (idTask, newStatus) => {
     try {
       await taskService.updateStatus(idTask, newStatus);
-      toast.success("Operational status updated");
+      toast.success("Task status updated");
       fetchTasks();
     } catch (err) {
-      toast.error("Could not process status change");
+      toast.error("Could not update task status");
     }
   };
 
@@ -158,21 +151,20 @@ const CompanyTasks = () => {
   };
 
   const handleConfirmDelete = async (task, deleteFuture) => {
-    if (!task) return;
+    if (!taskToDelete) return;
     setIsDeletingTask(true);
     try {
-      await taskService.deleteTask(task.idTask, deleteFuture);
-      toast.success("Task deleted successfully");
+      await taskService.deleteTask(taskToDelete.idTask, deleteFuture);
+      toast.success("Task deleted");
       setIsDeleteModalOpen(false);
       setTaskToDelete(null);
-      if (selectedTaskId === task.idTask) {
+      if (selectedTaskId === taskToDelete.idTask) {
         setIsDetailViewOpen(false);
         setSelectedTaskId(null);
       }
       fetchTasks();
-    } catch (error) {
-      console.error("Delete task error:", error);
-      toast.error("Failed to delete task");
+    } catch (err) {
+      toast.error("Error deleting task");
     } finally {
       setIsDeletingTask(false);
     }
@@ -185,34 +177,39 @@ const CompanyTasks = () => {
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
-
-    if (!formData.title.trim()) return toast.error("Title is required");
-    if (!formData.startDate)
-      return toast.error("Execution date is required");
-    if (!formData.idUserAssigned)
-      return toast.error("A technical operator must be assigned");
-
-    const dateFormatted = formatDateToBackend(formData.startDate);
-
-    const taskRequest = {
-      title: formData.title.trim(),
-      description: formData.description.trim() || null,
-      startDate: dateFormatted,
-      endDate: dateFormatted,
-      idCompany: Number(companyId),
-      idUserAssigned: Number(formData.idUserAssigned),
-      status: formData.status,
-      repeatType: formData.repeatType,
-      repeatEndDate: null,
-      priority: formData.priority || "NORMAL",
-    };
+    if (!formData.title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!formData.idUserAssigned) {
+      toast.error("Please assign a user");
+      return;
+    }
+    if (!formData.startDate) {
+      toast.error("Date is required");
+      return;
+    }
 
     setSubmitting(true);
     try {
-      await taskService.createTask(taskRequest);
-      toast.success("Task deployed successfully");
-      setIsModalOpen(false);
+      const payload = {
+        title: formData.title,
+        description: formData.description,
+        startDate: formatDateToBackend(formData.startDate),
+        endDate: formatDateToBackend(formData.startDate),
+        idUserAssigned: Number(formData.idUserAssigned),
+        idCompany: Number(companyId),
+        status: formData.status,
+        repeatType: formData.repeatType,
+        repeatEndDate: formData.repeatEndDate
+          ? formatDateToBackend(formData.repeatEndDate)
+          : null,
+        priority: formData.priority || "NORMAL",
+      };
 
+      await taskService.createTask(payload);
+      toast.success("Task created");
+      setIsModalOpen(false);
       setFormData({
         title: "",
         description: "",
@@ -224,351 +221,253 @@ const CompanyTasks = () => {
         repeatEndDate: "",
         priority: "NORMAL",
       });
-      setPage(0);
       fetchTasks();
     } catch (err) {
-      toast.error("Error registering the task in the backend");
+      toast.error("Error creating task");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Las tareas ya vienen filtradas por búsqueda LIKE desde el backend
-  const finalFilteredTasks = tasks;
-
-  const getStatusConfig = (status) => {
-    switch (status) {
-      case "COMPLETED":
-        return {
-          bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-          icon: <CheckCircle2 size={12} />,
-        };
-      case "PROGRESS":
-        return {
-          bg: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-          icon: <PlayCircle size={12} />,
-        };
-      case "BLOCK":
-        return {
-          bg: "bg-red-500/10 text-red-400 border-red-500/20",
-          icon: <AlertCircle size={12} />,
-        };
+  const getStatusColor = (status) => {
+    const statusLower = status?.toLowerCase();
+    switch (statusLower) {
+      case "pending":
+        return "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20";
+      case "progress":
+      case "in_progress":
+        return "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20";
+      case "completed":
+        return "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20";
+      case "block":
+      case "blocked":
       default:
-        return {
-          bg: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-          icon: <AlertCircle size={12} />,
-        };
+        return "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20";
     }
   };
 
-  const displayDate = (date) => {
-    return formatUsDate(date);
-  };
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* HEADER */}
-      <div className="flex items-center justify-between bg-white border border-gray-100 rounded-[2rem] px-8 py-6 shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#001F3F] text-white rounded-xl flex items-center justify-center">
-            <ClipboardList size={20} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase italic leading-none">
-              Task <span className="text-gray-300 font-light">Control</span>
-            </h1>
-            <p className="text-[10px] text-gray-400 font-bold tracking-wide mt-1 uppercase">
-              Enterprise Operations
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Top action bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+        {/* Status tabs */}
+        <div className="flex items-center gap-1 bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA] overflow-x-auto">
+          {[
+            { id: "PENDING", name: "pending" },
+            { id: "PROGRESS", name: "in progress" },
+            { id: "BLOCK", name: "blocked" },
+            { id: "COMPLETED", name: "completed" },
+            { id: "ALL", name: "all" },
+          ].map((tab) => (
+            <button
+              key={`tab-status-${tab.id}`}
+              onClick={() => setStatusTab(tab.id)}
+              className={`px-3 py-1.5 text-[12px] font-medium lowercase rounded-[8px] whitespace-nowrap transition-colors ${
+                statusTab === tab.id
+                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
+              }`}
+            >
+              {tab.name}
+            </button>
+          ))}
         </div>
 
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-[#001F3F] text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-900/10"
+          className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
         >
-          <Plus size={14} strokeWidth={3} /> Add Task
+          <Plus size={15} strokeWidth={1.5} />
+          <span>New task</span>
         </button>
       </div>
 
-      {/* FILTROS */}
-      <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#001F3F]/40 block">
-          System Search Filters
-        </span>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Selector de Usuarios Operadores */}
-          <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase text-gray-400 tracking-wider">
-              Assigned Operator
-            </label>
-            <select
-              value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
-            >
-              <option value="">-- All Staff Operators --</option>
-              {users.map((u) => (
-                <option key={`filter-user-${u.idUser || u.id}`} value={u.idUser || u.id}>
-                  {u.name || u.username}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Fecha Inicio */}
-          <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase text-gray-400 tracking-wider">
-              Start Bounds
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
-            />
-          </div>
-
-          {/* Fecha Fin */}
-          <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase text-gray-400 tracking-wider">
-              End Bounds
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
-            />
-          </div>
+      {/* Filter bar */}
+      <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-4 flex flex-wrap gap-3 items-end">
+        <div className="space-y-1 flex-1 min-w-[160px]">
+          <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+            assigned operator
+          </label>
+          <select
+            value={filterUser}
+            onChange={(e) => setFilterUser(e.target.value)}
+            className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] px-3 py-1.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
+          >
+            <option value="">all operators</option>
+            {users.map((u) => (
+              <option key={`filter-user-${u.idUser || u.id}`} value={u.idUser || u.id}>
+                {u.name || u.username}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Fila secundaria */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 pt-2 border-t border-gray-50">
-          <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl overflow-x-auto">
-            {[
-              { id: "PENDING", name: "Pending" },
-              { id: "PROGRESS", name: "In Progress" },
-              { id: "BLOCK", name: "Blocked" },
-              { id: "COMPLETED", name: "Completed" },
-              { id: "ALL", name: "All Workflows" },
-            ].map((tab) => (
-              <button
-                key={`tab-status-${tab.id}`}
-                onClick={() => setStatusTab(tab.id)}
-                className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg whitespace-nowrap transition-all ${
-                  statusTab === tab.id
-                    ? "bg-[#001F3F] text-white"
-                    : "text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-1 min-w-[130px]">
+          <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+            start date
+          </label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] px-3 py-1.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
+          />
+        </div>
 
-          <div className="relative flex-1 lg:max-w-md">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
-              size={15}
-            />
-            <input
-              type="text"
-              placeholder="Search by keywords inside results..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50 border border-transparent rounded-xl py-2.5 pl-11 pr-4 outline-none focus:border-blue-500 focus:bg-white font-bold text-xs text-[#001F3F] transition-all"
-            />
-          </div>
+        <div className="space-y-1 min-w-[130px]">
+          <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+            end date
+          </label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] px-3 py-1.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
+          />
+        </div>
+
+        <div className="relative flex-1 min-w-[180px]">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
+            size={14}
+            strokeWidth={1.5}
+          />
+          <input
+            type="text"
+            placeholder="search tasks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-8 pr-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
+          />
         </div>
       </div>
 
-      {/* RENDERIZADO DE CARDS */}
+      {/* Task Cards List */}
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="animate-spin text-[#001F3F]" size={36} />
+        <div className="flex h-48 items-center justify-center">
+          <Loader2 className="animate-spin text-[#171717]" size={24} strokeWidth={1.5} />
         </div>
-      ) : finalFilteredTasks.length > 0 ? (
-        <div className="space-y-4">
-          {finalFilteredTasks.map((task) => {
-            const currentStatus = getStatusConfig(task.status);
-            return (
-              <div
-                key={`task-card-${task.idTask}`}
-                onClick={() => handleOpenTaskDetail(task.idTask)}
-                className="group bg-white border border-gray-100 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-blue-500/20 hover:shadow-[0_15px_40px_rgba(0,31,63,0.02)] transition-all duration-300 relative overflow-hidden cursor-pointer"
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#001F3F] opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                <div className="space-y-3 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`border px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 ${currentStatus.bg}`}
-                    >
-                      {currentStatus.icon} {task.status.replace("_", " ")}
-                    </span>
-
-                    {task.priority === "HIGH" ? (
-                      <span className="bg-red-50 border border-red-200 text-red-700 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-2xs">
-                        <Flame size={11} className="text-red-600 fill-red-600" />
-                        High Priority
-                      </span>
-                    ) : task.priority === "LOW" ? (
-                      <span className="bg-gray-50 border border-gray-100 text-gray-500 px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider">
-                        Low Priority
-                      </span>
-                    ) : (
-                      <span className="bg-blue-50/60 border border-blue-100 text-blue-600 px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider">
-                        Normal Priority
-                      </span>
-                    )}
-
-                    {task.repeatType && task.repeatType !== "NONE" && (
-                      <span className="bg-purple-50 border border-purple-100 text-purple-700 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                        <Repeat size={11} className="text-purple-600" />
-                        {task.repeatType === "QUARTERLY" ? "Quarterly" : task.repeatType}
-                      </span>
-                    )}
-
-                    {task.externalReferenceName ? (
-                      <span className="bg-gray-50 border border-gray-100 text-gray-400 px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Briefcase size={11} className="text-amber-500" />{" "}
-                        Client: {task.externalReferenceName}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div>
-                    <h3 className="text-base font-black text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors">
-                      {task.title}
-                    </h3>
-                    <p className="text-xs text-gray-400 font-medium leading-relaxed mt-0.5 line-clamp-2">
-                      {task.description ||
-                        "No execution summary mapped to this directive."}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 pt-1 text-gray-400 text-[10px] font-bold uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5">
-                      <User size={13} className="text-gray-300" /> Operator:{" "}
-                      <span className="text-gray-600 font-black">
-                        {task.nameUser || "System Stack"}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Calendar size={13} className="text-gray-300" /> Date:{" "}
-                      <span className="text-gray-600 font-mono font-bold">
-                        {displayDate(task.startDate)}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  className="shrink-0 flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-gray-50"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <select
-                    value={task.status}
-                    onChange={(e) =>
-                      handleStatusChange(task.idTask, e.target.value)
-                    }
-                    className="bg-gray-50 border border-gray-100 text-[10px] font-black uppercase tracking-wider text-gray-500 rounded-lg p-2.5 outline-none cursor-pointer focus:border-blue-500 transition-colors"
+      ) : tasks.length > 0 ? (
+        <div className="space-y-3">
+          {tasks.map((task) => (
+            <div
+              key={`task-card-${task.idTask}`}
+              onClick={() => handleOpenTaskDetail(task.idTask)}
+              className="bg-white border border-[#E5E5EA] rounded-[12px] p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#171717]/30 transition-colors cursor-pointer shadow-xs"
+            >
+              <div className="space-y-2 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`border px-2.5 py-0.5 rounded-full text-[11px] font-medium lowercase ${getStatusColor(task.status)}`}
                   >
-                    <option value="PENDING">Pending</option>
-                    <option value="PROGRESS">In Progress</option>
-                    <option value="BLOCK">Blocked</option>
-                    <option value="COMPLETED">Completed</option>
-                  </select>
+                    {task.status?.toLowerCase().replace("_", " ")}
+                  </span>
 
-                  {/* Botón de eliminar - SOLO PARA ADMIN */}
-                  {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteClick(task)}
-                      className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-gray-100 hover:border-red-200 cursor-pointer"
-                      title="Delete task (Admin only)"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  {/* Flame rule: flame icon + red text only */}
+                  {task.priority === "HIGH" && (
+                    <span className="flex items-center gap-1 text-[#EF4444] text-[11px] font-medium lowercase">
+                      <Flame size={13} strokeWidth={1.5} className="text-[#EF4444]" />
+                      <span>high priority</span>
+                    </span>
+                  )}
+
+                  {task.repeatType && task.repeatType !== "NONE" && (
+                    <span className="bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] px-2 py-0.5 rounded-full text-[10px] font-medium lowercase flex items-center gap-1">
+                      <Repeat size={10} strokeWidth={1.5} />
+                      {task.repeatType.toLowerCase()}
+                    </span>
+                  )}
+
+                  {task.externalReferenceName && (
+                    <span className="text-[#AEAEB2] text-[11px] lowercase">
+                      client: {task.externalReferenceName}
+                    </span>
                   )}
                 </div>
+
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[#1C1C1E]">
+                    {task.title}
+                  </h3>
+                  {task.description && (
+                    <p className="text-[12.5px] text-[#6E6E73] mt-0.5 line-clamp-1">
+                      {task.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11.5px] text-[#6E6E73]">
+                  <span className="flex items-center gap-1">
+                    <User size={13} strokeWidth={1.5} />
+                    <span>{task.nameUser || "unassigned"}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar size={13} strokeWidth={1.5} />
+                    <span>{displayDate(task.startDate)}</span>
+                  </span>
+                </div>
               </div>
-            );
-          })}
+
+              <div
+                className="shrink-0 flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-[#E5E5EA]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <select
+                  value={task.status}
+                  onChange={(e) =>
+                    handleStatusChange(task.idTask, e.target.value)
+                  }
+                  className="bg-[#FAFAFA] border border-[#E5E5EA] text-[11.5px] font-medium lowercase text-[#1C1C1E] rounded-[8px] px-2.5 py-1 outline-none cursor-pointer focus:border-[#171717]"
+                >
+                  <option value="PENDING">pending</option>
+                  <option value="PROGRESS">in progress</option>
+                  <option value="BLOCK">blocked</option>
+                  <option value="COMPLETED">completed</option>
+                </select>
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteClick(task)}
+                    className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors"
+                    title="Delete task"
+                  >
+                    <Trash2 size={14} strokeWidth={1.5} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
-        <div className="bg-white p-20 rounded-3xl border-2 border-dashed border-gray-100 text-center">
-          <ClipboardList className="mx-auto text-gray-200 mb-3" size={44} />
-          <p className="text-xs font-black text-[#001F3F] uppercase tracking-wider">
-            No matching active records found
+        <div className="bg-white p-12 rounded-[12px] border border-[#E5E5EA] text-center">
+          <p className="text-[13px] text-[#6E6E73]">
+            No tasks found
           </p>
         </div>
       )}
 
-      {/* PAGINACIÓN */}
+      {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between bg-white border border-gray-100 rounded-2xl px-6 py-4 shadow-sm gap-4 mt-6 animate-in fade-in">
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-            View{" "}
-            <span className="text-[#001F3F] font-black">
-              {finalFilteredTasks.length}
-            </span>{" "}
-            of{" "}
-            <span className="text-[#001F3F] font-black">{totalElements}</span>{" "}
+        <div className="flex items-center justify-between bg-white border border-[#E5E5EA] rounded-[12px] px-4 py-3">
+          <div className="text-[12px] text-[#6E6E73] lowercase">
+            page {page + 1} of {totalPages} ({totalElements} tasks)
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
               disabled={page === 0}
-              className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#001F3F] hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 transition-all"
+              className="px-3 py-1 bg-white border border-[#E5E5EA] rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] disabled:opacity-40 cursor-pointer"
             >
               Previous
             </button>
-
-            <div className="flex items-center gap-1">
-              {[...Array(totalPages)].map((_, index) => {
-                if (
-                  index === 0 ||
-                  index === totalPages - 1 ||
-                  Math.abs(index - page) <= 1
-                ) {
-                  return (
-                    <button
-                      key={`page-btn-${index}`}
-                      onClick={() => setPage(index)}
-                      className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${
-                        page === index
-                          ? "bg-[#001F3F] text-white shadow-md shadow-blue-900/10"
-                          : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
-                      }`}
-                    >
-                      {index + 1}
-                    </button>
-                  );
-                }
-                if (index === 1 || index === totalPages - 2) {
-                  return (
-                    <span
-                      key={`dots-${index}`}
-                      className="text-gray-300 text-xs px-1"
-                    >
-                      ...
-                    </span>
-                  );
-                }
-                return null;
-              })}
-            </div>
-
             <button
               onClick={() =>
                 setPage((prev) => Math.min(prev + 1, totalPages - 1))
               }
               disabled={page === totalPages - 1}
-              className="px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#001F3F] hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 transition-all"
+              className="px-3 py-1 bg-white border border-[#E5E5EA] rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] disabled:opacity-40 cursor-pointer"
             >
               Next
             </button>
@@ -576,62 +475,58 @@ const CompanyTasks = () => {
         </div>
       )}
 
-      {/* MODAL DE CREAR TAREA */}
+      {/* New task modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white rounded-[2rem] p-8 relative shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-[14px] p-6 relative border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600"
+              className="absolute top-5 right-5 text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
             >
-              <X size={18} />
+              <X size={16} strokeWidth={1.5} />
             </button>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-black text-[#001F3F] tracking-tighter uppercase italic">
-                Deploy Strategy Task
+            <div className="mb-4 pb-3 border-b border-[#E5E5EA]">
+              <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
+                New task
               </h2>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-0.5">
-                Define timeline constraints and staff operator
-              </p>
             </div>
 
             <form onSubmit={handleCreateTask} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                  Task Subject *
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  title *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Subject designation..."
+                  placeholder="enter title..."
                   value={formData.title}
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                  Execution Description
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
                 </label>
                 <textarea
                   rows="2"
-                  placeholder="Technical specifications..."
+                  placeholder="enter description..."
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none focus:border-[#001F3F] font-medium text-xs text-[#001F3F] resize-none"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] resize-none"
                 />
               </div>
 
-              {/* FECHA */}
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                  Date *
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  date *
                 </label>
                 <input
                   type="date"
@@ -644,47 +539,39 @@ const CompanyTasks = () => {
                       endDate: e.target.value,
                     })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                 />
               </div>
 
-              {/* REPETICIÓN (RECURRENCIA) */}
-              <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3">
-                <span className="text-[9px] font-black uppercase tracking-widest text-purple-900/60 flex items-center gap-1.5">
-                  <Repeat size={12} className="text-purple-600" /> Recurrence Settings
-                </span>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                    Repeat Frequency
-                  </label>
-                  <select
-                    value={formData.repeatType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, repeatType: e.target.value })
-                    }
-                    className="w-full bg-white border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
-                  >
-                    <option value="NONE">One time (No repeat)</option>
-                    <option value="DAILY">Daily (Every day)</option>
-                    <option value="WEEKLY">Weekly (Every week)</option>
-                    <option value="MONTHLY">Monthly (Every month)</option>
-                    <option value="QUARTERLY">Quarterly (Every 3 months)</option>
-                    <option value="YEARLY">Yearly (Every year)</option>
-                  </select>
-                </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  recurrence
+                </label>
+                <select
+                  value={formData.repeatType}
+                  onChange={(e) =>
+                    setFormData({ ...formData, repeatType: e.target.value })
+                  }
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
+                >
+                  <option value="NONE">one time (no repeat)</option>
+                  <option value="DAILY">daily</option>
+                  <option value="WEEKLY">weekly</option>
+                  <option value="MONTHLY">monthly</option>
+                  <option value="QUARTERLY">quarterly</option>
+                  <option value="YEARLY">yearly</option>
+                </select>
               </div>
 
-              {/* PRIORITY SELECTION */}
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                  Priority *
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  priority
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: "LOW", label: "Low", color: "border-gray-200 bg-gray-50 text-gray-700" },
-                    { id: "NORMAL", label: "Normal", color: "border-blue-200 bg-blue-50/50 text-blue-700" },
-                    { id: "HIGH", label: "High", color: "border-red-200 bg-red-50 text-red-700" },
+                    { id: "LOW", label: "low" },
+                    { id: "NORMAL", label: "normal" },
+                    { id: "HIGH", label: "high" },
                   ].map((p) => {
                     const isSelected = (formData.priority || "NORMAL") === p.id;
                     return (
@@ -692,16 +579,14 @@ const CompanyTasks = () => {
                         type="button"
                         key={`modal-priority-btn-${p.id}`}
                         onClick={() => setFormData({ ...formData, priority: p.id })}
-                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        className={`py-2 px-3 rounded-[8px] border text-center transition-colors text-[12px] font-medium lowercase flex items-center justify-center gap-1 cursor-pointer ${
                           isSelected
-                            ? `${p.color} ring-2 ring-offset-1 ${p.id === "HIGH" ? "ring-red-400 font-black" : "ring-blue-400 font-bold"}`
-                            : "bg-white border-gray-100 text-gray-400 opacity-60 hover:opacity-100"
+                            ? "border-[#171717] bg-[#171717] text-white"
+                            : "bg-white border-[#E5E5EA] text-[#6E6E73] hover:text-[#1C1C1E]"
                         }`}
                       >
-                        <div className="flex items-center justify-center gap-1.5 text-xs font-black uppercase">
-                          {p.id === "HIGH" && <Flame size={13} className="text-red-500 fill-red-500" />}
-                          {p.label}
-                        </div>
+                        {p.id === "HIGH" && <Flame size={12} strokeWidth={1.5} className="text-[#EF4444]" />}
+                        <span>{p.label}</span>
                       </button>
                     );
                   })}
@@ -709,8 +594,8 @@ const CompanyTasks = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400">
-                  Assign Operator *
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  assigned operator *
                 </label>
                 <select
                   required
@@ -718,9 +603,9 @@ const CompanyTasks = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, idUserAssigned: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                 >
-                  <option value="">-- Choose Operator From Registry --</option>
+                  <option value="">-- select user --</option>
                   {users.map((u) => (
                     <option key={`modal-user-${u.idUser || u.id}`} value={u.idUser || u.id}>
                       {u.name || u.username}
@@ -729,20 +614,20 @@ const CompanyTasks = () => {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-gray-400 hover:text-gray-600"
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-[#001F3F] text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50"
+                  className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
                 >
-                  {submitting ? "Deploying..." : "Assign Task"}
+                  {submitting ? "Saving..." : "Save task"}
                 </button>
               </div>
             </form>
@@ -750,7 +635,7 @@ const CompanyTasks = () => {
         </div>
       )}
 
-      {/* TASK DETAIL VIEW */}
+      {/* Task Detail View */}
       <TaskDetailView
         isOpen={isDetailViewOpen}
         onClose={handleCloseTaskDetail}
@@ -758,7 +643,7 @@ const CompanyTasks = () => {
         onTaskUpdated={handleTaskUpdated}
       />
 
-      {/* MODAL DE CONFIRMACIÓN DE ELIMINACIÓN (SOLO ADMIN) */}
+      {/* Task Delete Confirmation Dialog */}
       <TaskDeleteDialog
         isOpen={isDeleteModalOpen}
         onClose={handleCancelDelete}

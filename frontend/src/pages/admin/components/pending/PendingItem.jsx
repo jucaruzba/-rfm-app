@@ -20,7 +20,7 @@ import {
   ChevronDown,
   Pencil,
   Save,
-  Trash2, // Añadir este icono
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { pendingItemService } from "../../../../services/pendingItemService";
@@ -28,72 +28,70 @@ import { userService } from "../../../../services/userService";
 import TaskDetailView from "../task/TaskDetailView";
 
 // ==========================================
-// COLORES DE SEMÁFORO 🚥
+// STATUS COLOR CONFIG
 // ==========================================
 const getStatusColor = (status) => {
   const statusLower = status?.toLowerCase();
   const colors = {
-    pending: "bg-red-100 text-red-700 border border-red-200",
-    in_progress: "bg-yellow-100 text-yellow-700 border border-yellow-200",
-    "in-progress": "bg-yellow-100 text-yellow-700 border border-yellow-200",
-    completed: "bg-green-100 text-green-700 border border-green-200",
+    pending: "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20",
+    in_progress: "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20",
+    "in-progress": "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20",
+    completed: "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20",
   };
   return (
-    colors[statusLower] || "bg-gray-100 text-gray-700 border border-gray-200"
+    colors[statusLower] || "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20"
   );
 };
 
 // ==========================================
-// COLORES DE SEMÁFORO PARA SELECTOR
+// STATUS OPTIONS FOR SELECTOR
 // ==========================================
 const STATUS_OPTIONS = [
   {
     value: "pending",
-    label: "Pending",
-    color: "bg-red-100 text-red-700 border border-red-200 hover:bg-red-200",
+    label: "pending",
+    color: "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20",
   },
   {
     value: "in_progress",
-    label: "In Progress",
-    color:
-      "bg-yellow-100 text-yellow-700 border border-yellow-200 hover:bg-yellow-200",
+    label: "in progress",
+    color: "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20",
   },
   {
     value: "completed",
-    label: "Completed",
-    color:
-      "bg-green-100 text-green-700 border border-green-200 hover:bg-green-200",
+    label: "completed",
+    color: "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20",
   },
 ];
 
 // ==========================================
-// FORMATO PARA UI
+// FORMAT FOR UI (lowercase badges)
 // ==========================================
 const formatStatusForUI = (status) => {
   const statusLower = status?.toLowerCase();
   const statusMap = {
-    pending: "PENDING",
-    in_progress: "IN PROGRESS",
-    "in-progress": "IN PROGRESS",
-    completed: "COMPLETED",
+    pending: "pending",
+    in_progress: "in progress",
+    "in-progress": "in progress",
+    completed: "completed",
   };
-  return statusMap[statusLower] || status?.toUpperCase() || "UNKNOWN";
+  return statusMap[statusLower] || status?.toLowerCase() || "unknown";
 };
 
 // ==========================================
-// INDICADOR DE SEMÁFORO
+// STATUS DOT
 // ==========================================
 const StatusDot = ({ status }) => {
   const statusLower = status?.toLowerCase();
   const dotColors = {
-    pending: "bg-red-500",
-    in_progress: "bg-yellow-500",
-    "in-progress": "bg-yellow-500",
-    completed: "bg-green-500",
+    pending: "bg-[#EF4444]",
+    in_progress: "bg-[#F59E0B]",
+    "in-progress": "bg-[#F59E0B]",
+    completed: "bg-[#10B981]",
   };
-  const color = dotColors[statusLower] || "bg-gray-500";
+  const color = dotColors[statusLower] || "bg-[#6B7280]";
   return (
-    <span className={`inline-block w-2 h-2 rounded-full ${color} mr-1.5`} />
+    <span className={`inline-block w-1.5 h-1.5 rounded-full ${color} mr-1.5`} />
   );
 };
 
@@ -138,46 +136,61 @@ const PendingItem = () => {
   });
 
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null); // Nuevo estado para el delete
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // Modal de confirmación
+  const [deletingId, setDeletingId] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // ==========================================
-  // VERIFICAR SI ES ADMIN
-  // ==========================================
   const isAdmin =
     user?.role?.toLowerCase() === "admin" || user?.role === "ADMIN";
 
-  // ==========================================
-  // OBTENER DATOS DE LA TABLA
-  // ==========================================
-  const fetchItems = async () => {
-    if (!user?.idUser && !user?.id) {
-      toast.error("User not authenticated");
-      return;
+  const fetchUsers = async () => {
+    try {
+      const usersData = await userService.findAll();
+      setAllUsers(usersData || []);
+    } catch (err) {
+      console.error("Error loading users", err);
     }
+  };
 
+  const fetchItems = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const userId = user?.idUser || user?.id;
-      const requestFilters = {
-        ...(filters.viewType === "assigned" && { assignedTo: userId }),
-        ...(filters.viewType === "created" && { createdBy: userId }),
-        ...(filters.status && { status: filters.status.toLowerCase() }),
-        ...(filters.referenceType && { referenceType: filters.referenceType }),
-      };
+      const currentUserId = user.idUser || user.id;
+      let data;
+      if (filters.viewType === "assigned") {
+        data = await pendingItemService.getByAssignedTo(
+          currentUserId,
+          page,
+          pageSize,
+        );
+      } else {
+        data = await pendingItemService.getByCreatedBy(
+          currentUserId,
+          page,
+          pageSize,
+        );
+      }
 
-      const response = await pendingItemService.getFilters(
-        page,
-        pageSize,
-        requestFilters,
-      );
+      let items = data.content || [];
+      if (filters.status) {
+        items = items.filter(
+          (item) => item.status?.toLowerCase() === filters.status.toLowerCase(),
+        );
+      }
+      if (filters.referenceType) {
+        items = items.filter(
+          (item) =>
+            item.referenceType?.toLowerCase() ===
+            filters.referenceType.toLowerCase(),
+        );
+      }
 
-      setPendingItems(response.content || []);
-      setTotalPages(response.totalPages || 0);
-      setTotalElements(response.totalElements || 0);
-    } catch (error) {
-      console.error("Error fetching pending items", error);
+      setPendingItems(items);
+      setTotalPages(data.totalPages || 0);
+      setTotalElements(data.totalElements || 0);
+    } catch (err) {
+      console.error("Error loading pending items", err);
       toast.error("Failed to load pending items");
     } finally {
       setLoading(false);
@@ -185,43 +198,13 @@ const PendingItem = () => {
   };
 
   useEffect(() => {
-    if (user?.idUser || user?.id) {
-      fetchItems();
-    }
-  }, [user, page, filters]);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const users = await userService.findAll();
-        setAllUsers(users || []);
-      } catch (err) {
-        console.error("Error fetching users", err);
-      }
-    };
     fetchUsers();
   }, []);
 
-  // ==========================================
-  // HELPERS
-  // ==========================================
-  const getUserNameById = (userId) => {
-    if (!userId) return "N/A";
-    if (
-      typeof userId === "string" &&
-      (userId.includes("@") || userId.length > 10)
-    ) {
-      return userId;
-    }
-    const userFound = allUsers.find(
-      (u) => (u.idUser || u.id) === Number(userId),
-    );
-    return userFound?.username || userFound?.name || `User ${userId}`;
-  };
+  useEffect(() => {
+    fetchItems();
+  }, [user, page, filters.viewType, filters.status, filters.referenceType]);
 
-  // ==========================================
-  // HANDLERS
-  // ==========================================
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -237,72 +220,50 @@ const PendingItem = () => {
     setFilters({
       status: "",
       referenceType: "",
-      viewType: filters.viewType,
+      viewType: "assigned",
     });
     setPage(0);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setPage(newPage);
+    }
+  };
+
+  const getUserNameById = (userId) => {
+    if (!userId) return "N/A";
+    const foundUser = allUsers.find(
+      (u) => (u.idUser || u.id) === Number(userId),
+    );
+    if (!foundUser) return `User #${userId}`;
+    return (
+      foundUser.name ||
+      foundUser.username ||
+      foundUser.email ||
+      `User #${userId}`
+    );
   };
 
   const handleViewItem = (item) => {
     setSelectedItem(item);
     setEditForm({
-      title: item.title,
+      title: item.title || "",
       description: item.description || "",
-      status: item.status,
-      assignedTo: item.assignedTo,
+      status: item.status || "pending",
+      assignedTo: item.assignedTo || "",
     });
     setIsEditing(false);
     setIsViewModalOpen(true);
   };
 
-  // ==========================================
-  // HANDLERS DE ELIMINACIÓN
-  // ==========================================
-  const handleDeleteClick = (item) => {
-    setItemToDelete(item);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!itemToDelete) return;
-
-    setDeletingId(itemToDelete.idPending);
-    try {
-      await pendingItemService.delete(itemToDelete.idPending);
-      toast.success("Pending item deleted successfully");
-
-      // Cerrar modales si están abiertos
-      setIsDeleteModalOpen(false);
-      if (isViewModalOpen) {
-        setIsViewModalOpen(false);
-        setIsEditing(false);
-      }
-
-      // Refrescar la lista
-      fetchItems();
-    } catch (error) {
-      console.error("Delete error", error);
-      toast.error("Failed to delete pending item");
-    } finally {
-      setDeletingId(null);
-      setItemToDelete(null);
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setIsDeleteModalOpen(false);
-    setItemToDelete(null);
-  };
-
-  // ==========================================
-  // HANDLERS DE EDICIÓN
-  // ==========================================
   const handleEditToggle = () => {
-    if (isEditing) {
+    if (!isEditing) {
       setEditForm({
-        title: selectedItem.title,
+        title: selectedItem.title || "",
         description: selectedItem.description || "",
-        status: selectedItem.status,
-        assignedTo: selectedItem.assignedTo,
+        status: selectedItem.status || "pending",
+        assignedTo: selectedItem.assignedTo || "",
       });
     }
     setIsEditing(!isEditing);
@@ -322,34 +283,73 @@ const PendingItem = () => {
     setSavingEdit(true);
     try {
       const payload = {
-        title: editForm.title,
-        description: editForm.description,
+        title: editForm.title.trim(),
+        description: editForm.description.trim() || "",
         status: editForm.status,
         createdBy: selectedItem.createdBy,
-        assignedTo: Number(editForm.assignedTo),
+        assignedTo: editForm.assignedTo
+          ? Number(editForm.assignedTo)
+          : selectedItem.assignedTo,
         referenceType: selectedItem.referenceType,
         referenceId: selectedItem.referenceId,
       };
 
       await pendingItemService.update(selectedItem.idPending, payload);
-      toast.success("Pending item updated successfully");
+      toast.success("Pending item updated");
 
-      setSelectedItem((prev) => ({
-        ...prev,
-        title: editForm.title,
-        description: editForm.description,
-        status: editForm.status,
-        assignedTo: Number(editForm.assignedTo),
-      }));
+      setPendingItems((prev) =>
+        prev.map((item) =>
+          item.idPending === selectedItem.idPending
+            ? { ...item, ...payload }
+            : item,
+        ),
+      );
 
+      setSelectedItem((prev) => ({ ...prev, ...payload }));
       setIsEditing(false);
-      fetchItems();
     } catch (err) {
-      console.error("Update error", err);
+      console.error("Error updating pending item", err);
       toast.error("Failed to update pending item");
     } finally {
       setSavingEdit(false);
     }
+  };
+
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+
+    setDeletingId(itemToDelete.idPending);
+    try {
+      await pendingItemService.delete(itemToDelete.idPending);
+      toast.success("Pending item deleted");
+
+      setPendingItems((prev) =>
+        prev.filter((item) => item.idPending !== itemToDelete.idPending),
+      );
+
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+
+      if (selectedItem?.idPending === itemToDelete.idPending) {
+        setIsViewModalOpen(false);
+        setSelectedItem(null);
+      }
+    } catch (err) {
+      console.error("Error deleting pending item", err);
+      toast.error("Failed to delete pending item");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setItemToDelete(null);
   };
 
   const handleShowTask = () => {
@@ -359,6 +359,7 @@ const PendingItem = () => {
     ) {
       setSelectedTaskId(selectedItem.referenceId);
       setIsDetailViewOpen(true);
+      setIsViewModalOpen(false);
     }
   };
 
@@ -371,30 +372,31 @@ const PendingItem = () => {
     fetchItems();
   };
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 0 && newPage < totalPages) {
-      setPage(newPage);
+  const handleCreatePending = async (e) => {
+    e.preventDefault();
+    if (!newPendingForm.title.trim()) {
+      toast.error("Title is required");
+      return;
     }
-  };
-
-  const handleCreatePending = async () => {
-    if (!newPendingForm.title.trim() || !newPendingForm.assignedTo) {
-      toast.error("Title and assigned user are required");
+    if (!newPendingForm.assignedTo) {
+      toast.error("Please assign a user");
       return;
     }
 
     setCreatingPending(true);
     try {
       const payload = {
-        title: newPendingForm.title,
-        description: newPendingForm.description,
+        title: newPendingForm.title.trim(),
+        description: newPendingForm.description.trim() || "",
         status: newPendingForm.status,
-        createdBy: user?.id || user?.idUser,
+        createdBy: user.idUser || user.id,
         assignedTo: Number(newPendingForm.assignedTo),
+        referenceType: "DIRECT",
+        referenceId: null,
       };
 
       await pendingItemService.create(payload);
-      toast.success("Pending item created successfully");
+      toast.success("Pending item created");
       setNewPendingForm({
         title: "",
         description: "",
@@ -404,7 +406,7 @@ const PendingItem = () => {
       setIsCreateModalOpen(false);
       fetchItems();
     } catch (err) {
-      console.error("Create pending error", err);
+      console.error("Error creating pending item", err);
       toast.error("Failed to create pending item");
     } finally {
       setCreatingPending(false);
@@ -430,7 +432,7 @@ const PendingItem = () => {
       };
 
       await pendingItemService.update(id, payload);
-      toast.success(`Status updated to ${newStatus.toUpperCase()}`);
+      toast.success(`Status updated`);
 
       setPendingItems((prev) =>
         prev.map((item) =>
@@ -443,135 +445,124 @@ const PendingItem = () => {
         setEditForm((prev) => ({ ...prev, status: newStatus }));
       }
     } catch (err) {
-      console.error("Update status error", err);
+      console.error("Error updating status", err);
       toast.error("Failed to update status");
     } finally {
       setUpdatingStatusId(null);
     }
   };
 
-  // ==========================================
-  // COMPONENTE VISUAL
-  // ==========================================
   return (
     <div className="space-y-6">
-      {/* ENCABEZADO */}
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div>
-          <h1 className="text-2xl font-bold text-[#001F3F] tracking-tight flex items-center gap-2">
-            <ListTodo className="text-blue-500" /> Pending Items
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {filters.viewType === "assigned"
-              ? `Assigned to you (${totalElements} total)`
-              : `Created by you (${totalElements} total)`}
-          </p>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
+            <button
+              onClick={() => handleViewTypeChange("assigned")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+                filters.viewType === "assigned"
+                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
+              }`}
+            >
+              <Users size={14} strokeWidth={1.5} />
+              <span>Assigned to me</span>
+            </button>
+            <button
+              onClick={() => handleViewTypeChange("created")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+                filters.viewType === "created"
+                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
+              }`}
+            >
+              <ClipboardList size={14} strokeWidth={1.5} />
+              <span>Created by me</span>
+            </button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-semibold"
-          >
-            <Plus size={16} /> Create Pending
-          </button>
+
+        <div className="flex items-center gap-2">
           <button
             onClick={fetchItems}
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm font-semibold"
+            className="p-2 bg-[#FAFAFA] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[10px] transition-colors"
+            title="Refresh"
           >
-            <RefreshCw size={16} /> Refresh
+            <RefreshCw size={15} strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+          >
+            <Plus size={15} strokeWidth={1.5} />
+            <span>New pending item</span>
           </button>
         </div>
       </div>
 
-      {/* TOGGLES Y FILTROS */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        <div className="flex gap-2 mb-4 border-b border-gray-100 pb-4">
-          <button
-            onClick={() => handleViewTypeChange("assigned")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              filters.viewType === "assigned"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
+      {/* Filter Bar */}
+      <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4 flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs">
+          <label className="text-[11px] font-medium lowercase text-[#6E6E73]">
+            status:
+          </label>
+          <select
+            name="status"
+            value={filters.status}
+            onChange={handleFilterChange}
+            className="w-full px-3 py-1.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
           >
-            <Users size={16} />
-            Assigned to Me
-          </button>
-          <button
-            onClick={() => handleViewTypeChange("created")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              filters.viewType === "created"
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            <ClipboardList size={16} />
-            Created by Me
-          </button>
+            <option value="">all status</option>
+            <option value="pending">pending</option>
+            <option value="in_progress">in progress</option>
+            <option value="completed">completed</option>
+          </select>
         </div>
 
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[150px]">
-            <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-              Status
-            </label>
-            <select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
-            >
-              <option value="">All Status</option>
-              <option value="pending">🔴 Pending</option>
-              <option value="in_progress">🟡 In Progress</option>
-              <option value="completed">🟢 Completed</option>
-            </select>
-          </div>
-
-          {filters.status && (
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors font-semibold"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
+        {filters.status && (
+          <button
+            onClick={clearFilters}
+            className="text-[12px] text-[#EF4444] hover:underline transition-colors cursor-pointer"
+          >
+            Clear filter
+          </button>
+        )}
       </div>
 
-      {/* TABLA DE PENDIENTES */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Table */}
+      <div className="bg-white rounded-[12px] border border-[#E5E5EA] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/80 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
-                <th className="p-4 font-semibold">Title</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold">
+              <tr className="bg-[#FAFAFA] text-[#6E6E73] text-[11px] font-medium lowercase border-b border-[#E5E5EA]">
+                <th className="p-3.5">title</th>
+                <th className="p-3.5">status</th>
+                <th className="p-3.5">
                   {filters.viewType === "assigned"
-                    ? "Created By"
-                    : "Assigned To"}
+                    ? "created by"
+                    : "assigned to"}
                 </th>
-                <th className="p-4 font-semibold">Created</th>
-                <th className="p-4 font-semibold text-center">Actions</th>
+                <th className="p-3.5">date</th>
+                <th className="p-3.5 text-center">actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-[#E5E5EA]">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-400">
+                  <td colSpan="5" className="p-8 text-center text-[#AEAEB2]">
                     <div className="flex items-center justify-center gap-2">
-                      <Activity size={20} className="animate-spin" />
-                      Loading items...
+                      <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-[#171717]" />
+                      <span className="text-[13px]">Loading items...</span>
                     </div>
                   </td>
                 </tr>
               ) : pendingItems.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-gray-400">
-                    <div className="flex flex-col items-center gap-2">
-                      <AlertCircle size={24} className="text-gray-400" />
-                      <p>No pending items found</p>
+                  <td colSpan="5" className="p-8 text-center text-[#AEAEB2]">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <AlertCircle size={22} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                      <p className="text-[13px]">No pending items found</p>
                     </div>
                   </td>
                 </tr>
@@ -579,19 +570,19 @@ const PendingItem = () => {
                 pendingItems.map((item) => (
                   <tr
                     key={item.idPending}
-                    className="hover:bg-gray-50/50 transition-colors group"
+                    className="hover:bg-[#FAFAFA] transition-colors"
                   >
-                    <td className="p-4">
-                      <p className="text-sm font-semibold text-[#001F3F]">
+                    <td className="p-3.5">
+                      <p className="text-[13.5px] font-medium text-[#1C1C1E]">
                         {item.title}
                       </p>
                       {item.description && (
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-1">
+                        <p className="text-[12px] text-[#6E6E73] mt-0.5 line-clamp-1">
                           {item.description}
                         </p>
                       )}
                     </td>
-                    <td className="p-4">
+                    <td className="p-3.5">
                       {filters.viewType === "assigned" ? (
                         <select
                           value={item.status}
@@ -599,7 +590,7 @@ const PendingItem = () => {
                             handleUpdateStatus(item.idPending, e.target.value)
                           }
                           disabled={updatingStatusId === item.idPending}
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md cursor-pointer transition-all ${getStatusColor(item.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          className={`text-[11px] font-medium lowercase px-2.5 py-1 rounded-full border cursor-pointer ${getStatusColor(item.status)} outline-none`}
                         >
                           {STATUS_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -609,7 +600,7 @@ const PendingItem = () => {
                         </select>
                       ) : (
                         <span
-                          className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${getStatusColor(item.status)}`}
+                          className={`inline-flex items-center text-[11px] font-medium lowercase px-2.5 py-0.5 rounded-full border ${getStatusColor(item.status)}`}
                         >
                           <StatusDot status={item.status} />
                           {formatStatusForUI(item.status)}
@@ -618,44 +609,45 @@ const PendingItem = () => {
                       {updatingStatusId === item.idPending && (
                         <Loader2
                           size={12}
-                          className="inline ml-2 animate-spin text-gray-400"
+                          className="inline ml-2 animate-spin text-[#AEAEB2]"
                         />
                       )}
                     </td>
-                    <td className="p-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <User size={12} className="text-gray-400" />
-                        {filters.viewType === "assigned"
-                          ? getUserNameById(item.createdBy)
-                          : getUserNameById(item.assignedTo)}
+                    <td className="p-3.5 text-[12px] text-[#6E6E73]">
+                      <div className="flex items-center gap-1.5">
+                        <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                        <span>
+                          {filters.viewType === "assigned"
+                            ? getUserNameById(item.createdBy)
+                            : getUserNameById(item.assignedTo)}
+                        </span>
                       </div>
                     </td>
-                    <td className="p-4 text-sm text-gray-600">
+                    <td className="p-3.5 text-[12px] text-[#6E6E73]">
                       {item.createdAt
                         ? new Date(item.createdAt).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-3.5 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleViewItem(item)}
-                          className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="View Details"
+                          className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors cursor-pointer"
+                          title="View details"
                         >
-                          <Eye size={16} />
+                          <Eye size={15} strokeWidth={1.5} />
                         </button>
-                        {/* Botón de eliminar - SOLO PARA ADMIN */}
                         {isAdmin && (
                           <button
                             onClick={() => handleDeleteClick(item)}
                             disabled={deletingId === item.idPending}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                            className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors disabled:opacity-50 cursor-pointer"
                             title="Delete"
                           >
                             {deletingId === item.idPending ? (
-                              <Loader2 size={16} className="animate-spin" />
+                              <Loader2 size={15} className="animate-spin" />
                             ) : (
-                              <Trash2 size={16} />
+                              <Trash2 size={15} strokeWidth={1.5} />
                             )}
                           </button>
                         )}
@@ -668,73 +660,68 @@ const PendingItem = () => {
           </table>
         </div>
 
-        {/* PAGINACIÓN */}
+        {/* Pagination */}
         {totalPages > 0 && (
-          <div className="flex justify-between items-center p-4 border-t border-gray-100 bg-gray-50/30">
-            <div className="text-sm text-gray-500">
-              Page {page + 1} of {totalPages}
+          <div className="flex justify-between items-center px-4 py-3 border-t border-[#E5E5EA] bg-[#FAFAFA]">
+            <div className="text-[12px] text-[#6E6E73] lowercase">
+              page {page + 1} of {totalPages}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <button
                 onClick={() => handlePageChange(page - 1)}
                 disabled={page === 0}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 text-[#6E6E73] hover:bg-white rounded-[6px] transition-colors disabled:opacity-40 cursor-pointer"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={16} strokeWidth={1.5} />
               </button>
               <button
                 onClick={() => handlePageChange(page + 1)}
                 disabled={page >= totalPages - 1}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-1.5 text-[#6E6E73] hover:bg-white rounded-[6px] transition-colors disabled:opacity-40 cursor-pointer"
               >
-                <ChevronRight size={18} />
+                <ChevronRight size={16} strokeWidth={1.5} />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* ========================================== */}
-      {/* MODAL DE VISUALIZACIÓN / EDICIÓN */}
-      {/* ========================================== */}
+      {/* Modal Details / Edit */}
       {isViewModalOpen && selectedItem && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/50 backdrop-blur-sm p-10">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gradient-to-r from-[#001F3F] to-blue-900">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                {isEditing ? <Pencil size={18} /> : <FileText size={18} />}
-                {isEditing ? "Edit Pending Item" : "Pending Item Details"}
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-md rounded-[14px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA] overflow-hidden">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-[#E5E5EA]">
+              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+                {isEditing ? "Edit pending item" : "Pending item details"}
               </h3>
-              <div className="flex items-center gap-2">
-                {/* Botón de Editar/Guardar */}
+              <div className="flex items-center gap-1.5">
                 {!isEditing ? (
                   <button
                     onClick={handleEditToggle}
-                    className="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                    className="text-[#6E6E73] hover:text-[#1C1C1E] p-1 rounded transition-colors cursor-pointer"
                     title="Edit"
                   >
-                    <Pencil size={18} />
+                    <Pencil size={15} strokeWidth={1.5} />
                   </button>
                 ) : (
                   <button
                     onClick={handleEditToggle}
-                    className="text-red-400 hover:text-red-300 transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                    className="text-[#6E6E73] hover:text-[#1C1C1E] p-1 rounded transition-colors cursor-pointer"
                     title="Cancel"
                   >
-                    <X size={18} />
+                    <X size={15} strokeWidth={1.5} />
                   </button>
                 )}
-                {/* Botón de eliminar en el modal - SOLO PARA ADMIN */}
                 {isAdmin && !isEditing && (
                   <button
                     onClick={() => {
                       setIsViewModalOpen(false);
                       handleDeleteClick(selectedItem);
                     }}
-                    className="text-red-400 hover:text-red-300 transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                    className="text-[#AEAEB2] hover:text-[#EF4444] p-1 rounded transition-colors cursor-pointer"
                     title="Delete"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={15} strokeWidth={1.5} />
                   </button>
                 )}
                 <button
@@ -742,18 +729,18 @@ const PendingItem = () => {
                     setIsViewModalOpen(false);
                     setIsEditing(false);
                   }}
-                  className="text-white/80 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg"
+                  className="text-[#AEAEB2] hover:text-[#1C1C1E] p-1 rounded transition-colors cursor-pointer"
                 >
-                  <X size={20} />
+                  <X size={16} strokeWidth={1.5} />
                 </button>
               </div>
             </div>
 
-            <div className="p-5 space-y-4">
-              {/* TITLE */}
+            <div className="p-5 space-y-3.5">
+              {/* Title */}
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Title *
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  title *
                 </label>
                 {isEditing ? (
                   <input
@@ -761,49 +748,49 @@ const PendingItem = () => {
                     name="title"
                     value={editForm.title}
                     onChange={handleEditChange}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-semibold"
-                    placeholder="Enter title..."
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
+                    placeholder="enter title..."
                   />
                 ) : (
-                  <p className="text-sm font-semibold text-gray-900 bg-gray-50 p-3 rounded-lg">
+                  <p className="text-[13px] font-medium text-[#1C1C1E] bg-[#FAFAFA] border border-[#E5E5EA] p-2.5 rounded-[8px]">
                     {selectedItem.title}
                   </p>
                 )}
               </div>
 
-              {/* DESCRIPTION */}
+              {/* Description */}
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Description
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  description
                 </label>
                 {isEditing ? (
                   <textarea
                     name="description"
                     value={editForm.description}
                     onChange={handleEditChange}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none h-20"
-                    placeholder="Enter description..."
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-20"
+                    placeholder="enter description..."
                   />
                 ) : (
-                  <div className="bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {selectedItem.description || "No description provided"}
+                  <div className="bg-[#FAFAFA] border border-[#E5E5EA] p-2.5 rounded-[8px] max-h-28 overflow-y-auto">
+                    <p className="text-[13px] text-[#6E6E73] whitespace-pre-wrap">
+                      {selectedItem.description || "no description provided"}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* STATUS */}
+              {/* Status */}
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Status
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  status
                 </label>
                 {isEditing ? (
                   <select
                     name="status"
                     value={editForm.status}
                     onChange={handleEditChange}
-                    className={`w-full text-sm font-bold uppercase tracking-wider px-3 py-2 rounded-lg cursor-pointer transition-all ${getStatusColor(editForm.status)} focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    className={`w-full text-[12px] font-medium lowercase px-2.5 py-1.5 rounded-[8px] border cursor-pointer ${getStatusColor(editForm.status)} outline-none`}
                   >
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -813,7 +800,7 @@ const PendingItem = () => {
                   </select>
                 ) : (
                   <span
-                    className={`inline-flex items-center text-sm font-bold uppercase tracking-wider px-3 py-2 rounded-lg ${getStatusColor(selectedItem.status)}`}
+                    className={`inline-flex items-center text-[11px] font-medium lowercase px-2.5 py-0.5 rounded-full border ${getStatusColor(selectedItem.status)}`}
                   >
                     <StatusDot status={selectedItem.status} />
                     {formatStatusForUI(selectedItem.status)}
@@ -821,19 +808,19 @@ const PendingItem = () => {
                 )}
               </div>
 
-              {/* ASSIGNED TO */}
+              {/* Assigned To */}
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Assigned To *
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  assigned to *
                 </label>
                 {isEditing ? (
                   <select
                     name="assignedTo"
                     value={editForm.assignedTo}
                     onChange={handleEditChange}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
                   >
-                    <option value="">-- Select User --</option>
+                    <option value="">-- Select user --</option>
                     {allUsers.map((u) => {
                       const currentId = u.idUser || u.id;
                       const currentUserId = user?.idUser || user?.id;
@@ -849,44 +836,22 @@ const PendingItem = () => {
                     })}
                   </select>
                 ) : (
-                  <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg flex items-center gap-2">
-                    <Users size={14} className="text-gray-400" />
-                    {getUserNameById(selectedItem.assignedTo)}
+                  <p className="text-[13px] text-[#1C1C1E] bg-[#FAFAFA] border border-[#E5E5EA] p-2.5 rounded-[8px] flex items-center gap-2">
+                    <Users size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                    <span>{getUserNameById(selectedItem.assignedTo)}</span>
                   </p>
                 )}
               </div>
-
-              {/* CREATED BY */}
-              <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Created By
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg flex items-center gap-2">
-                  <User size={14} className="text-gray-400" />
-                  {getUserNameById(selectedItem.createdBy)}
-                </p>
-              </div>
-
-              {/* CREATED AT */}
-              <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-1">
-                  Created At
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">
-                  {selectedItem.createdAt
-                    ? new Date(selectedItem.createdAt).toLocaleString()
-                    : "N/A"}
-                </p>
-              </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-[#E5E5EA] bg-[#FAFAFA]">
               {selectedItem.referenceType?.toLowerCase() === "task" && (
                 <button
                   onClick={handleShowTask}
-                  className="px-5 py-2 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-2"
+                  className="px-4 py-1.5 text-[12px] font-medium bg-[#171717] text-white hover:bg-[#2C2C2E] rounded-[8px] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  <ExternalLink size={16} /> View Task
+                  <ExternalLink size={14} strokeWidth={1.5} />
+                  <span>View task</span>
                 </button>
               )}
 
@@ -894,14 +859,14 @@ const PendingItem = () => {
                 <button
                   onClick={handleSaveEdit}
                   disabled={savingEdit}
-                  className="px-5 py-2 text-sm font-semibold bg-green-600 text-white hover:bg-green-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-4 py-1.5 text-[12px] font-medium bg-[#171717] text-white hover:bg-[#2C2C2E] rounded-[8px] transition-colors flex items-center gap-1.5 disabled:opacity-50 shadow-xs cursor-pointer"
                 >
                   {savingEdit ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={14} className="animate-spin" />
                   ) : (
-                    <Save size={16} />
+                    <Save size={14} strokeWidth={1.5} />
                   )}
-                  Save Changes
+                  <span>Save changes</span>
                 </button>
               ) : (
                 <button
@@ -909,9 +874,9 @@ const PendingItem = () => {
                     setIsViewModalOpen(false);
                     setIsEditing(false);
                   }}
-                  className="px-5 py-2 text-sm font-semibold bg-[#001F3F] text-white hover:bg-blue-900 rounded-xl transition-colors flex items-center gap-2"
+                  className="px-4 py-1.5 text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] rounded-[8px] hover:bg-[#F2F2F7] transition-colors cursor-pointer"
                 >
-                  <CheckCircle2 size={16} /> Close
+                  Close
                 </button>
               )}
             </div>
@@ -919,81 +884,37 @@ const PendingItem = () => {
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR */}
-      {/* ========================================== */}
+      {/* Modal Deletion Confirmation */}
       {isDeleteModalOpen && itemToDelete && (
-        <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gradient-to-r from-red-600 to-red-700">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Trash2 size={20} />
-                Confirm Deletion
-              </h3>
+        <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-[14px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA] p-6 space-y-4">
+            <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+              Delete pending item
+            </h3>
+            <p className="text-[13px] text-[#6E6E73]">
+              Are you sure you want to delete <span className="font-semibold text-[#1C1C1E]">"{itemToDelete.title}"</span>? This action cannot be undone.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#E5E5EA]">
               <button
                 onClick={handleCancelDelete}
-                className="text-white/80 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-center text-5xl text-red-500 mb-2">
-                <AlertCircle size={64} className="text-red-500" />
-              </div>
-
-              <h4 className="text-center text-lg font-semibold text-gray-900">
-                Are you sure you want to delete this pending item?
-              </h4>
-
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">Title:</span>{" "}
-                  {itemToDelete.title}
-                </p>
-                {itemToDelete.description && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    <span className="font-semibold">Description:</span>{" "}
-                    {itemToDelete.description}
-                  </p>
-                )}
-                <p className="text-sm text-gray-600 mt-1">
-                  <span className="font-semibold">Status:</span>{" "}
-                  {formatStatusForUI(itemToDelete.status)}
-                </p>
-              </div>
-
-              <p className="text-sm text-red-600 text-center font-semibold">
-                ⚠️ This action cannot be undone.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
-              <button
-                onClick={handleCancelDelete}
-                className="px-5 py-2 text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-xl transition-colors"
+                className="px-3.5 py-1.5 text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] rounded-[8px] hover:bg-[#FAFAFA] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
                 disabled={deletingId === itemToDelete.idPending}
-                className="px-5 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-3.5 py-1.5 text-[12px] font-medium bg-[#EF4444] text-white hover:bg-[#DC2626] rounded-[8px] transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {deletingId === itemToDelete.idPending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Trash2 size={16} />
-                )}
-                Delete
+                {deletingId === itemToDelete.idPending ? "Deleting..." : "Delete item"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* TASK DETAIL VIEW */}
+      {/* Task Detail View */}
       <TaskDetailView
         isOpen={isDetailViewOpen}
         onClose={handleCloseTaskDetail}
@@ -1001,14 +922,13 @@ const PendingItem = () => {
         onTaskUpdated={handleTaskUpdated}
       />
 
-      {/* MODAL CREAR PENDIENTE */}
+      {/* Create Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gradient-to-r from-[#001F3F] to-blue-900">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Plus size={18} />
-                Create Pending Item
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-md rounded-[14px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA] p-6 space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-[#E5E5EA]">
+              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+                New pending item
               </h3>
               <button
                 onClick={() => {
@@ -1020,20 +940,21 @@ const PendingItem = () => {
                     assignedTo: "",
                   });
                 }}
-                className="text-white/80 hover:text-white transition-colors"
+                className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
               >
-                <X size={20} />
+                <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
-            <div className="p-5 space-y-4">
+            <form onSubmit={handleCreatePending} className="space-y-3.5">
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-2">
-                  Title *
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  title *
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter pending item title..."
+                  required
+                  placeholder="enter title..."
                   value={newPendingForm.title}
                   onChange={(e) =>
                     setNewPendingForm({
@@ -1041,16 +962,16 @@ const PendingItem = () => {
                       title: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-2">
-                  Description
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  description
                 </label>
                 <textarea
-                  placeholder="Enter description..."
+                  placeholder="enter description..."
                   value={newPendingForm.description}
                   onChange={(e) =>
                     setNewPendingForm({
@@ -1058,13 +979,13 @@ const PendingItem = () => {
                       description: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm h-20 resize-none"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] h-18 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-2">
-                  Status
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  status
                 </label>
                 <select
                   value={newPendingForm.status}
@@ -1074,7 +995,7 @@ const PendingItem = () => {
                       status: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
                 >
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1085,10 +1006,11 @@ const PendingItem = () => {
               </div>
 
               <div>
-                <label className="block text-xs uppercase font-bold text-gray-500 mb-2">
-                  Assign To *
+                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                  assign to *
                 </label>
                 <select
+                  required
                   value={newPendingForm.assignedTo}
                   onChange={(e) =>
                     setNewPendingForm({
@@ -1096,9 +1018,9 @@ const PendingItem = () => {
                       assignedTo: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer text-sm"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
                 >
-                  <option value="">-- Select User --</option>
+                  <option value="">-- Select user --</option>
                   {allUsers.map((u) => {
                     const currentId = u.idUser || u.id;
                     const currentUserId = user?.idUser || user?.id;
@@ -1114,36 +1036,32 @@ const PendingItem = () => {
                   })}
                 </select>
               </div>
-            </div>
 
-            <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
-              <button
-                onClick={() => {
-                  setIsCreateModalOpen(false);
-                  setNewPendingForm({
-                    title: "",
-                    description: "",
-                    status: "pending",
-                    assignedTo: "",
-                  });
-                }}
-                className="px-5 py-2 text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreatePending}
-                disabled={creatingPending}
-                className="px-5 py-2 text-sm font-semibold bg-green-600 text-white hover:bg-green-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {creatingPending ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Plus size={16} />
-                )}
-                Create
-              </button>
-            </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreateModalOpen(false);
+                    setNewPendingForm({
+                      title: "",
+                      description: "",
+                      status: "pending",
+                      assignedTo: "",
+                    });
+                  }}
+                  className="px-3.5 py-1.5 text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] rounded-[8px] hover:bg-[#FAFAFA] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingPending}
+                  className="px-4 py-1.5 text-[12px] font-medium bg-[#171717] text-white hover:bg-[#2C2C2E] rounded-[8px] transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  {creatingPending ? "Saving..." : "Save item"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -28,19 +28,32 @@ import { toast } from "sonner";
 
 // Company type constants
 const COMPANY_TYPES = [
-  { value: "MY_BUSINESS", label: "My Business", icon: Briefcase, color: "blue" },
-  { value: "CLIENT", label: "Client", icon: Users, color: "green" },
-  { value: "PARTNERSHIP", label: "Partnership", icon: Handshake, color: "purple" },
-  { value: "PERSONAL", label: "Personal", icon: User, color: "orange" },
+  { value: "MY_BUSINESS", label: "my business", icon: Briefcase },
+  { value: "CLIENT", label: "client", icon: Users },
+  { value: "PARTNERSHIP", label: "partnership", icon: Handshake },
+  { value: "PERSONAL", label: "personal", icon: User },
 ];
 
-// Company status constants
+// Company status constants per specification
 const COMPANY_STATUSES = [
-  { value: "ACTIVE", label: "Active", icon: Circle, color: "green" },
-  { value: "IN_PROGRESS", label: "In Progress", icon: Loader2, color: "blue" },
-  { value: "ON_HOLD", label: "On Hold", icon: Clock, color: "yellow" },
-  { value: "ARCHIVED", label: "Archived", icon: Archive, color: "gray" },
+  { value: "ACTIVE", label: "active", color: "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20" },
+  { value: "IN_PROGRESS", label: "in progress", color: "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20" },
+  { value: "ON_HOLD", label: "on hold", color: "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20" },
+  { value: "ARCHIVED", label: "archived", color: "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20" },
 ];
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case "ACTIVE":
+      return "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20";
+    case "IN_PROGRESS":
+      return "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20";
+    case "ON_HOLD":
+    case "ARCHIVED":
+    default:
+      return "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20";
+  }
+};
 
 const CompaniesPage = () => {
   const navigate = useNavigate();
@@ -83,7 +96,7 @@ const CompaniesPage = () => {
       } else {
         data = await companyService.getCompanies();
       }
-      setCompanies(data);
+      setCompanies(data || []);
     } catch (err) {
       toast.error("Error loading companies");
     } finally {
@@ -130,18 +143,16 @@ const CompaniesPage = () => {
     }
   };
 
-  // --- HANDLE DELETE (Show appropriate modal) ---
+  // --- HANDLE DELETE ---
   const handleDelete = async (companyId, companyName) => {
     try {
-      // Check if company has data
       const hasData = await companyService.checkHasData(companyId);
 
-      // Open modal with appropriate action
       setConfirmModal({
         isOpen: true,
         companyId,
         companyName,
-        action: hasData ? 'archive' : 'delete',
+        action: hasData ? "archive" : "delete",
         step: 1,
         hasData,
       });
@@ -150,33 +161,28 @@ const CompaniesPage = () => {
     }
   };
 
-  // --- HANDLE ARCHIVE (from modal) ---
   const handleArchiveFromModal = async (companyId, companyName) => {
     try {
-      await companyService.archiveCompany(companyId);
-      toast.success(`Company "${companyName}" archived successfully`);
-      setConfirmModal({ ...confirmModal, isOpen: false });
+      await companyService.deleteCompany(companyId);
+      toast.success(`Company "${companyName}" archived`);
+      closeConfirmModal();
       fetchCompanies();
     } catch (err) {
       toast.error("Error archiving company");
-      setConfirmModal({ ...confirmModal, isOpen: false });
     }
   };
 
-  // --- HANDLE PERMANENT DELETE (from modal) ---
   const handleHardDelete = async (companyId, companyName) => {
     try {
       await companyService.hardDeleteCompany(companyId);
       toast.success(`Company "${companyName}" permanently deleted`);
-      setConfirmModal({ ...confirmModal, isOpen: false });
+      closeConfirmModal();
       fetchCompanies();
     } catch (err) {
       toast.error("Error deleting company");
-      setConfirmModal({ ...confirmModal, isOpen: false });
     }
   };
 
-  // --- CLOSE CONFIRMATION MODAL ---
   const closeConfirmModal = () => {
     setConfirmModal({
       isOpen: false,
@@ -188,167 +194,117 @@ const CompaniesPage = () => {
     });
   };
 
-// Status ordering map: Active -> In progress -> On Hold -> Archived
-const STATUS_ORDER = {
-  ACTIVE: 1,
-  IN_PROGRESS: 2,
-  ON_HOLD: 3,
-  ARCHIVED: 4,
-};
-
-  // --- SORT AND FILTER COMPANIES ---
-  // Fixed order: Active, In progress, On Hold, Archived, and stable by idCompany
-  const sortedCompanies = [...companies].sort((a, b) => {
-    const orderA = STATUS_ORDER[a.status] ?? 99;
-    const orderB = STATUS_ORDER[b.status] ?? 99;
-    if (orderA !== orderB) {
-      return orderA - orderB;
-    }
-    return (a.idCompany || 0) - (b.idCompany || 0);
-  });
-
-  const filteredCompanies = sortedCompanies.filter(
-    (c) =>
-      c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCompanies = companies.filter((company) =>
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // Get status color
-  const getStatusColor = (status) => {
-    const statusConfig = COMPANY_STATUSES.find((s) => s.value === status);
-    if (!statusConfig) return "text-gray-600 bg-gray-50";
-
-    switch (statusConfig.color) {
-      case "green":
-        return "text-green-600 bg-green-50";
-      case "blue":
-        return "text-blue-600 bg-blue-50";
-      case "yellow":
-        return "text-yellow-600 bg-yellow-50";
-      case "gray":
-        return "text-gray-600 bg-gray-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 relative">
-      {/* HEADER */}
-      <div className="flex items-center justify-between px-8 py-6 bg-white border border-gray-100 rounded-[2rem] shadow-sm shrink-0">
-        <div>
-          <h1 className="text-3xl font-black text-[#001F3F] tracking-tighter uppercase italic leading-none">
-            Companies{" "}
-            <span className="text-gray-300 font-light">Directory</span>
-          </h1>
+    <div className="space-y-6">
+      {/* Action bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+        <div className="flex items-center gap-2">
+          {/* View switcher */}
+          <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
+            <button
+              type="button"
+              onClick={() => setViewMode("icons")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+                viewMode === "icons"
+                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
+              }`}
+            >
+              <LayoutGrid size={14} strokeWidth={1.5} />
+              <span>Grid</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+                viewMode === "list"
+                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
+              }`}
+            >
+              <List size={14} strokeWidth={1.5} />
+              <span>List</span>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[12px] font-medium transition-colors border border-[#E5E5EA] ${
               showArchived
-                ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                ? "bg-[#FAFAFA] text-[#1C1C1E]"
+                : "bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA]"
             }`}
           >
             {showArchived ? (
               <>
-                <EyeOff size={16} /> Hide Archived
+                <EyeOff size={14} strokeWidth={1.5} />
+                <span>Hide archived</span>
               </>
             ) : (
               <>
-                <Archive size={16} /> Show Archived
+                <Archive size={14} strokeWidth={1.5} />
+                <span>Show archived</span>
               </>
             )}
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-[#001F3F] text-white px-10 py-3 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
           >
-            <Plus size={18} strokeWidth={3} /> Add Company
+            <Plus size={15} strokeWidth={1.5} />
+            <span>New company</span>
           </button>
         </div>
       </div>
 
-      {/* SEARCH AND VIEW TOGGLE */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-        <div className="relative group flex-1">
-          <Search
-            className="absolute left-7 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-all"
-            size={22}
-          />
-          <input
-            type="text"
-            placeholder="Search by corporate name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-gray-100 rounded-[1.5rem] py-5 pl-16 pr-8 outline-none focus:border-blue-600 transition-all shadow-sm font-bold text-sm text-[#001F3F]"
-          />
-        </div>
-
-        {/* View Mode Toggle: Icons vs List */}
-        <div className="flex items-center bg-white border border-gray-100 p-1.5 rounded-2xl shadow-sm self-end sm:self-auto shrink-0 gap-1">
-          <button
-            type="button"
-            onClick={() => setViewMode("icons")}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-              viewMode === "icons"
-                ? "bg-[#001F3F] text-white shadow-md shadow-blue-900/20"
-                : "text-gray-400 hover:text-[#001F3F] hover:bg-gray-50"
-            }`}
-            title="Icons / Grid View"
-          >
-            <LayoutGrid size={16} /> Icons
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("list")}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-              viewMode === "list"
-                ? "bg-[#001F3F] text-white shadow-md shadow-blue-900/20"
-                : "text-gray-400 hover:text-[#001F3F] hover:bg-gray-50"
-            }`}
-            title="List View"
-          >
-            <List size={16} /> List
-          </button>
-        </div>
+      {/* Search bar */}
+      <div className="relative">
+        <Search
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
+          size={15}
+          strokeWidth={1.5}
+        />
+        <input
+          type="text"
+          placeholder="Search companies..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full bg-white border border-[#E5E5EA] rounded-[10px] py-2.5 pl-9 pr-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] transition-all"
+        />
       </div>
 
-      {/* COMPANIES VIEW (GRID OR LIST) */}
+      {/* Companies view (Grid or List) */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((n) => (
             <div
               key={n}
-              className="h-64 bg-gray-100 animate-pulse rounded-[2.5rem]"
-            ></div>
+              className="h-44 bg-white border border-[#E5E5EA] animate-pulse rounded-[12px]"
+            />
           ))}
         </div>
       ) : filteredCompanies.length > 0 ? (
         viewMode === "icons" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredCompanies.map((company) => (
               <div
                 key={company.idCompany}
-                className={`group bg-white rounded-3xl border p-6 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${
+                className={`bg-white rounded-[12px] border p-5 flex flex-col justify-between transition-colors ${
                   company.status === "ARCHIVED"
-                    ? "border-gray-200 opacity-75 hover:opacity-100"
-                    : "border-gray-100 hover:border-blue-500/30 hover:shadow-[0_20px_50px_rgba(0,31,63,0.06)]"
+                    ? "border-[#E5E5EA] opacity-60"
+                    : "border-[#E5E5EA] hover:border-[#171717]/30"
                 }`}
               >
-                {/* Background effect */}
-                <div
-                  className={`absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-blue-500 to-[#001F3F] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    company.status === "ARCHIVED" ? "bg-gray-400" : ""
-                  }`}
-                />
-
                 <div>
-                  {/* TOP ROW: Logo and Badge */}
-                  <div className="flex items-start justify-between gap-4 mb-6">
+                  <div className="flex items-start justify-between gap-3 mb-3">
                     <div
-                      className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-inner group-hover:scale-105 transition-transform duration-300 shrink-0 overflow-hidden cursor-pointer"
+                      className="w-12 h-12 bg-[#FAFAFA] rounded-[10px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden cursor-pointer"
                       onClick={() => navigate(`/companies/${company.idCompany}`)}
                     >
                       {company.logoPath ? (
@@ -358,82 +314,61 @@ const STATUS_ORDER = {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <Building2 size={28} className="text-gray-400" />
+                        <Building2 size={20} strokeWidth={1.5} className="text-[#AEAEB2]" />
                       )}
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {company.status && (
+                        <span
+                          className={`inline-flex items-center text-[10px] font-medium lowercase px-2 py-0.5 rounded-full border ${getStatusColor(company.status)}`}
+                        >
+                          {COMPANY_STATUSES.find((s) => s.value === company.status)
+                            ?.label || company.status.toLowerCase()}
+                        </span>
+                      )}
                       {company.type && (
-                        <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase tracking-wider">
+                        <span className="px-2 py-0.5 bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] rounded-full text-[10px] font-medium lowercase">
                           {COMPANY_TYPES.find((t) => t.value === company.type)
-                            ?.label || company.type}
+                            ?.label || company.type.toLowerCase()}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* COMPANY INFO */}
                   <div
-                    className="space-y-3 cursor-pointer"
+                    className="space-y-1.5 cursor-pointer"
                     onClick={() => navigate(`/companies/${company.idCompany}`)}
                   >
-                    <h2 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors duration-300 line-clamp-2">
+                    <h2 className="text-[15px] font-semibold text-[#1C1C1E] hover:text-[#171717] transition-colors line-clamp-1">
                       {company.name}
                     </h2>
 
-                    {/* Status badge */}
-                    {company.status && (
-                      <div
-                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${getStatusColor(company.status)}`}
-                      >
-                        <Circle size={8} fill="currentColor" />
-                        {COMPANY_STATUSES.find((s) => s.value === company.status)
-                          ?.label || company.status}
-                      </div>
-                    )}
-
-                    <p className="text-sm text-gray-500 font-medium leading-relaxed line-clamp-3">
-                      {company.description ||
-                        "No corporate description provided for this operational entity."}
+                    <p className="text-[12.5px] text-[#6E6E73] line-clamp-2">
+                      {company.description || "No description provided."}
                     </p>
                   </div>
                 </div>
 
-                {/* FOOTER WITH ACTIONS */}
-                <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
+                <div className="mt-4 pt-3 border-t border-[#E5E5EA] flex items-center justify-between">
                   <button
                     onClick={() => navigate(`/companies/${company.idCompany}`)}
-                    className="text-[10px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-blue-600 transition-colors duration-300 flex items-center gap-2"
+                    className="text-[12px] font-medium text-[#1C1C1E] hover:underline transition-colors cursor-pointer"
                   >
-                    View Profile
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2.5}
-                      stroke="currentColor"
-                      className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-300"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                      />
-                    </svg>
+                    View workspace →
                   </button>
 
-                  {/* Actions: Restore or Delete */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     {company.status === "ARCHIVED" ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRestore(company.idCompany, company.name);
                         }}
-                        className="p-2 rounded-xl text-green-600 hover:bg-green-50 transition-all"
+                        className="p-1.5 text-[#10B981] hover:bg-[#10B981]/10 rounded-[6px] transition-colors"
                         title="Restore company"
                       >
-                        <RotateCcw size={18} />
+                        <RotateCcw size={15} strokeWidth={1.5} />
                       </button>
                     ) : (
                       <button
@@ -441,10 +376,10 @@ const STATUS_ORDER = {
                           e.stopPropagation();
                           handleDelete(company.idCompany, company.name);
                         }}
-                        className="p-2 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                        className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors"
                         title="Delete company"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={15} strokeWidth={1.5} />
                       </button>
                     )}
                   </div>
@@ -453,30 +388,29 @@ const STATUS_ORDER = {
             ))}
           </div>
         ) : (
-          /* LIST VIEW */
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-300">
+          /* List View */
+          <div className="bg-white rounded-[12px] border border-[#E5E5EA] overflow-hidden shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/80 text-gray-400 text-[10px] font-black uppercase tracking-wider border-b border-gray-100">
-                    <th className="p-4 pl-6">Company</th>
-                    <th className="p-4">Type</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Description</th>
-                    <th className="p-4 pr-6 text-right">Actions</th>
+                  <tr className="bg-[#FAFAFA] text-[#6E6E73] text-[11px] font-medium lowercase border-b border-[#E5E5EA]">
+                    <th className="p-3.5">company</th>
+                    <th className="p-3.5">type</th>
+                    <th className="p-3.5">status</th>
+                    <th className="p-3.5">description</th>
+                    <th className="p-3.5 text-right">actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-[#E5E5EA]">
                   {filteredCompanies.map((company) => (
                     <tr
                       key={`list-${company.idCompany}`}
-                      className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
+                      className="hover:bg-[#FAFAFA] transition-colors cursor-pointer"
                       onClick={() => navigate(`/companies/${company.idCompany}`)}
                     >
-                      {/* Name & Logo */}
-                      <td className="p-4 pl-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center border border-gray-100 shrink-0 overflow-hidden">
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 bg-[#FAFAFA] rounded-[6px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden">
                             {company.logoPath ? (
                               <img
                                 src={fileService.getFileUrl(company.logoPath)}
@@ -484,66 +418,58 @@ const STATUS_ORDER = {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <Building2 size={18} className="text-gray-400" />
+                              <Building2 size={14} strokeWidth={1.5} className="text-[#AEAEB2]" />
                             )}
                           </div>
                           <div>
-                            <p className="font-black text-sm text-[#001F3F] uppercase tracking-tight group-hover:text-blue-600 transition-colors">
+                            <p className="font-semibold text-[13.5px] text-[#1C1C1E]">
                               {company.name}
                             </p>
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                              ID: #{company.idCompany}
-                            </span>
                           </div>
                         </div>
                       </td>
 
-                      {/* Type */}
-                      <td className="p-4">
+                      <td className="p-3.5">
                         {company.type ? (
-                          <span className="px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase tracking-wider">
+                          <span className="px-2 py-0.5 bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] rounded-full text-[10px] font-medium lowercase">
                             {COMPANY_TYPES.find((t) => t.value === company.type)
-                              ?.label || company.type}
+                              ?.label || company.type.toLowerCase()}
                           </span>
                         ) : (
-                          <span className="text-gray-300 text-xs">--</span>
+                          <span className="text-[#AEAEB2] text-xs">--</span>
                         )}
                       </td>
 
-                      {/* Status */}
-                      <td className="p-4">
+                      <td className="p-3.5">
                         {company.status ? (
-                          <div
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${getStatusColor(company.status)}`}
+                          <span
+                            className={`inline-flex items-center text-[10px] font-medium lowercase px-2 py-0.5 rounded-full border ${getStatusColor(company.status)}`}
                           >
-                            <Circle size={6} fill="currentColor" />
                             {COMPANY_STATUSES.find(
                               (s) => s.value === company.status,
-                            )?.label || company.status}
-                          </div>
+                            )?.label || company.status.toLowerCase()}
+                          </span>
                         ) : (
-                          <span className="text-gray-300 text-xs">--</span>
+                          <span className="text-[#AEAEB2] text-xs">--</span>
                         )}
                       </td>
 
-                      {/* Description */}
-                      <td className="p-4 max-w-xs md:max-w-md">
-                        <p className="text-xs text-gray-500 font-medium truncate">
-                          {company.description || "No corporate description provided."}
+                      <td className="p-3.5 max-w-xs md:max-w-md">
+                        <p className="text-[12px] text-[#6E6E73] truncate">
+                          {company.description || "No description provided."}
                         </p>
                       </td>
 
-                      {/* Actions */}
                       <td
-                        className="p-4 pr-6 text-right"
+                        className="p-3.5 text-right"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() =>
                               navigate(`/companies/${company.idCompany}`)
                             }
-                            className="px-3 py-1.5 bg-gray-50 hover:bg-[#001F3F] text-[#001F3F] hover:text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all"
+                            className="px-2.5 py-1 text-[11px] font-medium text-[#1C1C1E] hover:bg-[#FAFAFA] border border-[#E5E5EA] rounded-[6px] transition-colors cursor-pointer"
                           >
                             View
                           </button>
@@ -552,20 +478,20 @@ const STATUS_ORDER = {
                               onClick={() =>
                                 handleRestore(company.idCompany, company.name)
                               }
-                              className="p-2 rounded-xl text-green-600 hover:bg-green-50 transition-all"
+                              className="p-1 text-[#10B981] hover:bg-[#10B981]/10 rounded-[6px] transition-colors cursor-pointer"
                               title="Restore company"
                             >
-                              <RotateCcw size={16} />
+                              <RotateCcw size={14} strokeWidth={1.5} />
                             </button>
                           ) : (
                             <button
                               onClick={() =>
                                 handleDelete(company.idCompany, company.name)
                               }
-                              className="p-2 rounded-xl text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                              className="p-1 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors cursor-pointer"
                               title="Delete company"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={14} strokeWidth={1.5} />
                             </button>
                           )}
                         </div>
@@ -578,8 +504,8 @@ const STATUS_ORDER = {
           </div>
         )
       ) : (
-        <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-gray-100 text-center">
-          <p className="text-lg font-black text-[#001F3F] uppercase italic">
+        <div className="bg-white p-12 rounded-[12px] border border-[#E5E5EA] text-center">
+          <p className="text-[14px] text-[#6E6E73]">
             {showArchived
               ? "No archived companies found"
               : "No companies found"}
@@ -587,31 +513,29 @@ const STATUS_ORDER = {
         </div>
       )}
 
-      {/* --- CREATE MODAL --- */}
+      {/* Popup: New Company */}
       {isModalOpen && (
-        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 relative max-h-[90vh] overflow-y-auto">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-5 right-5 text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors cursor-pointer"
             >
-              <X size={20} />
+              <X size={16} strokeWidth={1.5} />
             </button>
 
-            <div className="mb-6">
-              <h2 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase italic">
-                Create <span className="text-gray-300 font-light">Company</span>
+            {/* Plain title: "New company" */}
+            <div className="mb-4 pb-3 border-b border-[#E5E5EA]">
+              <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
+                New company
               </h2>
-              <p className="text-xs text-gray-400 italic mt-1">
-                Register a new operational entity.
-              </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
-                  Company Name *
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  company name *
                 </label>
                 <input
                   type="text"
@@ -621,28 +545,28 @@ const STATUS_ORDER = {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 outline-none focus:border-blue-600 focus:bg-white transition-all font-bold text-sm text-[#001F3F]"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
-                  Description
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
                 </label>
                 <textarea
                   rows="3"
-                  placeholder="Briefly describe the company operations..."
+                  placeholder="Briefly describe company operations..."
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 outline-none focus:border-blue-600 focus:bg-white transition-all font-medium text-sm text-[#001F3F] resize-none italic"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] resize-none"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
-                  Company Type *
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  company type *
                 </label>
                 <select
                   required
@@ -650,7 +574,7 @@ const STATUS_ORDER = {
                   onChange={(e) =>
                     setFormData({ ...formData, type: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 outline-none focus:border-blue-600 focus:bg-white transition-all font-bold text-sm text-[#001F3F] cursor-pointer"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
                 >
                   {COMPANY_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -660,9 +584,9 @@ const STATUS_ORDER = {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
-                  Status *
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  status *
                 </label>
                 <select
                   required
@@ -670,7 +594,7 @@ const STATUS_ORDER = {
                   onChange={(e) =>
                     setFormData({ ...formData, status: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 outline-none focus:border-blue-600 focus:bg-white transition-all font-bold text-sm text-[#001F3F] cursor-pointer"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
                 >
                   {COMPANY_STATUSES.map((status) => (
                     <option key={status.value} value={status.value}>
@@ -680,53 +604,20 @@ const STATUS_ORDER = {
                 </select>
               </div>
 
-              <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-2xl border border-gray-100">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
-                  Preview
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black uppercase">
-                      {
-                        COMPANY_TYPES.find((t) => t.value === formData.type)
-                          ?.label
-                      }
-                    </span>
-                    <span
-                      className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase ${
-                        formData.status === "ACTIVE"
-                          ? "bg-green-50 text-green-600"
-                          : formData.status === "IN_PROGRESS"
-                          ? "bg-blue-50 text-blue-600"
-                          : formData.status === "ON_HOLD"
-                          ? "bg-yellow-50 text-yellow-600"
-                          : "bg-gray-50 text-gray-600"
-                      }`}
-                    >
-                      {
-                        COMPANY_STATUSES.find(
-                          (s) => s.value === formData.status
-                        )?.label
-                      }
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-[#001F3F] text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/10 active:scale-95 disabled:opacity-50"
+                  className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {submitting ? "Saving..." : "Save Company"}
+                  {submitting ? "Saving..." : "Save company"}
                 </button>
               </div>
             </form>
@@ -734,43 +625,31 @@ const STATUS_ORDER = {
         </div>
       )}
 
-      {/* --- CONFIRMATION MODAL (Adaptive) --- */}
+      {/* Confirmation Modal */}
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 relative animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 relative">
             <button
               type="button"
               onClick={closeConfirmModal}
-              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-5 right-5 text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
             >
-              <X size={20} />
+              <X size={16} strokeWidth={1.5} />
             </button>
 
-            <div className="text-center">
-              {confirmModal.action === 'archive' ? (
-                // --- ARCHIVE MODAL (Company has data) ---
+            <div>
+              {confirmModal.action === "archive" ? (
                 <>
-                  <div className="w-20 h-20 mx-auto bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-                    <Archive size={40} className="text-blue-500" />
-                  </div>
-                  <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-2">
-                    Archive Company
+                  <h3 className="text-[16px] font-semibold text-[#1C1C1E] mb-2">
+                    Archive company
                   </h3>
-                  <p className="text-gray-500 font-medium text-sm mb-2">
-                    <strong className="text-[#001F3F]">{confirmModal.companyName}</strong>{" "}
-                    has important data (activities and/or tasks).
+                  <p className="text-[13px] text-[#6E6E73] mb-4">
+                    <strong className="text-[#1C1C1E]">{confirmModal.companyName}</strong> has existing activities and tasks. It will be archived and can be restored later.
                   </p>
-                  <p className="text-gray-500 font-medium text-sm mb-6">
-                    This company will be <strong className="text-blue-600">ARCHIVED</strong>.
-                    <br />
-                    <span className="text-gray-400 text-xs">
-                      Data will be preserved and can be restored later.
-                    </span>
-                  </p>
-                  <div className="flex items-center justify-center gap-3">
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E5EA]">
                     <button
                       onClick={closeConfirmModal}
-                      className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                      className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -778,42 +657,28 @@ const STATUS_ORDER = {
                       onClick={() =>
                         handleArchiveFromModal(
                           confirmModal.companyId,
-                          confirmModal.companyName
+                          confirmModal.companyName,
                         )
                       }
-                      className="bg-blue-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-blue-600 transition-all shadow-lg shadow-blue-600/20 active:scale-95"
+                      className="bg-[#171717] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium hover:bg-[#2C2C2E] transition-colors shadow-xs cursor-pointer"
                     >
-                      Archive Company
+                      Archive company
                     </button>
                   </div>
                 </>
               ) : (
-                // --- DELETE MODAL (Company has NO data) - Double confirmation ---
                 confirmModal.step === 1 ? (
                   <>
-                    <div className="w-20 h-20 mx-auto bg-red-50 rounded-2xl flex items-center justify-center mb-4">
-                      <AlertTriangle size={40} className="text-red-500" />
-                    </div>
-                    <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-2">
-                      Are you sure?
+                    <h3 className="text-[16px] font-semibold text-[#1C1C1E] mb-2">
+                      Delete company
                     </h3>
-                    <p className="text-gray-500 font-medium text-sm mb-2">
-                      <strong className="text-[#001F3F]">{confirmModal.companyName}</strong>{" "}
-                      has no activities or tasks.
+                    <p className="text-[13px] text-[#6E6E73] mb-4">
+                      Are you sure you want to delete <strong className="text-[#1C1C1E]">{confirmModal.companyName}</strong>? This company has no data.
                     </p>
-                    <p className="text-gray-500 font-medium text-sm mb-6">
-                      This will delete{" "}
-                      <strong className="text-red-600">EVERYTHING</strong> from this company
-                      (configurations, files, history).
-                      <br />
-                      <span className="text-red-500 font-bold">
-                        This action cannot be undone.
-                      </span>
-                    </p>
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E5EA]">
                       <button
                         onClick={closeConfirmModal}
-                        className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                        className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA]"
                       >
                         Cancel
                       </button>
@@ -821,7 +686,7 @@ const STATUS_ORDER = {
                         onClick={() =>
                           setConfirmModal({ ...confirmModal, step: 2 })
                         }
-                        className="bg-red-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-red-600 transition-all shadow-lg shadow-red-600/20 active:scale-95"
+                        className="bg-[#EF4444] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium hover:bg-[#DC2626] transition-colors"
                       >
                         Continue
                       </button>
@@ -829,27 +694,16 @@ const STATUS_ORDER = {
                   </>
                 ) : (
                   <>
-                    <div className="w-20 h-20 mx-auto bg-red-100 rounded-2xl flex items-center justify-center mb-4">
-                      <Trash2 size={40} className="text-red-600" />
-                    </div>
-                    <h3 className="text-2xl font-black text-[#001F3F] uppercase tracking-tight mb-2">
+                    <h3 className="text-[16px] font-semibold text-[#1C1C1E] mb-2">
                       Confirm permanent deletion
                     </h3>
-                    <p className="text-gray-500 font-medium text-sm mb-6">
-                      This action will permanently delete{" "}
-                      <strong className="text-red-600">
-                        {confirmModal.companyName}
-                      </strong>{" "}
-                      and all its data.
-                      <br />
-                      <span className="text-red-500 font-bold">
-                        This operation is irreversible.
-                      </span>
+                    <p className="text-[13px] text-[#6E6E73] mb-4">
+                      This action will permanently delete <strong className="text-[#EF4444]">{confirmModal.companyName}</strong>. This action cannot be undone.
                     </p>
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E5EA]">
                       <button
                         onClick={closeConfirmModal}
-                        className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                        className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA]"
                       >
                         Cancel
                       </button>
@@ -857,12 +711,12 @@ const STATUS_ORDER = {
                         onClick={() =>
                           handleHardDelete(
                             confirmModal.companyId,
-                            confirmModal.companyName
+                            confirmModal.companyName,
                           )
                         }
-                        className="bg-red-600 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-red-700 transition-all shadow-lg shadow-red-600/30 active:scale-95"
+                        className="bg-[#EF4444] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium hover:bg-[#DC2626] transition-colors"
                       >
-                        Delete Permanently
+                        Delete permanently
                       </button>
                     </div>
                   </>

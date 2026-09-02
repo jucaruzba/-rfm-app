@@ -8,7 +8,7 @@ import {
   Plus,
   Eye,
   Trash2,
-  Zap,
+  Calendar,
 } from "lucide-react";
 import { activityService } from "../../../services/activityService";
 import { toast } from "sonner";
@@ -38,9 +38,9 @@ const CompanyActivities = () => {
         start: format(daysToShow[0], "yyyy-MM-dd'T'00:00:00"),
         end: format(daysToShow[2], "yyyy-MM-dd'T'23:59:59"),
       });
-      setActivities(data);
+      setActivities(data || []);
     } catch (err) {
-      toast.error("Error sincronizando actividades");
+      toast.error("Error loading activities");
     }
   };
 
@@ -65,107 +65,75 @@ const CompanyActivities = () => {
 
   const handleDeleteActivity = async (id, title) => {
     const confirmed = window.confirm(
-      `⚠️ Purgar actividad: "${title.toUpperCase()}"?\n\nEsta acción eliminará todos los nodos y recursos asociados.`,
+      `Delete activity "${title}"? This action cannot be undone.`,
     );
 
     if (confirmed) {
       try {
         await activityService.deleteActivity(id);
-        toast.success("Actividad purgada del sistema");
+        toast.success("Activity deleted");
         fetchActivities();
       } catch (err) {
-        toast.error("Error en purga de cascada");
+        toast.error("Error deleting activity");
       }
     }
   };
 
-  const getActivityCount = () => {
-    return activities.length;
-  };
-
-  const getTodayActivities = () => {
-    return activities.filter((act) => isSameDay(new Date(act.eventDate), baseDate));
-  };
-
   return (
-    <div className="flex flex-col space-y-6 animate-in fade-in duration-500">
-      {/* HEADER EMPRESARIAL */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#001F3F] to-[#003d7a] rounded-[2.5rem] p-8 shadow-2xl border border-white/10">
-        <div className="absolute -top-20 -right-20 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
+    <div className="space-y-6">
+      {/* Date navigation bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+        <div>
+          <h1 className="text-[20px] font-semibold text-[#1C1C1E]">
+            Activities
+          </h1>
+          <p className="text-[12px] text-[#6E6E73] mt-0.5">
+            {activities.length} activity entries recorded
+          </p>
+        </div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-500/20 rounded-2xl border border-blue-400/30">
-                <Zap size={24} className="text-blue-300" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-black text-white uppercase tracking-tight italic">
-                  Activity Chronicle
-                </h1>
-                <p className="text-[11px] text-blue-300 font-bold uppercase tracking-[0.2em] mt-1">
-                  Entity-Specific Operations Log
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 flex-wrap pt-2">
-              <span className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-400/20 text-blue-300 px-4 py-2 rounded-xl text-[12px] font-bold uppercase">
-                <Clock size={14} />
-                {getActivityCount()} Events Recorded
-              </span>
-              <span className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 px-4 py-2 rounded-xl text-[12px] font-bold uppercase">
-                {getTodayActivities().length} Today
-              </span>
-            </div>
+        {/* Date Selector */}
+        <div className="flex items-center gap-1 bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
+          <button
+            onClick={() => setBaseDate(subDays(baseDate, 1))}
+            className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] hover:bg-white transition-colors"
+            title="Previous day"
+          >
+            <ChevronLeft size={16} strokeWidth={1.5} />
+          </button>
+
+          <div
+            onClick={handleCalendarClick}
+            className="relative px-3 py-1 text-center min-w-[140px] cursor-pointer hover:bg-white rounded-[6px] transition-colors"
+          >
+            <input
+              ref={dateInputRef}
+              type="date"
+              className="absolute inset-0 opacity-0 pointer-events-none -z-10"
+              value={format(baseDate, "yyyy-MM-dd")}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setBaseDate(new Date(e.target.value + "T00:00:00"));
+                }
+              }}
+            />
+            <span className="text-[13px] font-medium text-[#1C1C1E]">
+              {format(baseDate, "MMM dd, yyyy")}
+            </span>
           </div>
 
-          {/* DATE NAVIGATOR */}
-          <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md p-2 rounded-2xl border border-white/10 w-full lg:w-auto">
-            <button
-              onClick={() => setBaseDate(subDays(baseDate, 1))}
-              className="p-3 hover:bg-white/10 rounded-xl transition-all text-blue-300 hover:text-white"
-            >
-              <ChevronLeft size={20} strokeWidth={3} />
-            </button>
-
-            <div
-              onClick={handleCalendarClick}
-              className="relative px-4 text-center min-w-[180px] cursor-pointer hover:bg-white/5 transition-all group rounded-xl py-2"
-            >
-              <input
-                ref={dateInputRef}
-                type="date"
-                className="absolute inset-0 opacity-0 pointer-events-none -z-10"
-                value={format(baseDate, "yyyy-MM-dd")}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setBaseDate(new Date(e.target.value + "T00:00:00"));
-                  }
-                }}
-              />
-              <div className="pointer-events-none">
-                <p className="text-[11px] text-blue-300 uppercase tracking-widest font-bold">
-                  Selected Date
-                </p>
-                <h2 className="text-lg font-black text-white uppercase italic">
-                  {format(baseDate, "MMM dd, yyyy")}
-                </h2>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setBaseDate(addDays(baseDate, 1))}
-              className="p-3 hover:bg-white/10 rounded-xl transition-all text-blue-300 hover:text-white"
-            >
-              <ChevronRight size={20} strokeWidth={3} />
-            </button>
-          </div>
+          <button
+            onClick={() => setBaseDate(addDays(baseDate, 1))}
+            className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] hover:bg-white transition-colors"
+            title="Next day"
+          >
+            <ChevronRight size={16} strokeWidth={1.5} />
+          </button>
         </div>
       </div>
 
-      {/* ACTIVIDADES EN GRID DE 3 COLUMNAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-[calc(100vh-320px)] overflow-visible lg:overflow-hidden pb-4">
+      {/* 3-Column Days Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-4">
         {daysToShow.map((day, idx) => {
           const isFocus = idx === 1;
           const dayActivities = activities
@@ -175,27 +143,23 @@ const CompanyActivities = () => {
           return (
             <div
               key={day.toString()}
-              className={`flex flex-col bg-white rounded-[2rem] border-2 transition-all duration-500 overflow-hidden min-h-[400px] lg:min-h-0 ${
+              className={`flex flex-col bg-white rounded-[12px] border overflow-hidden min-h-[380px] ${
                 isFocus
-                  ? "border-blue-500 shadow-2xl shadow-blue-500/20 lg:scale-[1.01] z-10"
-                  : "border-gray-100 lg:opacity-80"
+                  ? "border-[#171717]/40 shadow-xs"
+                  : "border-[#E5E5EA]"
               }`}
             >
-              {/* HEADER DE COLUMNA */}
+              {/* Day column header */}
               <div
-                className={`p-6 flex justify-between items-center shrink-0 ${
-                  isFocus ? "bg-gradient-to-r from-[#001F3F] to-[#003d7a] text-white" : "bg-gray-50"
+                className={`px-4 py-3 flex justify-between items-center border-b border-[#E5E5EA] ${
+                  isFocus ? "bg-[#FAFAFA]" : "bg-[#FAFAFA]"
                 }`}
               >
                 <div>
-                  <p
-                    className={`text-[11px] font-black uppercase tracking-[0.3em] ${
-                      isFocus ? "text-blue-300" : "text-gray-400"
-                    }`}
-                  >
+                  <p className="text-[11px] font-medium lowercase text-[#6E6E73]">
                     {format(day, "EEEE")}
                   </p>
-                  <h2 className="text-lg font-black italic tracking-tighter uppercase leading-none mt-1">
+                  <h2 className="text-[14px] font-semibold text-[#1C1C1E]">
                     {format(day, "dd MMM")}
                   </h2>
                 </div>
@@ -204,58 +168,60 @@ const CompanyActivities = () => {
                     setTargetDate(format(day, "yyyy-MM-dd"));
                     setIsCreateOpen(true);
                   }}
-                  className={`p-2.5 rounded-xl transition-all shadow-md ${
-                    isFocus
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
+                  className="p-1.5 bg-white border border-[#E5E5EA] text-[#6E6E73] hover:text-[#1C1C1E] hover:border-[#171717] rounded-[8px] transition-colors cursor-pointer"
+                  title="New activity"
                 >
-                  <Plus size={18} strokeWidth={3} />
+                  <Plus size={14} strokeWidth={1.5} />
                 </button>
               </div>
 
-              {/* LISTA DE ACTIVIDADES */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scroll bg-[#FAFBFC]">
+              {/* Activities list */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2.5 bg-[#FAFAFA]">
                 {dayActivities.length > 0 ? (
                   dayActivities.map((act) => (
                     <div
                       key={act.idActivity}
-                      className="group relative p-4 bg-white rounded-[1.5rem] border-2 border-gray-100 shadow-sm hover:border-blue-400 hover:shadow-md transition-all duration-300 cursor-default hover:scale-[1.02] origin-center"
+                      className="group bg-white rounded-[10px] border border-[#E5E5EA] p-3 hover:border-[#171717]/30 transition-colors shadow-xs"
                     >
-                      <div className="flex justify-between items-start gap-3 mb-3">
-                        <span className="flex-shrink-0 px-3 py-1 rounded-lg text-[12px] font-black bg-[#001F3F] text-white">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[11px] font-medium text-[#1C1C1E] bg-[#FAFAFA] border border-[#E5E5EA] px-2 py-0.5 rounded-full">
                           {format(new Date(act.eventDate), "HH:mm")}
                         </span>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
+                            onClick={() => openDetail(act)}
+                            className="p-1 text-[#6E6E73] hover:text-[#1C1C1E] rounded transition-colors cursor-pointer"
+                            title="View activity"
+                          >
+                            <Eye size={13} strokeWidth={1.5} />
+                          </button>
+                          <button
                             onClick={() =>
                               handleDeleteActivity(act.idActivity, act.title)
                             }
-                            className="p-1.5 text-red-300 hover:text-red-600 transition-all"
+                            className="p-1 text-[#AEAEB2] hover:text-[#EF4444] rounded transition-colors"
+                            title="Delete activity"
                           >
-                            <Trash2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => openDetail(act)}
-                            className="p-1.5 text-blue-400 hover:text-blue-600 transition-all"
-                          >
-                            <Eye size={16} />
+                            <Trash2 size={13} strokeWidth={1.5} />
                           </button>
                         </div>
                       </div>
-                      <h3 className="text-[15px] font-black uppercase tracking-tight text-[#001F3F] mb-1.5 italic line-clamp-1">
+
+                      <h3 className="text-[13px] font-semibold text-[#1C1C1E] line-clamp-1">
                         {act.title}
                       </h3>
-                      <p className="text-[11px] font-medium text-gray-500 line-clamp-2 leading-relaxed italic">
-                        {act.description || "Sin descripción operativa."}
-                      </p>
+                      {act.description && (
+                        <p className="text-[12px] text-[#6E6E73] line-clamp-2 mt-0.5">
+                          {act.description}
+                        </p>
+                      )}
                     </div>
                   ))
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center opacity-10 py-8 text-center">
-                    <Clock size={32} strokeWidth={1} />
-                    <p className="text-[8px] font-black uppercase tracking-widest mt-2 italic">
-                      No Events
+                  <div className="h-full flex flex-col items-center justify-center py-12 text-center text-[#AEAEB2]">
+                    <Clock size={22} strokeWidth={1.5} />
+                    <p className="text-[12px] mt-1">
+                      No activities
                     </p>
                   </div>
                 )}
@@ -265,7 +231,7 @@ const CompanyActivities = () => {
         })}
       </div>
 
-      {/* MODALES */}
+      {/* Modals */}
       <CreateActivityModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
@@ -280,18 +246,9 @@ const CompanyActivities = () => {
         activityId={selectedActivity?.idActivity}
         onActivityUpdated={fetchActivities}
       />
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 10px; }
-      `,
-        }}
-      />
     </div>
   );
 };
 
 export default CompanyActivities;
+

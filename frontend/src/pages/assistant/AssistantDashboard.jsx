@@ -5,7 +5,6 @@ import {
   endOfWeek,
   addWeeks,
   subWeeks,
-  parseISO,
 } from "date-fns";
 import {
   ChevronLeft,
@@ -16,16 +15,12 @@ import {
   PlayCircle,
   Loader2,
   ArrowRight,
-  MousePointer2,
+  Flame,
 } from "lucide-react";
 import { getUsernameFromToken } from "../../utils/authUtils";
 import { taskService } from "../../services/taskService";
 import { userService } from "../../services/userService";
-import api from "../../services/api";
 import { toast } from "sonner";
-
-// Componentes
-// Reutilizamos el detalle de tarea del admin para consistencia con el nuevo service
 import TaskDetailView from "../admin/components/task/TaskDetailView";
 
 const AssistantDashboard = () => {
@@ -39,27 +34,27 @@ const AssistantDashboard = () => {
   const COLUMNS = [
     {
       id: "PENDING",
-      label: "Pending",
-      icon: <Clock size={16} />,
-      color: "border-gray-200 bg-gray-50 text-gray-400",
+      label: "pending",
+      icon: <Clock size={14} strokeWidth={1.5} />,
+      color: "text-[#EF4444]",
     },
     {
       id: "PROGRESS",
-      label: "In Progress",
-      icon: <PlayCircle size={16} />,
-      color: "border-blue-200 bg-blue-50 text-blue-600",
+      label: "in progress",
+      icon: <PlayCircle size={14} strokeWidth={1.5} />,
+      color: "text-[#F59E0B]",
     },
     {
       id: "BLOCK",
-      label: "Blocked",
-      icon: <AlertCircle size={16} />,
-      color: "border-red-200 bg-red-50 text-red-600",
+      label: "blocked",
+      icon: <AlertCircle size={14} strokeWidth={1.5} />,
+      color: "text-[#6B7280]",
     },
     {
       id: "COMPLETED",
-      label: "Completed",
-      icon: <CheckCircle2 size={16} />,
-      color: "border-green-200 bg-green-50 text-green-600",
+      label: "completed",
+      icon: <CheckCircle2 size={14} strokeWidth={1.5} />,
+      color: "text-[#10B981]",
     },
   ];
 
@@ -84,13 +79,12 @@ const AssistantDashboard = () => {
 
       const response = await taskService.getTasksList({
         idUserAssigned: userDataResponse.id,
-        // Enviamos formato ISO para que formatDateToBackend en el service pueda procesarlo
         start: format(weekRange.start, "yyyy-MM-dd"),
         end: format(weekRange.end, "yyyy-MM-dd"),
       });
-      setTasks(response || []); // Extraemos el contenido del objeto Page
+      setTasks(response || []);
     } catch (err) {
-      toast.error("Error syncing dashboard");
+      toast.error("Error loading tasks");
     } finally {
       setLoading(false);
     }
@@ -106,28 +100,24 @@ const AssistantDashboard = () => {
     }
   };
 
-  // --- LÓGICA DE DRAG & DROP ---
-
   const handleDragStart = (e, task) => {
     e.dataTransfer.setData("taskId", task.idTask);
     e.dataTransfer.effectAllowed = "move";
-    // Efecto visual de "levantado"
-    e.currentTarget.classList.add("opacity-40", "scale-95");
+    e.currentTarget.classList.add("opacity-40");
   };
 
   const handleDragEnd = (e) => {
-    e.currentTarget.classList.remove("opacity-40", "scale-95");
+    e.currentTarget.classList.remove("opacity-40");
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    // Añadir clase visual a la columna al pasar por encima
-    e.currentTarget.classList.add("bg-blue-50/50", "border-blue-200");
+    e.currentTarget.classList.add("bg-[#FAFAFA]", "border-[#171717]/30");
   };
 
   const handleDragLeave = (e) => {
-    e.currentTarget.classList.remove("bg-blue-50/50", "border-blue-200");
+    e.currentTarget.classList.remove("bg-[#FAFAFA]", "border-[#171717]/30");
   };
 
   const handleDrop = async (e, nextStatus) => {
@@ -140,17 +130,14 @@ const AssistantDashboard = () => {
     if (!task || task.status === nextStatus) return;
 
     try {
-      // Endpoint específico para actualización de estatus (PATCH)
       await taskService.updateStatus(taskId, nextStatus);
-
-      toast.success(`Task moved to ${nextStatus}`);
+      toast.success(`Task moved to ${nextStatus.toLowerCase()}`);
       fetchInitialData();
     } catch (err) {
-      toast.error("Deployment failed: Could not update status");
+      toast.error("Could not update task status");
     }
   };
 
-  // --- WORKFLOW RÁPIDO ---
   const handleNextStatus = async (e, task) => {
     e.stopPropagation();
     const statusOrder = ["PENDING", "PROGRESS", "COMPLETED"];
@@ -168,36 +155,37 @@ const AssistantDashboard = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-160px)] flex flex-col space-y-6 animate-in fade-in duration-500">
-      {/* HEADER Nav */}
-      <div className="flex items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 shrink-0">
-        <div className="flex items-center gap-4">
+    <div className="h-[calc(100vh-140px)] flex flex-col space-y-5">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA] shrink-0">
+        <div className="flex items-center gap-3">
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg animate-in zoom-in duration-700"
-            style={{ backgroundColor: userData?.colorCode || "#001F3F" }}
+            className="w-10 h-10 rounded-[8px] flex items-center justify-center text-white font-semibold text-[14px]"
+            style={{ backgroundColor: userData?.colorCode || "#171717" }}
           >
             {userData?.username?.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#001F3F] uppercase italic tracking-tighter leading-none">
-              Mission <span className="text-blue-600">Control</span>
+            <h1 className="text-[18px] font-semibold text-[#1C1C1E]">
+              My workspace
             </h1>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
-              Active Operator: {userData?.username}
+            <p className="text-[12px] text-[#6E6E73] mt-0.5">
+              Assigned to {userData?.username}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+        <div className="flex items-center gap-2 bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
           <button
             onClick={() => setBaseDate(subWeeks(baseDate, 1))}
-            className="p-2 hover:bg-white rounded-xl transition-all shadow-sm"
+            className="p-1.5 hover:bg-white text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] transition-colors cursor-pointer"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={16} strokeWidth={1.5} />
           </button>
+
           <div
             onClick={handleCalendarClick}
-            className="px-4 text-center min-w-[200px] cursor-pointer hover:bg-white rounded-xl transition-all group relative"
+            className="px-3 text-center min-w-[170px] cursor-pointer hover:bg-white py-1 rounded-[6px] transition-colors relative"
           >
             <input
               ref={dateInputRef}
@@ -210,109 +198,121 @@ const AssistantDashboard = () => {
                 }
               }}
             />
-            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest group-hover:text-blue-700 transition-colors">
-              Temporal Window
+            <p className="text-[10px] font-medium lowercase text-[#6E6E73]">
+              week range
             </p>
-            <p className="text-xs font-black text-[#001F3F] uppercase italic tracking-tight">
-              {format(weekRange.start, "MMM dd")} —{" "}
-              {format(weekRange.end, "MMM dd, yyyy")}
+            <p className="text-[12.5px] font-medium text-[#1C1C1E]">
+              {format(weekRange.start, "MMM dd")} — {format(weekRange.end, "MMM dd, yyyy")}
             </p>
           </div>
+
           <button
             onClick={() => setBaseDate(addWeeks(baseDate, 1))}
-            className="p-2 hover:bg-white rounded-xl transition-all shadow-sm"
+            className="p-1.5 hover:bg-white text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] transition-colors cursor-pointer"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={16} strokeWidth={1.5} />
           </button>
         </div>
       </div>
 
-      {/* KANBAN BOARD */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 overflow-hidden pb-4">
-        {COLUMNS.map((col) => (
-          <div
-            key={col.id}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, col.id)}
-            className="flex flex-col bg-gray-100/30 rounded-[2.5rem] border-2 border-transparent transition-all duration-300 overflow-hidden shadow-inner relative"
-          >
-            {/* Column Header */}
+      {/* Kanban Columns */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-hidden pb-2">
+        {COLUMNS.map((col) => {
+          const colTasks = tasks.filter((t) => t.status === col.id);
+
+          return (
             <div
-              className={`p-5 border-b-2 flex items-center justify-between sticky top-0 bg-inherit z-10 ${col.color}`}
+              key={col.id}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, col.id)}
+              className="flex flex-col bg-[#FAFAFA] rounded-[12px] border border-[#E5E5EA] transition-colors overflow-hidden"
             >
-              <div className="flex items-center gap-2">
-                {col.icon}
-                <span className="text-xs font-black uppercase tracking-widest">
-                  {col.label}
+              {/* Column Header */}
+              <div className="p-3.5 bg-white border-b border-[#E5E5EA] flex items-center justify-between sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                  <span className={col.color}>{col.icon}</span>
+                  <span className="text-[13px] font-semibold text-[#1C1C1E] lowercase">
+                    {col.label}
+                  </span>
+                </div>
+                <span className="text-[11px] font-medium text-[#AEAEB2] px-1.5 py-0.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-full">
+                  {colTasks.length}
                 </span>
               </div>
-              <span className="text-[10px] font-black px-2 py-0.5 bg-white/50 rounded-full italic tracking-tighter">
-                {tasks.filter((t) => t.status === col.id).length} UNITS
-              </span>
-            </div>
 
-            {/* Task List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scroll">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center h-40 opacity-20">
-                  <Loader2 className="animate-spin mb-2" size={32} />
-                  <p className="text-[10px] font-black uppercase tracking-widest italic">
-                    Syncing Cloud...
-                  </p>
-                </div>
-              ) : (
-                tasks
-                  .filter((t) => t.status === col.id)
-                  .map((task) => (
-                    <div
-                      key={task.idTask}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={handleDragEnd}
-                      onClick={() => setSelectedTask(task)}
-                      className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-50 hover:border-blue-400 hover:shadow-xl transition-all group cursor-grab active:cursor-grabbing animate-in slide-in-from-bottom-4 duration-300"
-                    >
-                      <div className="flex justify-between items-start ">
-                        {task.status !== "COMPLETED" && (
-                          <button
-                            onClick={(e) => handleNextStatus(e, task)}
-                            className="p-1.5 bg-blue-50 text-blue-600 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 hover:text-white"
-                          >
-                            <ArrowRight size={14} />
-                          </button>
-                        )}
-                      </div>
-                      <h4 className="text-sm font-black text-[#001F3F] uppercase leading-tight mb-2 italic tracking-tighter">
-                        {task.title}
-                      </h4>
-                      <p className="text-[11px] text-gray-500 font-medium line-clamp-2 leading-relaxed">
-                        {task.description}
-                      </p>
+              {/* Task List */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-[#AEAEB2]">
+                    <Loader2 className="animate-spin mb-1 text-[#171717]" size={20} strokeWidth={1.5} />
+                    <p className="text-[11px]">Loading tasks...</p>
+                  </div>
+                ) : colTasks.length > 0 ? (
+                  colTasks.map((task) => {
+                    const isHighPriority = task.priority === "HIGH";
 
-                      <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-20 h-5 rounded flex items-center justify-center text-[8px] text-white font-bold"
-                            style={{ backgroundColor: userData?.colorCode}}
-                          >
-                            {userData?.username?.toUpperCase()}
-                          </div>
-                          <span className="text-[9px] font-black text-gray-400 uppercase italic">
-                            {userData?.username_?.toUpperCase()}
-                          </span>
+                    return (
+                      <div
+                        key={task.idTask}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, task)}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => setSelectedTask(task)}
+                        className="bg-white p-3.5 rounded-[10px] border border-[#E5E5EA] hover:border-[#171717]/30 transition-colors cursor-grab active:cursor-grabbing space-y-2 shadow-none"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-[13px] font-medium text-[#1C1C1E] leading-snug">
+                            {task.title}
+                          </h4>
+
+                          {task.status !== "COMPLETED" && (
+                            <button
+                              onClick={(e) => handleNextStatus(e, task)}
+                              className="p-1 text-[#AEAEB2] hover:text-[#1C1C1E] rounded hover:bg-[#FAFAFA] transition-colors shrink-0 cursor-pointer"
+                              title="Move to next stage"
+                            >
+                              <ArrowRight size={13} strokeWidth={1.5} />
+                            </button>
+                          )}
                         </div>
-                        <MousePointer2
-                          size={12}
-                          className="text-gray-100 group-hover:text-blue-100 transition-all"
-                        />
+
+                        {task.description && (
+                          <p className="text-[12px] text-[#6E6E73] line-clamp-2">
+                            {task.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E5EA] text-[11px]">
+                          {isHighPriority ? (
+                            <span className="flex items-center gap-1 text-[#EF4444] font-medium lowercase">
+                              <Flame size={13} strokeWidth={1.5} className="text-[#EF4444]" />
+                              <span>high priority</span>
+                            </span>
+                          ) : (
+                            <span className="text-[#AEAEB2] lowercase">
+                              {task.priority?.toLowerCase() || "standard"}
+                            </span>
+                          )}
+
+                          {task.companyName && (
+                            <span className="text-[#6E6E73] truncate max-w-[110px]">
+                              {task.companyName}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
-              )}
+                    );
+                  })
+                ) : (
+                  <div className="h-24 flex items-center justify-center text-center text-[#AEAEB2]">
+                    <p className="text-[11.5px]">No tasks</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <TaskDetailView
@@ -326,3 +326,4 @@ const AssistantDashboard = () => {
 };
 
 export default AssistantDashboard;
+

@@ -466,420 +466,371 @@ const ProjectObjectExplorer = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in duration-500">
-      {/* BARRA SUPERIOR */}
-      <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-white sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleBack}
-            disabled={pathStack.length <= 1}
-            className="p-2.5 rounded-xl hover:bg-gray-50 disabled:opacity-20 transition-all text-[#001F3F]"
-          >
-            <ArrowLeft size={20} />
-          </button>
+    <div className="space-y-6">
+      {/* Top Toolbar & Navigation */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+        <div className="flex items-center gap-2 overflow-x-auto max-w-full">
+            <button
+              onClick={() => goToPath(0)}
+              className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors"
+              title="Root directory"
+            >
+              <Home size={15} strokeWidth={1.5} />
+            </button>
 
-          <div className="h-6 w-[1px] bg-gray-100 mx-2"></div>
-
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 text-[13px] font-medium text-[#1C1C1E]">
             {pathStack.map((item, idx) => (
-              <div key={idx} className="flex items-center">
+              <div key={item.idObject || idx} className="flex items-center">
                 <button
                   onClick={() => goToPath(idx)}
-                  className={`text-[11px] font-black uppercase tracking-widest px-2 py-1 rounded-lg transition-all ${
+                  className={`hover:text-[#1C1C1E] transition-colors cursor-pointer ${
                     idx === pathStack.length - 1
-                      ? "text-blue-600 bg-blue-50"
-                      : "text-gray-400 hover:text-[#001F3F]"
+                      ? "text-[#1C1C1E] font-semibold"
+                      : "text-[#6E6E73]"
                   }`}
                 >
                   {item.title}
                 </button>
                 {idx < pathStack.length - 1 && (
-                  <ChevronRight size={14} className="text-gray-200 mx-1" />
+                  <ChevronRight size={14} strokeWidth={1.5} className="text-[#AEAEB2] mx-1" />
                 )}
               </div>
             ))}
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-all"
-              size={16}
-            />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-gray-50 border-none rounded-2xl py-3 pl-11 pr-4 text-xs font-bold text-[#001F3F] outline-none w-64 focus:ring-2 ring-blue-500/10 transition-all"
-            />
-          </div>
-
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCreateObject(true)}
-            className="bg-[#001F3F] text-white p-3 rounded-2xl hover:bg-blue-900 transition-all shadow-lg flex items-center gap-2"
+            className="flex items-center gap-1.5 bg-white hover:bg-[#FAFAFA] text-[#1C1C1E] border border-[#E5E5EA] px-3.5 py-2 rounded-[10px] text-[12px] font-medium transition-colors cursor-pointer"
           >
-            <Plus size={18} strokeWidth={3} />
-            <span className="text-[10px] font-black uppercase tracking-widest pr-1">
-              New Object
-            </span>
+            <Plus size={14} strokeWidth={1.5} />
+            <span>New object</span>
           </button>
 
           {currentObjectId && (
             <button
               onClick={() => setShowUpload(true)}
-              className="bg-blue-600 text-white p-3 rounded-2xl hover:bg-blue-700 transition-all shadow-lg flex items-center gap-2"
+              className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
             >
-              <Upload size={18} strokeWidth={3} />
-              <span className="text-[10px] font-black uppercase tracking-widest pr-1">
-                Upload File
-              </span>
+              <Upload size={14} strokeWidth={1.5} />
+              <span>Upload file</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* ÁREA DE CONTENIDO - GRID DE OBJETOS */}
-      <div className="flex-1 overflow-y-auto p-10 custom-scroll bg-[#FDFDFD]">
+      {/* Search Bar */}
+      <div className="relative">
+        <Search
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
+          size={15}
+          strokeWidth={1.5}
+        />
+        <input
+          type="text"
+          placeholder="Search objects..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full bg-white border border-[#E5E5EA] rounded-[10px] py-2.5 pl-9 pr-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] transition-all"
+        />
+      </div>
+
+      {/* Content Area */}
+      <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-6 min-h-[400px]">
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 mb-6">
-            <AlertCircle size={20} className="text-red-600" />
-            <p className="text-sm font-bold text-red-600">{error}</p>
+          <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-[8px] p-3 flex items-center gap-2 mb-4">
+            <AlertCircle size={16} strokeWidth={1.5} className="text-[#EF4444]" />
+            <p className="text-[13px] text-[#EF4444] font-medium">{error}</p>
           </div>
         )}
 
         {loading ? (
-          <div className="h-full flex flex-col items-center justify-center gap-4">
-            <Loader2 className="text-blue-600 animate-spin" size={48} />
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-gray-400">
-              Loading...
-            </p>
+          <div className="h-64 flex flex-col items-center justify-center gap-2">
+            <Loader2 className="text-[#171717] animate-spin" size={24} strokeWidth={1.5} />
+            <p className="text-[12px] text-[#AEAEB2]">Loading explorer...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* COLUMNA IZQUIERDA: OBJETOS */}
+            {/* Left column: Sub-objects & Files */}
             <div className="space-y-6">
-              {/* INFO OBJETO ACTUAL */}
-              {pathStack.length > 0 && (
-                <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl border border-blue-100/20 shadow-sm animate-in slide-in-from-top-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Folder className="text-blue-600" size={24} />
-                    <h2 className="text-xl font-black text-[#001F3F] uppercase italic tracking-tighter">
-                      {pathStack[pathStack.length - 1]?.title}
-                    </h2>
-                  </div>
-                  <p className="text-[11px] text-gray-500 font-bold leading-relaxed italic ml-9 uppercase tracking-wider">
-                    {pathStack[pathStack.length - 1]?.description ||
-                      "No operational description provided."}
+              {/* Current Object Description */}
+              {pathStack.length > 0 && pathStack[pathStack.length - 1]?.description && (
+                <div className="p-4 bg-[#FAFAFA] rounded-[10px] border border-[#E5E5EA]">
+                  <p className="text-[12.5px] text-[#6E6E73]">
+                    {pathStack[pathStack.length - 1]?.description}
                   </p>
                 </div>
               )}
 
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-black uppercase text-[#001F3F] tracking-widest flex items-center gap-2">
-                  <LayoutGrid size={16} className="text-gray-400" /> Sub-Objects
-                  ({filteredObjects.length})
+              <div className="space-y-3">
+                <h3 className="text-[13px] font-semibold text-[#1C1C1E]">
+                  Sub-objects ({filteredObjects.length})
                 </h3>
+
+                {filteredObjects.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {filteredObjects.map((obj) => (
+                      <div
+                        key={obj.idObject}
+                        className="group flex flex-col items-center gap-2 p-3 rounded-[10px] border border-[#E5E5EA] hover:border-[#171717]/30 hover:bg-[#FAFAFA] transition-colors cursor-pointer"
+                        onClick={() => handleObjectClick(obj)}
+                      >
+                        <div className="w-12 h-12 flex items-center justify-center rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E]">
+                          <Folder size={24} strokeWidth={1.5} />
+                        </div>
+
+                        <div className="text-center w-full px-1">
+                          <p className="text-[12px] font-medium text-[#1C1C1E] truncate">
+                            {obj.title}
+                          </p>
+                          {obj.description && (
+                            <p className="text-[10px] text-[#AEAEB2] truncate">
+                              {obj.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-[#AEAEB2]">
+                    <Folder size={28} strokeWidth={1.5} className="mx-auto mb-1 opacity-60" />
+                    <p className="text-[12px]">
+                      {searchTerm ? "No results found" : "No sub-objects"}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {filteredObjects.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {filteredObjects.map((obj) => (
-                    <div
-                      key={obj.idObject}
-                      className="group flex flex-col items-center gap-3 p-4 rounded-2xl hover:bg-white hover:shadow-lg hover:shadow-blue-900/5 transition-all duration-300 border border-transparent hover:border-gray-50 cursor-pointer"
-                      onClick={() => handleObjectClick(obj)}
-                    >
-                      <div className="relative w-20 h-20 flex items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition-transform duration-500 group-hover:scale-110">
-                        <Folder
-                          size={40}
-                          fill="currentColor"
-                          fillOpacity={0.15}
-                        />
-                      </div>
-
-                      <div className="text-center w-full px-2">
-                        <p className="text-[10px] font-black text-[#001F3F] uppercase italic truncate tracking-tight mb-1">
-                          {obj.title}
-                        </p>
-                        {obj.description && (
-                          <p className="text-[8px] text-gray-400 truncate">
-                            {obj.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center opacity-20">
-                  <Folder size={48} strokeWidth={1} />
-                  <p className="text-xs font-black uppercase tracking-[0.3em] mt-4">
-                    {searchTerm ? "No results found" : "No objects found"}
-                  </p>
-                </div>
-              )}
-
-              {/* EXPLORADOR DE ARCHIVOS */}
+              {/* Linked Files */}
               {currentObjectId && (
-                <div className="mt-8 pt-8 border-t border-gray-100 space-y-6">
-                  <h3 className="text-sm font-black uppercase text-[#001F3F] tracking-widest flex items-center gap-2">
-                    <FileText size={16} className="text-blue-600" /> Linked
-                    Resources ({nodes.length})
+                <div className="pt-4 border-t border-[#E5E5EA] space-y-3">
+                  <h3 className="text-[13px] font-semibold text-[#1C1C1E]">
+                    Linked files ({nodes.length})
                   </h3>
+
                   {nodes.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
                       {nodes.map((node) => (
                         <div
                           key={node.idNode}
-                          className="group relative flex flex-col items-center gap-3 p-4 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-gray-50"
+                          className="flex items-center justify-between p-2.5 rounded-[8px] border border-[#E5E5EA] hover:bg-[#FAFAFA] transition-colors"
                         >
-                          <div 
-                            className="relative w-16 h-16 flex items-center justify-center rounded-2xl bg-gray-50 text-gray-400 transition-transform group-hover:scale-105 cursor-pointer"
+                          <div
+                            className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
                             onClick={() => setSelectedFile(node)}
                           >
-                            <FileText size={32} strokeWidth={1.5} />
-                            <span className="absolute -bottom-1 -right-1 bg-white text-[7px] font-black px-1 py-0.5 rounded shadow-sm border border-gray-100 uppercase">
-                              {getFileExt(node.name)}
+                            <FileText size={15} strokeWidth={1.5} className="text-[#AEAEB2] shrink-0" />
+                            <span className="text-[12.5px] font-medium text-[#1C1C1E] truncate">
+                              {node.name}
                             </span>
                           </div>
-                          <p className="text-[9px] font-black text-[#001F3F] uppercase italic truncate w-full text-center">
-                            {node.name}
-                          </p>
-                          
-                          <button
-                            onClick={(e) => handleDeleteFileClick(node, e)}
-                            disabled={deletingItem === node.idNode}
-                            className="absolute top-2 right-2 p-1.5 bg-white rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 text-gray-400 hover:text-red-500 disabled:opacity-50"
-                            title="Delete file"
-                          >
-                            {deletingItem === node.idNode ? (
-                              <Loader2 size={12} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={12} />
-                            )}
-                          </button>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setSelectedFile(node)}
+                              className="p-1 text-[#6E6E73] hover:text-[#1C1C1E] rounded cursor-pointer"
+                              title="View file"
+                            >
+                              <Eye size={13} strokeWidth={1.5} />
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteFileClick(node, e)}
+                              disabled={deletingItem === node.idNode}
+                              className="p-1 text-[#AEAEB2] hover:text-[#EF4444] rounded cursor-pointer"
+                              title="Delete file"
+                            >
+                              {deletingItem === node.idNode ? (
+                                <Loader2 size={13} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={13} strokeWidth={1.5} />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="py-10 text-center opacity-10">
-                      <FileText size={32} className="mx-auto" />
-                      <p className="text-[8px] font-black uppercase mt-2">
-                        No attached files
-                      </p>
-                    </div>
+                    <p className="text-[12px] text-[#AEAEB2] py-4 text-center">
+                      No attached files
+                    </p>
                   )}
                 </div>
               )}
             </div>
 
-            {/* COLUMNA DERECHA: RECORDATORIOS ACTUALIZADOS */}
+            {/* Right column: Reminders */}
             {currentObjectId && (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-black uppercase text-[#001F3F] flex items-center gap-2">
-                      <Bell size={18} className="text-blue-600" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA]">
+                  <div className="flex items-center gap-2">
+                    <Bell size={15} strokeWidth={1.5} className="text-[#6E6E73]" />
+                    <h3 className="text-[13px] font-semibold text-[#1C1C1E]">
                       Reminders ({reminders.length})
                     </h3>
-                    <button
-                      onClick={() => setShowCreateReminder(true)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                    >
-                      <Plus size={14} />
-                      Add
-                    </button>
                   </div>
+                  <button
+                    onClick={() => setShowCreateReminder(true)}
+                    className="flex items-center gap-1 text-[12px] font-medium text-[#171717] hover:underline cursor-pointer"
+                  >
+                    <Plus size={13} strokeWidth={1.5} />
+                    <span>Add reminder</span>
+                  </button>
+                </div>
 
-                  {reminders.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
-                      {reminders.map((reminder) => {
-                        const priority = getPriority(reminder.reminderDate);
-                        const date = parseISO(reminder.reminderDate);
-                        const isCompleted = reminder.isCompleted;
-                        
-                        return (
-                          <div
-                            key={reminder.idReminder}
-                            className={`group relative p-4 rounded-xl border-2 transition-all ${
-                              isCompleted
-                                ? "bg-gray-50 border-gray-200 opacity-60"
-                                : `bg-white border-gray-200 hover:border-blue-300 hover:shadow-md`
-                            }`}
-                          >
-                            {!isCompleted && (
-                              <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-full ${priority.color.split(" ")[0]}`} />
-                            )}
+                {reminders.length > 0 ? (
+                  <div className="space-y-2.5 max-h-[420px] overflow-y-auto">
+                    {reminders.map((reminder) => {
+                      const date = parseISO(reminder.reminderDate);
+                      const isCompleted = reminder.isCompleted;
 
-                            <div className={`flex items-start gap-3 ${!isCompleted ? "pl-3" : ""}`}>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <div
-                                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                      isCompleted ? "bg-gray-400" : "bg-blue-500"
-                                    }`}
-                                  />
-                                  <p className={`text-[13px] font-black uppercase tracking-wider text-[#001F3F] ${
-                                    isCompleted ? "line-through opacity-50" : ""
-                                  }`}>
-                                    {reminder.title}
-                                  </p>
-                                </div>
+                      return (
+                        <div
+                          key={reminder.idReminder}
+                          className={`p-3 rounded-[10px] border transition-colors ${
+                            isCompleted
+                              ? "bg-[#FAFAFA] border-[#E5E5EA] opacity-60"
+                              : "bg-white border-[#E5E5EA] hover:border-[#171717]/30"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <p
+                                className={`text-[13px] font-medium text-[#1C1C1E] ${
+                                  isCompleted ? "line-through text-[#AEAEB2]" : ""
+                                }`}
+                              >
+                                {reminder.title}
+                              </p>
 
-                                {reminder.description && (
-                                  <p className={`text-[11px] text-gray-500 font-medium mt-1 ${
-                                    isCompleted ? "line-through opacity-50" : ""
-                                  }`}>
-                                    {reminder.description}
-                                  </p>
-                                )}
+                              {reminder.description && (
+                                <p className="text-[12px] text-[#6E6E73] line-clamp-2">
+                                  {reminder.description}
+                                </p>
+                              )}
 
-                                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                                  {/* Badge de prioridad */}
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-wider border ${priority.color}`}>
-                                    <span className={`w-1 h-1 rounded-full ${
-                                      priority.label === "Overdue" ? "bg-red-500" :
-                                      priority.label === "Today" ? "bg-blue-500" :
-                                      priority.label === "Soon" ? "bg-orange-500" : "bg-green-500"
-                                    }`} />
-                                    {priority.label}
+                              <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-[#6E6E73]">
+                                <span className="flex items-center gap-1">
+                                  <Clock size={11} strokeWidth={1.5} />
+                                  <span>{format(date, "MMM dd, HH:mm")}</span>
+                                </span>
+
+                                {reminder.repeatType !== "NONE" && (
+                                  <span className="flex items-center gap-0.5 text-[#1C1C1E] bg-[#FAFAFA] border border-[#E5E5EA] px-1.5 py-0.5 rounded-full lowercase text-[10px]">
+                                    <Repeat size={10} strokeWidth={1.5} />
+                                    {getRepeatLabel(reminder.repeatType).toLowerCase()}
                                   </span>
-
-                                  {/* Badge de hora */}
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-[7px] font-black text-gray-600 uppercase tracking-wider">
-                                    <Clock size={10} />
-                                    {format(date, "HH:mm")}
-                                  </span>
-
-                                  {/* Badge de repetición */}
-                                  {reminder.repeatType !== "NONE" && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 border border-purple-200 rounded-full text-[7px] font-black text-purple-700 uppercase tracking-wider">
-                                      <Repeat size={10} />
-                                      {getRepeatLabel(reminder.repeatType)}
-                                    </span>
-                                  )}
-
-                                  {reminder.objectTitle && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-[7px] font-black text-blue-600 uppercase tracking-wider">
-                                      <Tag size={10} />
-                                      {reminder.objectTitle}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Acciones */}
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {!isCompleted && (
-                                  <button
-                                    onClick={() => handleMarkReminderCompleted(reminder.idReminder)}
-                                    disabled={completingId === reminder.idReminder}
-                                    className="p-2 text-gray-400 hover:text-green-600 transition-all rounded-lg hover:bg-green-50 disabled:opacity-50"
-                                    title="Mark as completed"
-                                  >
-                                    {completingId === reminder.idReminder ? (
-                                      <Loader2 size={16} className="animate-spin" />
-                                    ) : (
-                                      <CheckCircle2 size={16} />
-                                    )}
-                                  </button>
                                 )}
-                                <button
-                                  onClick={() => handleDeleteReminderClick(reminder)}
-                                  disabled={deletingReminderId === reminder.idReminder}
-                                  className="p-2 text-gray-400 hover:text-red-600 transition-all rounded-lg hover:bg-red-50 disabled:opacity-50"
-                                  title="Delete"
-                                >
-                                  {deletingReminderId === reminder.idReminder ? (
-                                    <Loader2 size={16} className="animate-spin" />
-                                  ) : (
-                                    <Trash2 size={16} />
-                                  )}
-                                </button>
                               </div>
                             </div>
 
-                            {isCompleted && (
-                              <div className="absolute top-2 right-2">
-                                <span className="text-[8px] font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                                  ✓ Done
-                                </span>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {!isCompleted && (
+                                <button
+                                  onClick={() => handleMarkReminderCompleted(reminder.idReminder)}
+                                  disabled={completingId === reminder.idReminder}
+                                  className="p-1 text-[#AEAEB2] hover:text-[#10B981] rounded cursor-pointer"
+                                  title="Mark as completed"
+                                >
+                                  {completingId === reminder.idReminder ? (
+                                    <Loader2 size={13} className="animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 size={14} strokeWidth={1.5} />
+                                  )}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteReminderClick(reminder)}
+                                disabled={deletingReminderId === reminder.idReminder}
+                                className="p-1 text-[#AEAEB2] hover:text-[#EF4444] rounded cursor-pointer"
+                                title="Delete"
+                              >
+                                {deletingReminderId === reminder.idReminder ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Trash2 size={13} strokeWidth={1.5} />
+                                )}
+                              </button>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-400">
-                      <Bell size={32} className="mx-auto mb-2 opacity-50" />
-                      <p className="text-[9px] font-bold uppercase">
-                        No reminders
-                      </p>
-                    </div>
-                  )}
-                </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-[#AEAEB2] py-8 text-center">
+                    No reminders
+                  </p>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* MODAL - CREAR OBJETO */}
+      {/* Modal: New Object */}
       {showCreateObject && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full mx-4 animate-in zoom-in-95 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black uppercase text-[#001F3F] tracking-tight">
-                New Object
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-[14px] p-6 max-w-sm w-full border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
+              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+                New object
               </h3>
               <button
                 onClick={() => setShowCreateObject(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+                className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
               >
-                <X size={20} />
+                <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateObject} className="space-y-4">
-              <input
-                type="text"
-                placeholder="Object title"
-                value={objectForm.title}
-                onChange={(e) =>
-                  setObjectForm({ ...objectForm, title: e.target.value })
-                }
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
-                required
-              />
-              <textarea
-                placeholder="Description (optional)"
-                value={objectForm.description}
-                onChange={(e) =>
-                  setObjectForm({ ...objectForm, description: e.target.value })
-                }
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F] resize-none h-24"
-              />
+            <form onSubmit={handleCreateObject} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  title *
+                </label>
+                <input
+                  type="text"
+                  placeholder="object title..."
+                  value={objectForm.title}
+                  onChange={(e) =>
+                    setObjectForm({ ...objectForm, title: e.target.value })
+                  }
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
+                  required
+                />
+              </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
+                </label>
+                <textarea
+                  placeholder="optional description..."
+                  value={objectForm.description}
+                  onChange={(e) =>
+                    setObjectForm({ ...objectForm, description: e.target.value })
+                  }
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-20"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
                 <button
                   type="button"
                   onClick={() => setShowCreateObject(false)}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-black uppercase hover:bg-gray-200 transition-all"
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingObject}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-black uppercase hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="px-4 py-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  {creatingObject ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : null}
-                  Create
+                  {creatingObject && <Loader2 size={13} className="animate-spin" />}
+                  <span>Save object</span>
                 </button>
               </div>
             </form>
@@ -887,64 +838,65 @@ const ProjectObjectExplorer = () => {
         </div>
       )}
 
-      {/* MODAL - SUBIR ARCHIVO */}
+      {/* Modal: Upload Resource */}
       {showUpload && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full mx-4 animate-in zoom-in-95 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black uppercase text-[#001F3F] tracking-tight">
-                Upload Resource
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-[14px] p-6 max-w-sm w-full border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
+              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+                Upload file
               </h3>
               <button
                 onClick={() => setShowUpload(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+                className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
               >
-                <X size={20} />
+                <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleUploadFile} className="space-y-4">
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-blue-400 transition-all">
+            <form onSubmit={handleUploadFile} className="space-y-3.5">
+              <div className="border border-dashed border-[#E5E5EA] rounded-[10px] p-6 text-center hover:border-[#171717] transition-colors">
                 <input
                   type="file"
                   onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                   className="hidden"
-                  id="file-input"
+                  id="file-input-object"
                 />
-                <label htmlFor="file-input" className="cursor-pointer block">
-                  <Upload size={32} className="mx-auto mb-2 text-gray-400" />
-                  <p className="text-xs font-bold text-gray-500 uppercase">
-                    {uploadFile
-                      ? uploadFile.name
-                      : "Seleccionar archivo técnico"}
+                <label htmlFor="file-input-object" className="cursor-pointer block">
+                  <Upload size={24} strokeWidth={1.5} className="mx-auto mb-1 text-[#AEAEB2]" />
+                  <p className="text-[12px] font-medium text-[#1C1C1E]">
+                    {uploadFile ? uploadFile.name : "Select a file"}
                   </p>
                 </label>
               </div>
 
-              <textarea
-                placeholder="Descripción del recurso (opcional)"
-                value={fileDesc}
-                onChange={(e) => setFileDesc(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F] resize-none h-20"
-              />
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
+                </label>
+                <textarea
+                  placeholder="optional description..."
+                  value={fileDesc}
+                  onChange={(e) => setFileDesc(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-18"
+                />
+              </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
                 <button
                   type="button"
                   onClick={() => setShowUpload(false)}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-black uppercase hover:bg-gray-200 transition-all"
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploading || !uploadFile}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-black uppercase hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="px-4 py-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  {uploading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : null}
-                  Upload
+                  {uploading && <Loader2 size={13} className="animate-spin" />}
+                  <span>Upload</span>
                 </button>
               </div>
             </form>
@@ -952,45 +904,45 @@ const ProjectObjectExplorer = () => {
         </div>
       )}
 
-      {/* 🔥 MODAL - CREAR RECORDATORIO ACTUALIZADO CON REPETICIÓN */}
+      {/* Modal: New Reminder */}
       {showCreateReminder && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full mx-4 animate-in zoom-in-95 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black uppercase text-[#001F3F] tracking-tight">
-                New Reminder
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-[14px] p-6 max-w-md w-full border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
+              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+                New reminder
               </h3>
               <button
                 onClick={() => setShowCreateReminder(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+                className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
               >
-                <X size={20} />
+                <X size={16} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateReminder} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
-                  Title *
+            <form onSubmit={handleCreateReminder} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  title *
                 </label>
                 <input
                   type="text"
-                  placeholder="Reminder title"
+                  placeholder="reminder title..."
                   value={reminderForm.title}
                   onChange={(e) =>
                     setReminderForm({ ...reminderForm, title: e.target.value })
                   }
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
-                  Description
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
                 </label>
                 <textarea
-                  placeholder="Description (optional)"
+                  placeholder="optional description..."
                   value={reminderForm.description}
                   onChange={(e) =>
                     setReminderForm({
@@ -998,15 +950,15 @@ const ProjectObjectExplorer = () => {
                       description: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F] resize-none h-20"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-18"
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
-                  Date & Time *
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  date & time *
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <input
                     type="date"
                     value={reminderForm.reminderDate}
@@ -1017,7 +969,7 @@ const ProjectObjectExplorer = () => {
                       })
                     }
                     min={format(new Date(), "yyyy-MM-dd")}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
                     required
                   />
                   <input
@@ -1029,15 +981,15 @@ const ProjectObjectExplorer = () => {
                         reminderTime: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
-                  Repeat
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  repeat
                 </label>
                 <select
                   value={reminderForm.repeatType}
@@ -1047,20 +999,20 @@ const ProjectObjectExplorer = () => {
                       repeatType: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] cursor-pointer"
                 >
-                  <option value="NONE">One time</option>
-                  <option value="DAILY">Daily</option>
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="YEARLY">Yearly</option>
+                  <option value="NONE">one time</option>
+                  <option value="DAILY">daily</option>
+                  <option value="WEEKLY">weekly</option>
+                  <option value="MONTHLY">monthly</option>
+                  <option value="YEARLY">yearly</option>
                 </select>
               </div>
 
               {reminderForm.repeatType !== "NONE" && (
-                <div>
-                  <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-1.5">
-                    Repeat Until *
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    repeat until *
                   </label>
                   <input
                     type="date"
@@ -1072,29 +1024,27 @@ const ProjectObjectExplorer = () => {
                       })
                     }
                     min={reminderForm.reminderDate || format(new Date(), "yyyy-MM-dd")}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 ring-blue-500 outline-none font-bold text-[#001F3F]"
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
                     required
                   />
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
                 <button
                   type="button"
                   onClick={() => setShowCreateReminder(false)}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-black uppercase hover:bg-gray-200 transition-all"
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingReminder}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-black uppercase hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="px-4 py-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  {creatingReminder ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : null}
-                  Create
+                  {creatingReminder && <Loader2 size={13} className="animate-spin" />}
+                  <span>Save reminder</span>
                 </button>
               </div>
             </form>
@@ -1102,12 +1052,12 @@ const ProjectObjectExplorer = () => {
         </div>
       )}
 
-      {/* VISUALIZADOR DE ARCHIVOS */}
+      {/* File Viewer */}
       {selectedFile && (
         <FileViewer file={selectedFile} onClose={() => setSelectedFile(null)} />
       )}
 
-      {/* ConfirmDialog Reutilizable */}
+      {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         onClose={handleCloseConfirmDialog}
@@ -1119,17 +1069,6 @@ const ProjectObjectExplorer = () => {
         itemDescription={confirmDialog.itemDescription}
         isLoading={deletingItem === confirmDialog.itemId || deletingReminderId === confirmDialog.itemId}
         type={confirmDialog.type}
-      />
-
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #001F3F; }
-      `,
-        }}
       />
     </div>
   );

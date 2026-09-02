@@ -1,17 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  AlertTriangle,
-  CheckCircle,
-  Eye,
   ChevronLeft,
   ChevronRight,
   Flame,
-  Clock,
-  Building2,
-  User,
-  ShieldAlert,
+  CheckCircle,
+  Eye,
 } from "lucide-react";
-import { format, parseISO, differenceInDays, isPast, isToday } from "date-fns";
+import { differenceInDays } from "date-fns";
 import { taskService } from "../services/taskService";
 import TaskDetailView from "../pages/admin/components/task/TaskDetailView";
 
@@ -34,7 +29,6 @@ const CriticalAlertBanner = () => {
 
   const fetchCriticalTasks = useCallback(async () => {
     try {
-      // Obtenemos las tareas activas sin paginación
       const allTasks = await taskService.getTasksList();
       if (!Array.isArray(allTasks)) return;
 
@@ -43,12 +37,10 @@ const CriticalAlertBanner = () => {
       today.setHours(0, 0, 0, 0);
 
       const critical = allTasks.filter((task) => {
-        // Solo tareas de ALTA PRIORIDAD no completadas y no reconocidas
         if (task.status === "COMPLETED") return false;
         if (!task.priority || task.priority.toUpperCase() !== "HIGH") return false;
         if (acknowledgedIds.includes(task.idTask)) return false;
 
-        // Verificar si está vencida o vence pronto (dentro de 3 días)
         const dateVal = task.endDate || task.startDate;
         if (!dateVal) return false;
 
@@ -64,7 +56,6 @@ const CriticalAlertBanner = () => {
         taskDueDate.setHours(0, 0, 0, 0);
 
         const diff = differenceInDays(taskDueDate, today);
-        // Mostrar si está vencida (diff < 0) o si vence en 3 días o menos (diff <= 3)
         return diff <= 3;
       });
 
@@ -79,7 +70,7 @@ const CriticalAlertBanner = () => {
 
   useEffect(() => {
     fetchCriticalTasks();
-    const interval = setInterval(fetchCriticalTasks, 60000); // Re-chequear cada minuto
+    const interval = setInterval(fetchCriticalTasks, 60000);
     return () => clearInterval(interval);
   }, [fetchCriticalTasks]);
 
@@ -118,76 +109,49 @@ const CriticalAlertBanner = () => {
 
   return (
     <>
-      <div className="w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white shadow-xl shadow-red-900/20 px-6 py-3.5 border-b-2 border-red-500 flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-top duration-500 shrink-0 z-30">
-        {/* LADO IZQUIERDO: ÍCONO Y MENSAJE DE URGENCIA */}
-        <div className="flex items-center gap-3.5 flex-1 min-w-0 w-full md:w-auto">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 animate-pulse border border-white/30">
-            <Flame size={22} className="text-yellow-300 fill-yellow-300" />
+      <div className="w-full bg-[#EF4444]/10 border-b border-[#EF4444]/20 px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 z-30">
+        <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
+          {/* Flame icon + #EF4444 text only, per specification */}
+          <div className="flex items-center gap-1.5 text-[#EF4444] shrink-0 font-medium text-[12px] lowercase">
+            <Flame size={16} strokeWidth={1.5} className="text-[#EF4444]" />
+            <span>high priority</span>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="bg-white text-red-700 text-[9px] font-black uppercase px-2 py-0.5 rounded-md tracking-wider shrink-0 shadow-xs">
-                CRITICAL DIRECTIVE
-              </span>
+          <span className="h-3.5 w-[1px] bg-[#EF4444]/30 hidden sm:block"></span>
 
-              {isOverdue ? (
-                <span className="bg-black/40 text-red-200 text-[9px] font-black uppercase px-2 py-0.5 rounded-md border border-red-400/40 shrink-0">
-                  OVERDUE ({Math.abs(daysDiff)} {Math.abs(daysDiff) === 1 ? "day" : "days"} late)
-                </span>
-              ) : isDueToday ? (
-                <span className="bg-yellow-400 text-gray-900 text-[9px] font-black uppercase px-2 py-0.5 rounded-md shrink-0">
-                  DUE TODAY
-                </span>
-              ) : (
-                <span className="bg-white/20 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md shrink-0">
-                  DUE IN {daysDiff} {daysDiff === 1 ? "DAY" : "DAYS"}
-                </span>
-              )}
-
-              {criticalTasks.length > 1 && (
-                <span className="text-white/70 text-[9px] font-bold">
-                  ({currentIndex + 1} of {criticalTasks.length} critical)
-                </span>
-              )}
-            </div>
-
-            <p className="text-sm font-black tracking-tight truncate text-white mt-0.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[11px] font-medium text-[#EF4444] lowercase shrink-0">
+              {isOverdue
+                ? `overdue (${Math.abs(daysDiff)} ${Math.abs(daysDiff) === 1 ? "day" : "days"} late)`
+                : isDueToday
+                ? "due today"
+                : `due in ${daysDiff} ${daysDiff === 1 ? "day" : "days"}`}
+            </span>
+            <p className="text-[13px] font-medium text-[#1C1C1E] truncate">
               {currentTask.title}
-              {currentTask.nameCompany ? (
-                <span className="text-white/80 font-medium text-xs ml-2">
-                  — {currentTask.nameCompany}
-                </span>
-              ) : currentTask.externalReferenceName ? (
-                <span className="text-white/80 font-medium text-xs ml-2">
-                  — Client: {currentTask.externalReferenceName}
-                </span>
-              ) : null}
             </p>
           </div>
         </div>
 
-        {/* LADO DERECHO: NAVEGADOR ENTRE TAREAS, BOTÓN VER Y BOTÓN ACKNOWLEDGE */}
-        <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto justify-end">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
           {criticalTasks.length > 1 && (
-            <div className="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-white/10 mr-1">
+            <div className="flex items-center gap-1 mr-1 text-[#6E6E73] text-[11px]">
+              <span>{currentIndex + 1} of {criticalTasks.length}</span>
               <button
                 onClick={() =>
                   setCurrentIndex((prev) => (prev > 0 ? prev - 1 : criticalTasks.length - 1))
                 }
-                className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors"
-                title="Previous critical task"
+                className="p-1 hover:bg-[#EF4444]/10 rounded text-[#1C1C1E]"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={14} strokeWidth={1.5} />
               </button>
               <button
                 onClick={() =>
                   setCurrentIndex((prev) => (prev < criticalTasks.length - 1 ? prev + 1 : 0))
                 }
-                className="p-1 hover:bg-white/20 rounded-lg text-white transition-colors"
-                title="Next critical task"
+                className="p-1 hover:bg-[#EF4444]/10 rounded text-[#1C1C1E]"
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={14} strokeWidth={1.5} />
               </button>
             </div>
           )}
@@ -197,22 +161,22 @@ const CriticalAlertBanner = () => {
               setSelectedTaskId(currentTask.idTask);
               setIsDetailOpen(true);
             }}
-            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-white/20 backdrop-blur-sm active:scale-95"
+            className="flex items-center gap-1.5 bg-white text-[#1C1C1E] hover:bg-[#FAFAFA] border border-[#E5E5EA] px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors"
           >
-            <Eye size={13} /> View
+            <Eye size={13} strokeWidth={1.5} />
+            <span>View</span>
           </button>
 
           <button
             onClick={() => handleAcknowledge(currentTask.idTask)}
-            className="flex items-center gap-1.5 bg-white text-red-700 hover:bg-red-50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-black/10 active:scale-95 border border-white/80 cursor-pointer"
-            title="Acknowledge and dismiss critical alert banner"
+            className="flex items-center gap-1.5 bg-[#EF4444] hover:bg-[#EF4444]/90 text-white px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-sm"
           >
-            <CheckCircle size={14} className="text-red-600" /> Acknowledge
+            <CheckCircle size={13} strokeWidth={1.5} />
+            <span>Dismiss</span>
           </button>
         </div>
       </div>
 
-      {/* MODAL DE DETALLES SI SE HACE CLIC EN VIEW */}
       {selectedTaskId && (
         <TaskDetailView
           isOpen={isDetailOpen}
@@ -230,3 +194,4 @@ const CriticalAlertBanner = () => {
 };
 
 export default CriticalAlertBanner;
+

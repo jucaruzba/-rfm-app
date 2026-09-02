@@ -4,7 +4,6 @@ import {
   Building2,
   Upload,
   Globe,
-  CheckCircle2,
   Loader2,
   Edit3,
   X,
@@ -22,77 +21,32 @@ import { companyService } from "../../services/companyService";
 import { fileService } from "../../services/fileService";
 import { toast } from "sonner";
 
-// Constantes para los tipos de empresa con colores mejorados
 const COMPANY_TYPES = [
-  { 
-    value: "MY_BUSINESS", 
-    label: "My Business", 
-    icon: Briefcase, 
-    color: "blue",
-    bgClass: "bg-blue-50 text-blue-700 border-blue-200",
-    iconClass: "text-blue-600"
-  },
-  { 
-    value: "CLIENT", 
-    label: "Client", 
-    icon: Users, 
-    color: "green",
-    bgClass: "bg-green-50 text-green-700 border-green-200",
-    iconClass: "text-green-600"
-  },
-  { 
-    value: "PARTNERSHIP", 
-    label: "Partnership", 
-    icon: Handshake, 
-    color: "purple",
-    bgClass: "bg-purple-50 text-purple-700 border-purple-200",
-    iconClass: "text-purple-600"
-  },
-  { 
-    value: "PERSONAL", 
-    label: "Personal", 
-    icon: User, 
-    color: "orange",
-    bgClass: "bg-orange-50 text-orange-700 border-orange-200",
-    iconClass: "text-orange-600"
-  },
+  { value: "MY_BUSINESS", label: "my business", icon: Briefcase },
+  { value: "CLIENT", label: "client", icon: Users },
+  { value: "PARTNERSHIP", label: "partnership", icon: Handshake },
+  { value: "PERSONAL", label: "personal", icon: User },
 ];
 
-// Constantes para los estados de empresa con colores mejorados
 const COMPANY_STATUSES = [
-  { 
-    value: "ACTIVE", 
-    label: "Active", 
-    icon: Circle, 
-    color: "green",
-    bgClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    iconClass: "text-emerald-600"
-  },
-  { 
-    value: "IN_PROGRESS", 
-    label: "In Progress", 
-    icon: Loader2, 
-    color: "blue",
-    bgClass: "bg-sky-50 text-sky-700 border-sky-200",
-    iconClass: "text-sky-600"
-  },
-  { 
-    value: "ON_HOLD", 
-    label: "On Hold", 
-    icon: Clock, 
-    color: "yellow",
-    bgClass: "bg-amber-50 text-amber-700 border-amber-200",
-    iconClass: "text-amber-600"
-  },
-  { 
-    value: "ARCHIVED", 
-    label: "Archived", 
-    icon: Archive, 
-    color: "gray",
-    bgClass: "bg-gray-100 text-gray-600 border-gray-200",
-    iconClass: "text-gray-500"
-  },
+  { value: "ACTIVE", label: "active" },
+  { value: "IN_PROGRESS", label: "in progress" },
+  { value: "ON_HOLD", label: "on hold" },
+  { value: "ARCHIVED", label: "archived" },
 ];
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case "ACTIVE":
+      return "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20";
+    case "IN_PROGRESS":
+      return "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20";
+    case "ON_HOLD":
+    case "ARCHIVED":
+    default:
+      return "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20";
+  }
+};
 
 const CompanyDashboard = () => {
   const { companyId } = useParams();
@@ -118,7 +72,7 @@ const CompanyDashboard = () => {
         status: data.status || "ACTIVE",
       });
     } catch (err) {
-      toast.error("Error al cargar la información de la entidad");
+      toast.error("Error loading company details");
     } finally {
       setLoading(false);
     }
@@ -131,9 +85,9 @@ const CompanyDashboard = () => {
     try {
       const updatedCompany = await companyService.uploadLogo(companyId, file);
       setCompany(updatedCompany);
-      toast.success("Logo corporativo actualizado");
+      toast.success("Logo updated successfully");
     } catch (err) {
-      toast.error("Error en la carga del activo");
+      toast.error("Error uploading logo");
     }
   };
 
@@ -147,26 +101,13 @@ const CompanyDashboard = () => {
       );
       setCompany(updatedCompany);
       setIsEditing(false);
-      toast.success("Tipo y estado actualizados correctamente");
+      toast.success("Company details updated");
     } catch (err) {
-      toast.error("Error al actualizar los datos");
+      toast.error("Error updating company");
     } finally {
       setUpdating(false);
     }
   };
-
-  const getTypeConfig = (typeValue) => {
-    return COMPANY_TYPES.find((t) => t.value === typeValue) || COMPANY_TYPES[0];
-  };
-
-  const getStatusConfig = (statusValue) => {
-    return COMPANY_STATUSES.find((s) => s.value === statusValue) || COMPANY_STATUSES[0];
-  };
-
-  const getTypeLabel = (typeValue) => getTypeConfig(typeValue).label;
-  const getStatusLabel = (statusValue) => getStatusConfig(statusValue).label;
-  const getTypeStyles = (typeValue) => getTypeConfig(typeValue).bgClass;
-  const getStatusStyles = (statusValue) => getStatusConfig(statusValue).bgClass;
 
   const getLogoUrl = (path) => {
     return fileService.getFileUrl(path);
@@ -174,155 +115,212 @@ const CompanyDashboard = () => {
 
   if (loading)
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="animate-spin text-[#001F3F]" size={40} />
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="animate-spin text-[#171717]" size={24} strokeWidth={1.5} />
       </div>
     );
 
   return (
-    <div className="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12 px-4">
-      {/* CARD MAESTRA REFINADA */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#001F3F] to-[#002B54] rounded-[2.5rem] p-8 md:p-12 shadow-[0_30px_70px_rgba(0,31,63,0.22)] border border-white/10 flex flex-col gap-8">
-        {/* Marca de agua de fondo */}
-        <div className="absolute top-0 right-0 p-8 opacity-[0.02] text-white pointer-events-none hidden md:block">
-          <Building2 size={280} />
+    <div className="space-y-6">
+      {/* Profile Overview Card */}
+      <div className="bg-white rounded-[12px] p-6 border border-[#E5E5EA] shadow-none flex flex-col md:flex-row items-start gap-6">
+        {/* Logo Container */}
+        <div className="relative group shrink-0">
+          <div className="w-28 h-28 bg-[#FAFAFA] rounded-[10px] p-2 flex items-center justify-center overflow-hidden border border-[#E5E5EA]">
+            {company?.logoPath ? (
+              <img
+                src={getLogoUrl(company.logoPath)}
+                alt={company.name}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <Building2 size={36} strokeWidth={1.5} className="text-[#AEAEB2]" />
+            )}
+          </div>
+
+          <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+            <input
+              type="file"
+              className="hidden"
+              onChange={handleLogoUpload}
+              accept="image/*"
+            />
+            <div className="text-center text-white p-2">
+              <Upload size={16} strokeWidth={1.5} className="mx-auto mb-1 text-white" />
+              <span className="text-[10px] font-medium block">
+                Change logo
+              </span>
+            </div>
+          </label>
         </div>
 
-        {/* CONTENIDO PRINCIPAL */}
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-10">
-          {/* CONTENEDOR DEL LOGO */}
-          <div className="relative group shrink-0">
-            <div className="w-44 h-44 bg-white rounded-3xl p-5 shadow-2xl flex items-center justify-center overflow-hidden border border-white/20 transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-blue-500/20">
-              {company?.logoPath ? (
-                <img
-                  src={getLogoUrl(company.logoPath)}
-                  alt={company.name}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <Building2 size={72} className="text-gray-400" />
-              )}
-            </div>
-
-            {/* Capa flotante para subir logo */}
-            <label className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer backdrop-blur-sm">
-              <input
-                type="file"
-                className="hidden"
-                onChange={handleLogoUpload}
-                accept="image/*"
-              />
-              <div className="text-center text-white p-4">
-                <Upload size={24} className="mx-auto mb-2 text-blue-400" />
-                <span className="text-[10px] font-black uppercase tracking-widest block">
-                  Upload Logo
-                </span>
-              </div>
-            </label>
-          </div>
-
-          {/* TEXTOS Y DETALLES */}
-          <div className="flex-1 text-center md:text-left space-y-4 pt-1">
-            <div className="space-y-2">
-              <span className="inline-block bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[10px] font-black uppercase tracking-[0.25em] px-3 py-1 rounded-md backdrop-blur-sm">
-                Corporate Entity
-              </span>
-              <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tight leading-tight">
+        {/* Company Info */}
+        <div className="flex-1 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-[20px] font-semibold text-[#1C1C1E]">
                 {company?.name}
               </h1>
-            </div>
-
-            {/* Badges de Tipo y Estado mejorados */}
-            <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start">
-              {/* Tipo de Empresa - con estilo mejorado */}
-              <div className={`px-4 py-2 rounded-xl flex items-center gap-2 border ${getTypeStyles(company?.type)} shadow-sm`}>
-                {(() => {
-                  const TypeIcon = getTypeConfig(company?.type).icon;
-                  return <TypeIcon size={14} className={getTypeConfig(company?.type).iconClass} />;
-                })()}
-                <span className="text-[11px] font-black uppercase tracking-wider">
-                  {getTypeLabel(company?.type)}
-                </span>
-              </div>
-
-              {/* Estado - con estilo mejorado */}
-              <div className={`px-4 py-2 rounded-xl flex items-center gap-2 border ${getStatusStyles(company?.status)} shadow-sm`}>
-                {(() => {
-                  const StatusIcon = getStatusConfig(company?.status).icon;
-                  return <StatusIcon size={14} className={getStatusConfig(company?.status).iconClass} />;
-                })()}
-                <span className="text-[11px] font-black uppercase tracking-wider">
-                  {getStatusLabel(company?.status)}
-                </span>
-              </div>
-
-              {/* Botón Editar */}
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-xl flex items-center gap-2 text-white transition-all duration-300 hover:scale-105"
-              >
-                <Edit3 size={14} />
-                <span className="text-[11px] font-black uppercase tracking-wider">
-                  Edit Type & Status
-                </span>
-              </button>
-
-              {/* Badge NAS */}
-              <div className="bg-white/5 backdrop-blur-sm border border-white/10 px-4 py-2 rounded-xl flex items-center gap-2 text-gray-300">
-                <Globe size={14} className="text-blue-400" />
-                <span className="text-[11px] font-medium tracking-wide">
-                  NAS:{" "}
-                  <span className="font-mono text-blue-300 font-bold">
-                    {company?.nasRootFolder?.split("/").pop() || "N/A"}
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            {/* DESCRIPCIÓN */}
-            <div className="pt-4 max-w-3xl">
-              <p className="text-sm md:text-base text-gray-300 font-medium leading-relaxed whitespace-pre-line">
-                {company?.description ||
-                  "No official core description has been declared for this operational unit."}
+              <p className="text-[12px] text-[#AEAEB2] mt-0.5">
+                ID: #{company?.idCompany}
               </p>
             </div>
+
+            <button
+              onClick={() => setIsEditing(true)}
+              className="bg-white hover:bg-[#FAFAFA] border border-[#E5E5EA] px-3 py-1.5 rounded-[8px] flex items-center gap-1.5 text-[#6E6E73] hover:text-[#1C1C1E] transition-colors text-[12px] font-medium"
+            >
+              <Edit3 size={13} strokeWidth={1.5} />
+              <span>Edit details</span>
+            </button>
           </div>
+
+          {/* Badges */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {company?.status && (
+              <span
+                className={`inline-flex items-center text-[11px] font-medium lowercase px-2.5 py-0.5 rounded-full border ${getStatusColor(company?.status)}`}
+              >
+                {COMPANY_STATUSES.find((s) => s.value === company?.status)
+                  ?.label || company?.status?.toLowerCase()}
+              </span>
+            )}
+
+            {company?.type && (
+              <span className="px-2.5 py-0.5 bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] rounded-full text-[11px] font-medium lowercase">
+                {COMPANY_TYPES.find((t) => t.value === company?.type)?.label ||
+                  company?.type?.toLowerCase()}
+              </span>
+            )}
+
+            {company?.nasRootFolder && (
+              <div className="bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full flex items-center gap-1 text-[#6E6E73] text-[11px]">
+                <Globe size={11} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                <span>
+                  nas: {company.nasRootFolder.split("/").pop() || "n/a"}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5">
+            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
+              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
+                total tasks
+              </div>
+              <div className="text-[20px] font-semibold text-[#1C1C1E] mt-1">
+                {stats.totalTasks}
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
+              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
+                in progress
+              </div>
+              <div className="text-[20px] font-semibold text-[#F59E0B] mt-1">
+                {stats.inProgressTasks}
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
+              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
+                pending
+              </div>
+              <div className="text-[20px] font-semibold text-[#EF4444] mt-1">
+                {stats.pendingTasks}
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
+              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
+                completed
+              </div>
+              <div className="text-[20px] font-semibold text-[#10B981] mt-1">
+                {stats.completedTasks}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Workspace navigation cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button
+            onClick={() => navigate(`/companies/${idCompany}/tasks`)}
+            className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
+          >
+            <div className="w-9 h-9 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3">
+              <CheckSquare size={17} strokeWidth={1.5} />
+            </div>
+            <h3 className="text-[14px] font-semibold text-[#1C1C1E] mb-1">
+              Company tasks
+            </h3>
+            <p className="text-[12px] text-[#6E6E73]">
+              Manage and track assigned tasks and workflows.
+            </p>
+          </button>
+
+          <button
+            onClick={() => navigate(`/companies/${idCompany}/activities`)}
+            className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
+          >
+            <div className="w-9 h-9 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3">
+              <Activity size={17} strokeWidth={1.5} />
+            </div>
+            <h3 className="text-[14px] font-semibold text-[#1C1C1E] mb-1">
+              Activities & notes
+            </h3>
+            <p className="text-[12px] text-[#6E6E73]">
+              View ongoing events, timelines, and meeting notes.
+            </p>
+          </button>
+
+          <button
+            onClick={() => navigate(`/companies/${idCompany}/explorer`)}
+            className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
+          >
+            <div className="w-9 h-9 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3">
+              <FolderTree size={17} strokeWidth={1.5} />
+            </div>
+            <h3 className="text-[14px] font-semibold text-[#1C1C1E] mb-1">
+              Object explorer
+            </h3>
+            <p className="text-[12px] text-[#6E6E73]">
+              Access folder structure, files, and project links.
+            </p>
+          </button>
         </div>
       </div>
 
-      {/* MODAL DE EDICIÓN - mantiene los colores consistentes */}
+      {/* Edit Modal */}
       {isEditing && (
-        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 relative animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 relative">
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-5 right-5 text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
             >
-              <X size={20} />
+              <X size={16} strokeWidth={1.5} />
             </button>
 
-            <div className="mb-6">
-              <h2 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase italic">
-                Edit <span className="text-gray-300 font-light">Entity</span>
+            <div className="mb-4 pb-3 border-b border-[#E5E5EA]">
+              <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
+                Edit company settings
               </h2>
-              <p className="text-xs text-gray-400 italic mt-1">
-                Update company type and operational status
-              </p>
             </div>
 
-            <div className="space-y-5">
-              {/* Tipo de Empresa */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
-                  Company Type *
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  company type *
                 </label>
                 <select
                   value={editForm.type}
                   onChange={(e) =>
                     setEditForm({ ...editForm, type: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 outline-none focus:border-blue-600 focus:bg-white transition-all font-bold text-sm text-[#001F3F] cursor-pointer"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
                 >
                   {COMPANY_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -332,17 +330,16 @@ const CompanyDashboard = () => {
                 </select>
               </div>
 
-              {/* Estado */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-[#001F3F]">
-                  Status *
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  status *
                 </label>
                 <select
                   value={editForm.status}
                   onChange={(e) =>
                     setEditForm({ ...editForm, status: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-5 outline-none focus:border-blue-600 focus:bg-white transition-all font-bold text-sm text-[#001F3F] cursor-pointer"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
                 >
                   {COMPANY_STATUSES.map((status) => (
                     <option key={status.value} value={status.value}>
@@ -352,61 +349,28 @@ const CompanyDashboard = () => {
                 </select>
               </div>
 
-              {/* Preview de cambios con colores consistentes */}
-              <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-2xl border border-gray-100">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2">
-                  Preview Changes
-                </p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className={`px-3 py-1.5 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase border ${getTypeStyles(editForm.type)}`}>
-                    {(() => {
-                      const Icon = getTypeConfig(editForm.type).icon;
-                      return <Icon size={12} className={getTypeConfig(editForm.type).iconClass} />;
-                    })()}
-                    {getTypeLabel(editForm.type)}
-                  </div>
-                  <span className="text-gray-300 text-xs">→</span>
-                  <div className={`px-3 py-1.5 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase border ${getStatusStyles(editForm.status)}`}>
-                    {(() => {
-                      const Icon = getStatusConfig(editForm.status).icon;
-                      return <Icon size={12} className={getStatusConfig(editForm.status).iconClass} />;
-                    })()}
-                    {getStatusLabel(editForm.status)}
-                  </div>
-                </div>
-              </div>
-
-              {editForm.status === "ARCHIVED" && (
-                <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-2">
-                  <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-amber-700 font-medium">
-                    Archiving this company will mark it as inactive. You can change this status later.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] text-gray-400 hover:text-gray-600 transition-colors"
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpdateTypeAndStatus}
                   disabled={updating}
-                  className="bg-[#001F3F] text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/10 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                  className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {updating ? (
                     <>
-                      <Loader2 size={14} className="animate-spin" />
-                      Saving...
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Saving...</span>
                     </>
                   ) : (
                     <>
-                      <Save size={14} />
-                      Save Changes
+                      <Save size={13} strokeWidth={1.5} />
+                      <span>Save changes</span>
                     </>
                   )}
                 </button>
@@ -419,4 +383,4 @@ const CompanyDashboard = () => {
   );
 };
 
-export default CompanyDashboard;
+export default CompanyDashboard;

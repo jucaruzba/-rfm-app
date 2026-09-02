@@ -9,10 +9,8 @@ import {
   Palette,
   Loader2,
   X,
-  Save,
   Edit3,
   KeyRound,
-  Trash2,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -30,24 +28,23 @@ const UserPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
-  const [showPassword, setShowPassword] = useState(false); // State to toggle visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
     password: "",
     email: "",
-    colorCode: "#001F3F",
+    colorCode: "#171717",
     role: "ASSISTANT",
   });
 
-  // Load full operator list (Requires ADMIN role in Backend)
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const data = await userService.findAll();
       setUsers(data || []);
     } catch (err) {
-      toast.error("Error syncing security user stack");
+      toast.error("Error loading users");
     } finally {
       setLoading(false);
     }
@@ -57,54 +54,51 @@ const UserPage = () => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Handle open modal for clean creation
   const handleOpenCreate = () => {
     setIsEditing(false);
     setSelectedUserId(null);
-    setShowPassword(false); // Reset to hidden
+    setShowPassword(false);
     setFormData({
       username: "",
       password: "",
       email: "",
-      colorCode: "#001F3F",
+      colorCode: "#171717",
       role: "ASSISTANT",
     });
     setIsModalOpen(true);
   };
 
-  // Handle open modal for editing (Preloads data)
   const handleOpenEdit = (user) => {
     setIsEditing(true);
     const userId = user.id || user.idUser;
     setSelectedUserId(userId);
-    setShowPassword(false); // Reset to hidden
+    setShowPassword(false);
     setFormData({
       username: user.username,
-      password: "", // Empty string to skip password update if blank
+      password: "",
       email: user.email,
-      colorCode: user.colorCode || "#001F3F",
+      colorCode: user.colorCode || "#171717",
       role: user.role,
     });
     setIsModalOpen(true);
   };
 
-  // Submit payload (Create or Update) to Spring Boot
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.username.trim() || !formData.email.trim()) {
-      return toast.error("Username and Email are mandatory fields");
+      return toast.error("Username and email are required");
     }
 
     if (!isEditing && !formData.password) {
-      return toast.error("Password string is required for new operators");
+      return toast.error("Password is required for new users");
     }
 
     setSubmitting(true);
     try {
       const payload = {
         username: formData.username.trim(),
-        password: formData.password || null, // Si está editando y va vacía, el service backend decide
+        password: formData.password || null,
         email: formData.email.trim(),
         colorCode: formData.colorCode,
         role: formData.role,
@@ -112,98 +106,73 @@ const UserPage = () => {
 
       if (isEditing && selectedUserId !== null) {
         await userService.update(selectedUserId, payload);
-        toast.success("Operator profile updated correctly");
+        toast.success("User updated");
       } else {
         await userService.create(payload);
-        toast.success("New operational account deployed successfully");
+        toast.success("User created");
       }
 
       setIsModalOpen(false);
       fetchUsers();
     } catch (err) {
-      toast.error("Operation aborted. Check credential uniqueness.");
+      console.error(err);
+      toast.error(
+        err.response?.data?.message || "An error occurred saving the user",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Handle logical/physical deletion
-  const handleDeleteUser = async (id, name) => {
-    const confirmed = window.confirm(
-      `⚠️ SECURITY WARNING: \n\nAre you sure you want to revoke and delete operator account "${name.toUpperCase()}"?\n\nThis will terminate current session tokens and cascade restricted nodes access.`,
-    );
-    if (confirmed) {
-      try {
-        await userService.delete(id);
-        toast.success("Operator purged from registry");
-        fetchUsers();
-      } catch (err) {
-        toast.error("Failed to revoke operator access");
-      }
-    }
-  };
-
-  // Trigger temporary password reset
-  const handleTriggerReset = async (email) => {
-    try {
-      await userService.forgotPassword({ email });
-      toast.success("Temporary password sent to targets email");
-    } catch (err) {
-      toast.error("Failed to route recovery transmission");
-    }
-  };
-
-  // In-memory data filtering for search responsiveness
   const filteredUsers = users.filter((u) => {
+    const matchesRole =
+      roleFilter === "ALL" ||
+      u.role?.toUpperCase() === roleFilter.toUpperCase();
+    const query = searchQuery.toLowerCase();
     const matchesSearch =
-      u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
-    return matchesSearch && matchesRole;
+      !searchQuery ||
+      u.username?.toLowerCase().includes(query) ||
+      u.email?.toLowerCase().includes(query);
+    return matchesRole && matchesSearch;
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* --- HEADER BLOCK --- */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-gray-100 rounded-[2rem] px-8 py-6 shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#001F3F] text-white rounded-xl flex items-center justify-center">
-            <Users size={20} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-[#001F3F] tracking-tighter uppercase italic leading-none">
-              Users{"   "}
-              <span className="text-gray-300 font-light">Registry</span>
-            </h1>
-            <p className="text-[10px] text-gray-400 font-bold tracking-wide mt-1 uppercase">
-              System Access Control & Authentication Identity
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+        <div>
+          <h1 className="text-[20px] font-semibold text-[#1C1C1E]">
+            Users
+          </h1>
+          <p className="text-[12px] text-[#6E6E73] mt-0.5">
+            {users.length} active system accounts
+          </p>
         </div>
 
         <button
           onClick={handleOpenCreate}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#001F3F] text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-900/10"
+          className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
         >
-          <Plus size={14} strokeWidth={3} /> Add Operator
+          <Plus size={15} strokeWidth={1.5} />
+          <span>New user</span>
         </button>
       </div>
 
-      {/* --- FILTER CONTROL PANEL --- */}
-      <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl overflow-x-auto">
+      {/* Filter and Search Bar */}
+      <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex items-center gap-1 bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA] overflow-x-auto">
           {[
-            { id: "ALL", label: "All Staff" },
-            { id: "ADMIN", label: "Admins" },
-            { id: "ASSISTANT", label: "Assistants" },
+            { id: "ALL", label: "all users" },
+            { id: "ADMIN", label: "admins" },
+            { id: "ASSISTANT", label: "assistants" },
           ].map((tab) => (
             <button
               key={`tab-role-${tab.id}`}
               onClick={() => setRoleFilter(tab.id)}
-              className={`px-4 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5 text-[12px] font-medium lowercase rounded-[8px] whitespace-nowrap transition-colors ${
                 roleFilter === tab.id
-                  ? "bg-[#001F3F] text-white"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
               }`}
             >
               {tab.label}
@@ -211,205 +180,193 @@ const UserPage = () => {
           ))}
         </div>
 
-        <div className="relative flex-1 md:max-w-md">
+        <div className="relative flex-1 md:max-w-xs">
           <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
-            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
+            size={14}
+            strokeWidth={1.5}
           />
           <input
             type="text"
-            placeholder="Search operators by username or email..."
+            placeholder="search users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 border border-transparent rounded-xl py-2.5 pl-11 pr-4 outline-none focus:border-[#001F3F] focus:bg-white font-bold text-xs text-[#001F3F] transition-all"
+            className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-8 pr-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
           />
         </div>
       </div>
 
-      {/* --- CARDS RESPONSIVE GRID --- */}
+      {/* Users Cards Grid */}
       {loading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="animate-spin text-[#001F3F]" size={36} />
+        <div className="flex h-48 items-center justify-center">
+          <Loader2 className="animate-spin text-[#171717]" size={24} strokeWidth={1.5} />
         </div>
       ) : filteredUsers.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredUsers.map((userItem) => (
             <div
               key={`user-card-${userItem.id || userItem.idUser}`}
-              className="group bg-white border border-gray-100 rounded-3xl p-6 flex flex-col justify-between gap-6 hover:border-blue-500/20 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+              className="bg-white border border-[#E5E5EA] rounded-[12px] p-5 flex flex-col justify-between gap-4 hover:border-[#171717]/30 transition-colors shadow-xs"
             >
-              {/* Lateral indicator of assigned corporate ColorCode */}
-              <div
-                className="absolute left-0 top-0 bottom-0 w-[4px]"
-                style={{ backgroundColor: userItem.colorCode || "#001F3F" }}
-              />
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-[8px] flex items-center justify-center text-white font-semibold text-[14px]"
+                      style={{ backgroundColor: userItem.colorCode || "#171717" }}
+                    >
+                      {userItem.username?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h2 className="text-[14.5px] font-semibold text-[#1C1C1E]">
+                        {userItem.username}
+                      </h2>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium lowercase text-[#6E6E73]">
+                        <Shield size={11} strokeWidth={1.5} /> {userItem.role?.toLowerCase()}
+                      </span>
+                    </div>
+                  </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  {/* Circular avatar with initial */}
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-lg border-2 border-white shadow-md shadow-gray-200"
-                    style={{ backgroundColor: userItem.colorCode || "#001F3F" }}
-                  >
-                    {userItem.username.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="text-base font-black text-[#001F3F] uppercase tracking-tight truncate">
-                      {userItem.username}
-                    </h2>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[8px] font-black tracking-widest bg-gray-50 border border-gray-100 text-gray-400 uppercase mt-1">
-                      <Shield size={10} /> {userItem.role}
-                    </span>
-                  </div>
+                  <span
+                    className="w-3 h-3 rounded-full border border-white shadow-xs"
+                    style={{ backgroundColor: userItem.colorCode || "#171717" }}
+                    title={`Tone: ${userItem.colorCode}`}
+                  />
                 </div>
 
-                <div className="space-y-2 pt-2 border-t border-gray-50 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                  <p className="flex items-center gap-2 truncate text-gray-400 font-medium lowercase">
-                    <Mail size={13} className="text-gray-300 shrink-0" />{" "}
-                    {userItem.email}
-                  </p>
-                  <p className="flex items-center gap-2 text-gray-400">
-                    <Palette size={13} className="text-gray-300 shrink-0" />{" "}
-                    Node Tone:{" "}
-                    <span className="font-mono font-black text-gray-600">
-                      {userItem.colorCode || "#001F3F"}
-                    </span>
+                <div className="space-y-1 pt-2 border-t border-[#E5E5EA] text-[12px] text-[#6E6E73]">
+                  <p className="flex items-center gap-2 truncate">
+                    <Mail size={13} strokeWidth={1.5} className="text-[#AEAEB2] shrink-0" />
+                    <span>{userItem.email}</span>
                   </p>
                 </div>
               </div>
 
-              {/* Acciones del Operador */}
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-50 shrink-0">
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-1 pt-3 border-t border-[#E5E5EA]">
                 <button
                   onClick={() => handleTriggerReset(userItem.email)}
-                  className="p-2 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-all"
-                  title="Force Temporary Password Pipeline"
+                  className="p-1.5 text-[#6E6E73] hover:text-[#F59E0B] hover:bg-[#F59E0B]/10 rounded-[6px] transition-colors cursor-pointer"
+                  title="Send password reset email"
                 >
-                  <KeyRound size={20} />
+                  <KeyRound size={15} strokeWidth={1.5} />
                 </button>
                 <button
                   onClick={() => handleOpenEdit(userItem)}
-                  className="p-2 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                  title="Modify Profile Parameters"
+                  className="p-1.5 text-[#6E6E73] hover:text-[#171717] hover:bg-[#171717]/10 rounded-[6px] transition-colors cursor-pointer"
+                  title="Edit user"
                 >
-                  <Edit3 size={20} />
+                  <Edit3 size={15} strokeWidth={1.5} />
                 </button>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white p-20 rounded-3xl border-2 border-dashed border-gray-100 text-center">
-          <User className="mx-auto text-gray-200 mb-3" size={44} />
-          <p className="text-xs font-black text-[#001F3F] uppercase tracking-wider">
-            No secure operator profiles match the filter criteria
+        <div className="bg-white p-12 rounded-[12px] border border-[#E5E5EA] text-center">
+          <p className="text-[13px] text-[#6E6E73]">
+            No users match the search criteria
           </p>
         </div>
       )}
 
-      {/* --- EXPANSIVE MANAGE MODAL (CREATE/EDIT) --- */}
+      {/* New / Edit User Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white rounded-t-[2rem] sm:rounded-[2rem] p-8 relative shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white rounded-[14px] p-6 relative border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-transform hover:rotate-90 p-1"
+              className="absolute top-5 right-5 text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
             >
-              <X size={18} />
+              <X size={16} strokeWidth={1.5} />
             </button>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-black text-[#001F3F] tracking-tighter uppercase italic">
-                {isEditing ? "Modify Credentials" : "Provision Account"}
+            <div className="mb-4 pb-3 border-b border-[#E5E5EA]">
+              <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
+                {isEditing ? "Edit user" : "New user"}
               </h2>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-0.5">
-                Set operational clearance, specific hex identity and access
-                tags.
-              </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400 italic">
-                  Account Username *
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  username *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Operational unique handle..."
+                  placeholder="enter username..."
                   value={formData.username}
                   onChange={(e) =>
                     setFormData({ ...formData, username: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400 italic">
-                  Secure Email Directive *
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  email address *
                 </label>
                 <input
                   type="email"
                   required
-                  placeholder="operator@rfm.application..."
+                  placeholder="operator@company.com..."
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                 />
               </div>
 
-              {/* Conditional password: required only for new registry */}
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-wider text-gray-400 italic">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
                   {isEditing
-                    ? "Update Password (Leave blank to keep current)"
-                    : "Secret String Clearance *"}
+                    ? "password (leave blank to keep current)"
+                    : "password *"}
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     required={!isEditing}
-                    placeholder="••••••••••••••"
+                    placeholder="••••••••••••"
                     value={formData.password}
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
-                    className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 pr-10 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 pl-3 pr-9 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400 italic">
-                    Security Role *
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    security role *
                   </label>
                   <select
                     value={formData.role}
                     onChange={(e) =>
                       setFormData({ ...formData, role: e.target.value })
                     }
-                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
                   >
-                    <option value="ADMIN">ADMIN</option>
-                    <option value="ASSISTANT">ASSISTANT</option>
+                    <option value="ADMIN">admin</option>
+                    <option value="ASSISTANT">assistant</option>
                   </select>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-wider text-gray-400 italic">
-                    Visual Identity Tone
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    theme color
                   </label>
                   <div className="flex gap-2 items-center">
                     <input
@@ -418,7 +375,7 @@ const UserPage = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, colorCode: e.target.value })
                       }
-                      className="w-10 h-10 bg-transparent border-none rounded-xl cursor-pointer shrink-0"
+                      className="w-9 h-9 bg-transparent border-none rounded-[8px] cursor-pointer shrink-0"
                     />
                     <input
                       type="text"
@@ -427,31 +384,33 @@ const UserPage = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, colorCode: e.target.value })
                       }
-                      className="w-full bg-gray-50 border border-gray-100 rounded-xl py-2.5 px-3 outline-none text-center font-mono text-xs font-black uppercase text-gray-600"
+                      className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-2 outline-none text-center font-mono text-[12px] text-[#1C1C1E]"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-gray-400 hover:text-gray-600"
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
-                  Close
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-[#001F3F] text-white px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   {submitting ? (
-                    <Loader2 size={12} className="animate-spin" />
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
                   ) : (
-                    <Save size={12} />
+                    "Save user"
                   )}
-                  {isEditing ? "Save Adjustments" : "Deploy Operator"}
                 </button>
               </div>
             </form>

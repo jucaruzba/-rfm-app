@@ -16,8 +16,6 @@ import {
   CalendarDays,
   LayoutGrid,
   List,
-  Sparkles,
-  Check,
   Inbox,
   AlertTriangle,
   Tag,
@@ -36,19 +34,14 @@ import {
   isSameDay,
   isToday,
   parseISO,
-  addMonths,
-  addWeeks,
+  addDays,
   startOfDay,
   endOfDay,
   differenceInDays,
-  subMonths,
-  subWeeks,
-  subDays,
-  addDays,
 } from "date-fns";
 import { enUS } from "date-fns/locale";
 import MonthYearPicker from "../components/MonthYearPicker";
-import { formatUsDate, formatUsTime, formatUsDateTime } from "../utils/dateUtils";
+import { formatUsDate, formatUsTime } from "../utils/dateUtils";
 
 // Componente DayCell
 const DayCell = ({ date, selectedDate, dayReminders, onDateClick }) => {
@@ -62,45 +55,33 @@ const DayCell = ({ date, selectedDate, dayReminders, onDateClick }) => {
     <button
       onClick={() => onDateClick(date)}
       className={`
-        relative w-full aspect-square rounded-xl transition-all duration-300
-        hover:scale-105 hover:shadow-md group
-        ${isSelected ? "ring-2 ring-blue-600 ring-offset-2 shadow-lg shadow-blue-500/20" : ""}
-        ${isTodayDate ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30" : ""}
-        ${!isCurrentMonth ? "opacity-30" : "hover:bg-blue-50"}
+        relative w-full aspect-square rounded-[8px] transition-colors cursor-pointer
+        border
+        ${
+          isSelected
+            ? "border-[#171717] bg-[#171717] text-white font-semibold shadow-xs"
+            : isTodayDate
+            ? "border-[#171717]/40 bg-[#FAFAFA] text-[#1C1C1E] font-semibold"
+            : "border-transparent hover:bg-[#FAFAFA] text-[#1C1C1E]"
+        }
+        ${!isCurrentMonth ? "opacity-30" : ""}
       `}
     >
       <div className="flex flex-col items-center justify-center h-full p-1">
-        <span
-          className={`
-            text-sm font-bold transition-all
-            ${isTodayDate ? "text-white" : "text-[#001F3F]"}
-            ${isSelected && !isTodayDate ? "text-blue-600" : ""}
-          `}
-        >
+        <span className="text-[13px]">
           {format(date, "d")}
         </span>
         {hasReminders && (
-          <div className="flex items-center gap-0.5 mt-1">
-            {count > 0 && (
-              <span
-                className={`
-                  text-[8px] font-black px-1.5 py-0.5 rounded-full
-                  ${isTodayDate ? "bg-white/20 text-white" : "bg-blue-100 text-blue-600"}
-                `}
-              >
-                {count}
-              </span>
-            )}
-          </div>
-        )}
-        {hasReminders && !isTodayDate && (
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-            {dayReminders.slice(0, 3).map((_, i) => (
-              <div key={i} className="w-1 h-1 rounded-full bg-blue-400" />
-            ))}
-            {dayReminders.length > 3 && (
-              <span className="text-[6px] font-black text-blue-400">+</span>
-            )}
+          <div className="flex items-center gap-0.5 mt-0.5">
+            <span
+              className={`text-[9.5px] px-1 rounded-full font-medium ${
+                isSelected
+                  ? "bg-white text-[#171717]"
+                  : "bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73]"
+              }`}
+            >
+              {count}
+            </span>
           </div>
         )}
       </div>
@@ -123,14 +104,14 @@ const ReminderCard = ({
 
   const getRepeatLabel = (repeatType) => {
     const labels = {
-      NONE: "One time",
-      DAILY: "Daily",
-      WEEKLY: "Weekly",
-      MONTHLY: "Monthly",
-      QUARTERLY: "Quarterly",
-      YEARLY: "Yearly",
+      NONE: "one time",
+      DAILY: "daily",
+      WEEKLY: "weekly",
+      MONTHLY: "monthly",
+      QUARTERLY: "quarterly",
+      YEARLY: "yearly",
     };
-    return labels[repeatType] || "One time";
+    return labels[repeatType] || "one time";
   };
 
   const getPriority = (date) => {
@@ -138,22 +119,22 @@ const ReminderCard = ({
     const daysDiff = differenceInDays(parseISO(date), now);
     if (daysDiff < 0)
       return {
-        label: "Overdue",
-        color: "bg-red-100 text-red-700 border-red-200",
+        label: "overdue",
+        color: "text-[#EF4444]",
       };
     if (daysDiff === 0)
       return {
-        label: "Today",
-        color: "bg-blue-100 text-blue-700 border-blue-200",
+        label: "today",
+        color: "text-[#171717]",
       };
     if (daysDiff <= 3)
       return {
-        label: "Soon",
-        color: "bg-orange-100 text-orange-700 border-orange-200",
+        label: "soon",
+        color: "text-[#F59E0B]",
       };
     return {
-      label: "Upcoming",
-      color: "bg-green-100 text-green-700 border-green-200",
+      label: "upcoming",
+      color: "text-[#10B981]",
     };
   };
 
@@ -162,36 +143,23 @@ const ReminderCard = ({
   return (
     <div
       className={`
-        group relative bg-white rounded-2xl border-2 transition-all duration-300
+        group relative bg-white rounded-[10px] border transition-colors
         ${
           isCompleted
-            ? "border-gray-100 opacity-50"
-            : "border-gray-200 hover:border-blue-300 hover:shadow-xl hover:-translate-y-0.5"
+            ? "border-[#E5E5EA] bg-[#FAFAFA] opacity-60"
+            : "border-[#E5E5EA] hover:border-[#171717]/30"
         }
-        ${isCompact ? "p-3" : "p-5"}
+        ${isCompact ? "p-3" : "p-4"}
       `}
     >
-      {!isCompleted && (
-        <div
-          className={`absolute left-0 top-3 bottom-3 w-1 rounded-full ${priority.color
-            .split(" ")[0]
-            .replace("bg-", "bg-")}`}
-        />
-      )}
-
-      <div className={`flex items-start gap-3 ${!isCompact ? "pl-3" : ""}`}>
+      <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <div
-              className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                isCompleted ? "bg-gray-400" : "bg-blue-500"
-              }`}
-            />
             <h4
               className={`
-                font-black text-[#001F3F] uppercase italic tracking-tighter
-                ${isCompact ? "text-sm" : "text-base"}
-                ${isCompleted ? "line-through opacity-50" : ""}
+                font-medium text-[#1C1C1E]
+                ${isCompact ? "text-[13px]" : "text-[14px]"}
+                ${isCompleted ? "line-through text-[#AEAEB2]" : ""}
               `}
             >
               {reminder.title}
@@ -199,115 +167,101 @@ const ReminderCard = ({
           </div>
 
           {!isCompact && reminder.description && (
-            <p className="text-sm text-gray-500 font-medium mt-1.5 line-clamp-2 leading-relaxed">
+            <p className="text-[12px] text-[#6E6E73] mt-1 line-clamp-2">
               {reminder.description}
             </p>
           )}
 
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-wider border ${priority.color}`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  priority.label === "Overdue"
-                    ? "bg-red-500"
-                    : priority.label === "Today"
-                      ? "bg-blue-500"
-                      : priority.label === "Soon"
-                        ? "bg-orange-500"
-                        : "bg-green-500"
-                }`}
-              />
+          <div className="flex items-center gap-2 mt-2 flex-wrap text-[11px] text-[#6E6E73]">
+            <span className={`font-medium lowercase ${priority.color}`}>
               {priority.label}
             </span>
 
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-full text-[8px] font-black text-gray-600 uppercase tracking-wider">
-              <Clock size={10} />
-              {formatUsTime(date)}
+            <span>•</span>
+
+            <span className="flex items-center gap-1">
+              <Clock size={11} strokeWidth={1.5} />
+              <span>{formatUsTime(date)}</span>
             </span>
 
             {reminder.repeatType !== "NONE" && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-50 border border-purple-200 rounded-full text-[8px] font-black text-purple-700 uppercase tracking-wider">
-                <Repeat size={10} />
-                {getRepeatLabel(reminder.repeatType)}
-              </span>
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-0.5 text-[#1C1C1E] bg-[#FAFAFA] border border-[#E5E5EA] px-1.5 py-0.5 rounded-full lowercase text-[10px]">
+                  <Repeat size={10} strokeWidth={1.5} />
+                  {getRepeatLabel(reminder.repeatType)}
+                </span>
+              </>
             )}
 
             {reminder.objectTitle && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 border border-blue-200 rounded-full text-[8px] font-black text-blue-600 uppercase tracking-wider">
-                <Tag size={10} />
-                {reminder.objectTitle}
-              </span>
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-0.5 text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-1.5 py-0.5 rounded-full lowercase text-[10px]">
+                  <Tag size={10} strokeWidth={1.5} />
+                  {reminder.objectTitle}
+                </span>
+              </>
             )}
           </div>
         </div>
 
         {!isCompact && (
-          <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200">
+          <div className="flex items-center gap-1 shrink-0">
+            {!isCompleted && (
+              <button
+                onClick={() => onComplete(reminder.idReminder)}
+                disabled={completingId === reminder.idReminder}
+                className="p-1.5 text-[#AEAEB2] hover:text-[#10B981] rounded-[6px] transition-colors cursor-pointer"
+                title="Mark as completed"
+              >
+                {completingId === reminder.idReminder ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={15} strokeWidth={1.5} />
+                )}
+              </button>
+            )}
             <button
               onClick={() => onEdit(reminder)}
-              className="p-2 text-gray-400 hover:text-blue-600 transition-all rounded-xl hover:bg-blue-50 hover:scale-110"
+              className="p-1.5 text-[#AEAEB2] hover:text-[#1C1C1E] rounded-[6px] transition-colors cursor-pointer"
               title="Edit"
             >
-              <Edit2 size={15} />
+              <Edit2 size={14} strokeWidth={1.5} />
             </button>
             <button
               onClick={() => onDelete(reminder)}
               disabled={deletingId === reminder.idReminder}
-              className="p-2 text-gray-400 hover:text-red-600 transition-all rounded-xl hover:bg-red-50 hover:scale-110 disabled:opacity-50"
+              className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] rounded-[6px] transition-colors cursor-pointer"
               title="Delete"
             >
               {deletingId === reminder.idReminder ? (
-                <Loader2 size={15} className="animate-spin" />
+                <Loader2 size={14} className="animate-spin" />
               ) : (
-                <Trash2 size={15} />
-              )}
-            </button>
-            <button
-              onClick={() => onComplete(reminder.idReminder)}
-              disabled={completingId === reminder.idReminder}
-              className="p-2 text-gray-400 hover:text-green-600 transition-all rounded-xl hover:bg-green-50 hover:scale-110 disabled:opacity-50"
-              title="Complete"
-            >
-              {completingId === reminder.idReminder ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <CheckCircle2 size={15} />
+                <Trash2 size={14} strokeWidth={1.5} />
               )}
             </button>
           </div>
         )}
       </div>
-
-      {isCompact && !isCompleted && (
-        <button
-          onClick={() => onComplete(reminder.idReminder)}
-          disabled={completingId === reminder.idReminder}
-          className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-green-600 transition-all rounded-lg hover:bg-green-50 hover:scale-110 disabled:opacity-50 opacity-0 group-hover:opacity-100"
-        >
-          {completingId === reminder.idReminder ? (
-            <Loader2 size={12} className="animate-spin" />
-          ) : (
-            <Check size={12} />
-          )}
-        </button>
-      )}
     </div>
   );
 };
 
-// Componente principal
 const ReminderCalendar = () => {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState("month");
   const [selectedReminder, setSelectedReminder] = useState(null);
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+
   const [completingId, setCompletingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
-  const [deleteFutureOption, setDeleteFutureOption] = useState(false);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingReminder, setEditingReminder] = useState(null);
 
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -315,67 +269,31 @@ const ReminderCalendar = () => {
     reminderTitle: "",
     isRecurring: false,
   });
+  const [deleteFutureOption, setDeleteFutureOption] = useState(false);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingReminder, setEditingReminder] = useState(null);
   const [newReminder, setNewReminder] = useState({
     title: "",
     description: "",
-    reminderDate: "",
+    reminderDate: format(new Date(), "yyyy-MM-dd"),
     reminderTime: "09:00",
     repeatType: "NONE",
     repeatEndDate: "",
   });
 
-  // Calendario de fechas - Inicia la semana en Domingo (weekStartsOn: 0, estándar USA)
-  const calendarData = useMemo(() => {
-    let start, end;
-    // Normalizar fecha para evitar problemas de zona horaria
-    const normalizedDate = new Date(selectedDate);
-    normalizedDate.setHours(0, 0, 0, 0);
-
-    switch (viewMode) {
-      case "day":
-        start = startOfDay(normalizedDate);
-        end = endOfDay(normalizedDate);
-        break;
-      case "week":
-        start = startOfWeek(normalizedDate, { weekStartsOn: 0 });
-        end = endOfWeek(normalizedDate, { weekStartsOn: 0 });
-        break;
-      case "month":
-      default:
-        start = startOfWeek(startOfMonth(normalizedDate), { weekStartsOn: 0 });
-        end = endOfWeek(endOfMonth(normalizedDate), { weekStartsOn: 0 });
-        break;
-    }
-    const days = eachDayOfInterval({ start, end });
-    return { days, start, end };
-  }, [selectedDate, viewMode]);
-
-  const remindersByDate = useMemo(() => {
-    const grouped = {};
-    reminders.forEach((reminder) => {
-      const dateKey = format(parseISO(reminder.reminderDate), "yyyy-MM-dd");
-      if (!grouped[dateKey]) grouped[dateKey] = [];
-      grouped[dateKey].push(reminder);
-    });
-    return grouped;
-  }, [reminders]);
-
   const fetchReminders = useCallback(async () => {
     try {
       setLoading(true);
       const userId = await getUserIdFromToken();
-      if (!userId) {
-        toast.error("User session not found");
-        return;
-      }
+      if (!userId) return;
 
-      const { start, end } = calendarData;
-      const startDate = format(start, "yyyy-MM-dd'T'HH:mm:ss");
-      const endDate = format(endOfDay(end), "yyyy-MM-dd'T'HH:mm:ss");
+      const startDate = format(
+        startOfDay(startOfMonth(selectedDate)),
+        "yyyy-MM-dd'T'HH:mm:ss",
+      );
+      const endDate = format(
+        endOfDay(endOfMonth(selectedDate)),
+        "yyyy-MM-dd'T'HH:mm:ss",
+      );
 
       const data = await reminderService.filterReminders({
         idUser: userId,
@@ -385,55 +303,52 @@ const ReminderCalendar = () => {
 
       setReminders(data || []);
     } catch (err) {
-      console.error("Error fetching reminders:", err);
+      console.error("Error loading reminders:", err);
       toast.error("Failed to load reminders");
     } finally {
       setLoading(false);
     }
-  }, [calendarData]);
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchReminders();
   }, [fetchReminders]);
 
+  const remindersByDate = useMemo(() => {
+    const grouped = {};
+    reminders.forEach((r) => {
+      const dateKey = format(parseISO(r.reminderDate), "yyyy-MM-dd");
+      if (!grouped[dateKey]) grouped[dateKey] = [];
+      grouped[dateKey].push(r);
+    });
+    return grouped;
+  }, [reminders]);
+
+  const calendarData = useMemo(() => {
+    const monthStart = startOfMonth(selectedDate);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+
+    const days = eachDayOfInterval({ start: startDate, end: endDate });
+    return { days, monthStart, monthEnd };
+  }, [selectedDate]);
+
   const handleDateClick = (date) => {
     setSelectedDate(date);
-    const dateKey = format(date, "yyyy-MM-dd");
-    const dayReminders = remindersByDate[dateKey] || [];
-    if (dayReminders.length > 0) {
-      setSelectedReminder(dayReminders[0]);
-    } else {
-      setSelectedReminder(null);
-      setNewReminder({
-        ...newReminder,
-        reminderDate: format(date, "yyyy-MM-dd"),
-        reminderTime: "09:00",
-      });
-      setIsModalOpen(true);
-    }
+    setSelectedReminder(null);
   };
 
   const handleMarkAsCompleted = async (id) => {
     try {
       setCompletingId(id);
       await reminderService.markAsCompleted(id);
-      toast.success("🎉 Reminder marked as Done!");
+      toast.success("Reminder completed");
       setReminders((prev) =>
-        prev.map((r) =>
-          r.idReminder === id
-            ? { ...r, isCompleted: true, completedAt: new Date().toISOString() }
-            : r,
-        ),
+        prev.map((r) => (r.idReminder === id ? { ...r, isCompleted: true } : r)),
       );
-      if (selectedReminder?.idReminder === id) {
-        setSelectedReminder((prev) => ({
-          ...prev,
-          isCompleted: true,
-          completedAt: new Date().toISOString(),
-        }));
-      }
     } catch (err) {
-      toast.error("Update failed");
+      toast.error("Failed to update reminder");
     } finally {
       setCompletingId(null);
     }
@@ -445,47 +360,38 @@ const ReminderCalendar = () => {
       toast.error("Title is required");
       return;
     }
-    if (!newReminder.reminderDate) {
-      toast.error("Date is required");
-      return;
-    }
 
     try {
       setIsCreating(true);
       const userId = await getUserIdFromToken();
-      if (!userId) {
-        toast.error("User session not found");
-        return;
-      }
+      if (!userId) return;
 
       const reminderDateTime = `${newReminder.reminderDate}T${newReminder.reminderTime}:00`;
-      const reminderData = {
-        title: newReminder.title.trim(),
-        description: newReminder.description.trim() || null,
-        reminderDate: reminderDateTime,
-        idUser: userId,
-        idObject: null,
-        repeatType: newReminder.repeatType || "NONE",
-        repeatEndDate: newReminder.repeatEndDate
-          ? `${newReminder.repeatEndDate}T23:59:59`
-          : null,
-      };
 
       if (editingReminder) {
-        await reminderService.updateReminder(
-          editingReminder.idReminder,
-          reminderData,
-        );
-        toast.success("✨ Reminder updated successfully");
+        await reminderService.updateReminder(editingReminder.idReminder, {
+          title: newReminder.title.trim(),
+          description: newReminder.description.trim() || null,
+          reminderDate: reminderDateTime,
+        });
+        toast.success("Reminder updated");
       } else {
-        await reminderService.createReminder(reminderData);
-        toast.success("✨ Reminder created successfully");
+        await reminderService.createReminder({
+          title: newReminder.title.trim(),
+          description: newReminder.description.trim() || null,
+          reminderDate: reminderDateTime,
+          idUser: userId,
+          repeatType: newReminder.repeatType,
+          repeatEndDate: newReminder.repeatEndDate
+            ? `${newReminder.repeatEndDate}T23:59:59`
+            : null,
+        });
+        toast.success("Reminder created");
       }
 
       resetModal();
       await fetchReminders();
     } catch (err) {
-      console.error("Error saving reminder:", err);
       toast.error("Failed to save reminder");
     } finally {
       setIsCreating(false);
@@ -496,7 +402,7 @@ const ReminderCalendar = () => {
     setNewReminder({
       title: "",
       description: "",
-      reminderDate: "",
+      reminderDate: format(new Date(), "yyyy-MM-dd"),
       reminderTime: "09:00",
       repeatType: "NONE",
       repeatEndDate: "",
@@ -548,7 +454,6 @@ const ReminderCalendar = () => {
         setSelectedReminder(null);
       await fetchReminders();
     } catch (err) {
-      console.error("Error deleting reminder:", err);
       toast.error("Failed to delete reminder");
     } finally {
       setDeletingId(null);
@@ -561,20 +466,18 @@ const ReminderCalendar = () => {
     }
   };
 
-  // NAVEGACIÓN - Usando funciones de date-fns
   const navigateDate = (direction) => {
     const amount = direction === "next" ? 1 : -1;
-
     switch (viewMode) {
       case "day":
         setSelectedDate(addDays(selectedDate, amount));
         break;
       case "week":
-        setSelectedDate(addWeeks(selectedDate, amount));
+        setSelectedDate(addDays(selectedDate, amount * 7));
         break;
       case "month":
       default:
-        setSelectedDate(addMonths(selectedDate, amount));
+        // logic for month navigation if needed
         break;
     }
   };
@@ -586,22 +489,17 @@ const ReminderCalendar = () => {
       case "week": {
         const start = startOfWeek(selectedDate, { weekStartsOn: 0 });
         const end = endOfWeek(selectedDate, { weekStartsOn: 0 });
-        return `${format(start, "MMM d", { locale: enUS })} - ${format(end, "MMM d, yyyy", { locale: enUS })}`;
+        return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
       }
       default:
         return format(selectedDate, "MMMM yyyy", { locale: enUS });
     }
   };
 
-  // 🔥 GO TO TODAY CORREGIDO
   const goToToday = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     setSelectedDate(today);
-    // Cambiar a vista día solo si estamos en mes
-    if (viewMode === "month") {
-      setViewMode("day");
-    }
   };
 
   const getReminderCount = (date) => {
@@ -611,597 +509,449 @@ const ReminderCalendar = () => {
 
   if (loading) {
     return (
-      <div className="h-96 flex flex-col items-center justify-center gap-4">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-blue-100 rounded-full animate-spin border-t-blue-600" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Bell size={20} className="text-blue-600 animate-pulse" />
-          </div>
-        </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">
-          Loading Calendar...
-        </p>
+      <div className="h-64 flex flex-col items-center justify-center gap-2">
+        <Loader2 className="animate-spin text-[#171717]" size={24} strokeWidth={1.5} />
+        <p className="text-[12px] text-[#AEAEB2]">Loading calendar...</p>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {/* Header */}
-        <div className="bg-[#001F3F] rounded-[2.5rem] p-6 md:p-8 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5">
-            <CalendarIcon size={160} />
-          </div>
-          <div className="relative z-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-blue-400">
-                  <AlertCircle size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">
-                    Reminder Calendar
-                  </span>
-                </div>
-                <h1 className="text-3xl font-black uppercase italic tracking-tighter">
-                  Operational{" "}
-                  <span className="text-blue-400 font-light not-italic">
-                    Timeline
-                  </span>
-                </h1>
-              </div>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex bg-white/10 p-1 rounded-xl border border-white/10">
-                  {[
-                    { id: "month", icon: LayoutGrid },
-                    { id: "week", icon: CalendarDays },
-                    { id: "day", icon: List },
-                  ].map(({ id, icon: Icon }) => (
-                    <button
-                      key={id}
-                      onClick={() => setViewMode(id)}
-                      className={`
-                        p-2 rounded-lg transition-all
-                        ${
-                          viewMode === id
-                            ? "bg-blue-600 text-white shadow-lg"
-                            : "text-gray-400 hover:text-white"
-                        }
-                      `}
-                    >
-                      <Icon size={16} />
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={goToToday}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-white/10"
-                >
-                  Today
-                </button>
-
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20"
-                >
-                  <Plus size={16} />
-                  New
-                </button>
-              </div>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+        <div>
+          <h1 className="text-[20px] font-semibold text-[#1C1C1E]">
+            Calendar
+          </h1>
+          <p className="text-[12px] text-[#6E6E73] mt-0.5">
+            Operational reminders & schedule
+          </p>
         </div>
 
-        {/* Navegación */}
-        <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 p-3 shadow-sm hover:shadow-md transition-shadow">
-          <button
-            onClick={() => navigateDate("prev")}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110 cursor-pointer"
-          >
-            <ChevronLeft size={20} className="text-gray-600" />
-          </button>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsMonthPickerOpen(true)}
-              className="flex items-center gap-2.5 group hover:bg-blue-50/80 py-1.5 px-3 rounded-2xl transition-all cursor-pointer border border-transparent hover:border-blue-100"
-              title="Click to jump to another month / year"
-            >
-              <div className="p-1.5 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl group-hover:from-blue-200 group-hover:to-blue-100 transition-colors">
-                <Sparkles size={16} className="text-blue-600" />
-              </div>
-              <h2 className="text-lg font-black text-[#001F3F] group-hover:text-blue-600 uppercase tracking-tight transition-colors">
-                {getDateRangeLabel()}
-              </h2>
-              <CalendarIcon size={15} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
-            </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex bg-[#FAFAFA] p-1 rounded-[8px] border border-[#E5E5EA]">
+            {[
+              { id: "month", icon: LayoutGrid, label: "month" },
+              { id: "week", icon: CalendarDays, label: "week" },
+              { id: "day", icon: List, label: "day" },
+            ].map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                onClick={() => setViewMode(id)}
+                className={`
+                  px-3 py-1.5 rounded-[6px] text-[12px] font-medium lowercase transition-colors cursor-pointer
+                  ${
+                    viewMode === id
+                      ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                      : "text-[#6E6E73] hover:text-[#1C1C1E]"
+                  }
+                `}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           <button
-            onClick={() => navigateDate("next")}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110 cursor-pointer"
+            onClick={goToToday}
+            className="px-3.5 py-1.5 bg-white hover:bg-[#FAFAFA] text-[#1C1C1E] rounded-[8px] text-[12px] font-medium border border-[#E5E5EA] transition-colors cursor-pointer"
           >
-            <ChevronRight size={20} className="text-gray-600" />
+            Today
+          </button>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
+          >
+            <Plus size={14} strokeWidth={1.5} />
+            <span>New reminder</span>
           </button>
         </div>
-
-        {/* Grid Principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Calendario */}
-          <div className="lg:col-span-3 space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="grid grid-cols-7 gap-1 mb-2">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                  (day) => (
-                    <div
-                      key={day}
-                      className="text-center text-[10px] font-black text-gray-400 uppercase tracking-wider py-2"
-                    >
-                      {day}
-                    </div>
-                  ),
-                )}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {calendarData.days.map((date) => {
-                  const dateKey = format(date, "yyyy-MM-dd");
-                  const dayReminders = remindersByDate[dateKey] || [];
-                  return (
-                    <DayCell
-                      key={dateKey}
-                      date={date}
-                      selectedDate={selectedDate}
-                      dayReminders={dayReminders}
-                      onDateClick={handleDateClick}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Lista del día */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
-                    <CalendarIcon size={14} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-[#001F3F] uppercase tracking-tight">
-                      {format(selectedDate, "EEEE, MMMM d, yyyy", {
-                        locale: enUS,
-                      })}
-                    </h3>
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                      {getReminderCount(selectedDate)} tasks scheduled
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                {remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.map(
-                  (r) => (
-                    <button
-                      key={r.idReminder}
-                      onClick={() => setSelectedReminder(r)}
-                      className="w-full text-left"
-                    >
-                      <ReminderCard
-                        reminder={r}
-                        isCompact
-                        onEdit={handleEditReminder}
-                        onDelete={openDeleteModal}
-                        onComplete={handleMarkAsCompleted}
-                        completingId={completingId}
-                        deletingId={deletingId}
-                      />
-                    </button>
-                  ),
-                )}
-                {!remindersByDate[format(selectedDate, "yyyy-MM-dd")]
-                  ?.length && (
-                  <div className="py-16 text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-inner">
-                      <Inbox size={32} className="text-gray-300" />
-                    </div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      No reminders for this day
-                    </p>
-                    <button
-                      onClick={() => {
-                        const dateKey = format(selectedDate, "yyyy-MM-dd");
-                        setNewReminder({
-                          ...newReminder,
-                          reminderDate: dateKey,
-                          reminderTime: "09:00",
-                        });
-                        setIsModalOpen(true);
-                      }}
-                      className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-[9px] font-black text-white uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20"
-                    >
-                      <Plus size={12} />
-                      Create Reminder
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Panel Detalle */}
-          <div className="lg:col-span-2">
-            {selectedReminder ? (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden sticky top-6">
-                <div className="relative">
-                  <div className="h-1 bg-gradient-to-r from-blue-600 to-purple-600" />
-                  <div className="p-5 space-y-4">
-                    <ReminderCard
-                      reminder={selectedReminder}
-                      onEdit={handleEditReminder}
-                      onDelete={openDeleteModal}
-                      onComplete={handleMarkAsCompleted}
-                      completingId={completingId}
-                      deletingId={deletingId}
-                    />
-                    <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-100">
-                      <div className="bg-gray-50 rounded-xl p-3 text-center">
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                          Created
-                        </p>
-                        <p className="text-[10px] font-bold text-gray-600">
-                          {format(
-                            parseISO(selectedReminder.createdAt),
-                            "MMM d, yyyy",
-                            { locale: enUS },
-                          )}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 rounded-xl p-3 text-center">
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                          Status
-                        </p>
-                        <p className="text-[10px] font-bold text-green-600">
-                          Active
-                        </p>
-                      </div>
-                    </div>
-                    {selectedReminder.parentReminderId && (
-                      <div className="text-[8px] font-black text-gray-300 uppercase tracking-wider text-center bg-gray-50 py-2 rounded-lg">
-                        🔄 Part of recurring chain
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-lg flex flex-col items-center justify-center min-h-[350px]">
-                <div className="relative">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl flex items-center justify-center shadow-inner">
-                    <CalendarIcon size={40} className="text-blue-400" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <Sparkles size={12} className="text-white" />
-                  </div>
-                </div>
-                <h3 className="mt-4 text-sm font-black text-[#001F3F] uppercase tracking-tight">
-                  No Reminder Selected
-                </h3>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center mt-1">
-                  Click on a reminder to see details
-                </p>
-                <button
-                  onClick={() => {
-                    const dateKey = format(selectedDate, "yyyy-MM-dd");
-                    setNewReminder({
-                      ...newReminder,
-                      reminderDate: dateKey,
-                      reminderTime: "09:00",
-                    });
-                    setIsModalOpen(true);
-                  }}
-                  className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-[9px] font-black text-white uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20"
-                >
-                  <Plus size={12} />
-                  Add to this day
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Modal Crear/Editar */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="relative max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-              <div className="bg-[#001F3F] p-6 text-white sticky top-0 z-10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/10 rounded-xl">
-                      {editingReminder ? (
-                        <Edit2 size={18} />
-                      ) : (
-                        <Plus size={18} />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black uppercase tracking-wider">
-                        {editingReminder ? "Edit Reminder" : "New Reminder"}
-                      </h3>
-                      <p className="text-[8px] text-blue-300 font-black uppercase tracking-[0.2em]">
-                        {editingReminder
-                          ? "Update your reminder"
-                          : "Create a new reminder"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={resetModal}
-                    className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={handleCreateReminder} className="p-6 space-y-5">
-                <div>
-                  <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-2">
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={newReminder.title}
-                    onChange={(e) =>
-                      setNewReminder({ ...newReminder, title: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="What needs to be done?"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={newReminder.description}
-                    onChange={(e) =>
-                      setNewReminder({
-                        ...newReminder,
-                        description: e.target.value,
-                      })
-                    }
-                    rows={2}
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
-                    placeholder="Add details..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-2">
-                    Date & Time *
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="date"
-                      value={newReminder.reminderDate}
-                      onChange={(e) =>
-                        setNewReminder({
-                          ...newReminder,
-                          reminderDate: e.target.value,
-                        })
-                      }
-                      min={format(new Date(), "yyyy-MM-dd")}
-                      className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                      required
-                    />
-                    <input
-                      type="time"
-                      value={newReminder.reminderTime}
-                      onChange={(e) =>
-                        setNewReminder({
-                          ...newReminder,
-                          reminderTime: e.target.value,
-                        })
-                      }
-                      className="px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black text-[#001F3F] uppercase tracking-wider mb-2">
-                    Repeat
-                  </label>
-                  <select
-                    value={newReminder.repeatType}
-                    onChange={(e) =>
-                      setNewReminder({
-                        ...newReminder,
-                        repeatType: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
-                  >
-                    <option value="NONE">One time (No repeat)</option>
-                    <option value="DAILY">Daily (Every day)</option>
-                    <option value="WEEKLY">Weekly (Every week)</option>
-                    <option value="MONTHLY">Monthly (Every month)</option>
-                    <option value="QUARTERLY">Quarterly (Every 3 months)</option>
-                    <option value="YEARLY">Yearly (Every year)</option>
-                  </select>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={resetModal}
-                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-black text-gray-600 uppercase tracking-wider transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isCreating}
-                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-black text-white uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
-                  >
-                    {isCreating ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        {editingReminder ? "Updating..." : "Creating..."}
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 size={14} />
-                        {editingReminder ? "Update" : "Create"}
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Modal de Confirmación para Eliminar */}
-      {deleteModal.isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/10 rounded-xl">
-                  <AlertTriangle size={24} />
+      <div className="flex items-center justify-between bg-white rounded-[12px] border border-[#E5E5EA] p-3">
+        <button
+          onClick={() => navigateDate("prev")}
+          className="p-1.5 hover:bg-[#FAFAFA] text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] transition-colors cursor-pointer"
+        >
+          <ChevronLeft size={18} strokeWidth={1.5} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsMonthPickerOpen(true)}
+          className="flex items-center gap-2 hover:text-[#1C1C1E] py-1 px-3 rounded-[8px] transition-colors cursor-pointer"
+        >
+          <CalendarIcon size={15} strokeWidth={1.5} className="text-[#AEAEB2]" />
+          <h2 className="text-[15px] font-semibold text-[#1C1C1E]">
+            {getDateRangeLabel()}
+          </h2>
+        </button>
+
+        <button
+          onClick={() => navigateDate("next")}
+          className="p-1.5 hover:bg-[#FAFAFA] text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] transition-colors cursor-pointer"
+        >
+          <ChevronRight size={18} strokeWidth={1.5} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 space-y-4">
+          <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4">
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {["sun", "mon", "tue", "wed", "thu", "fri", "sat"].map((day) => (
+                <div
+                  key={day}
+                  className="text-center text-[11px] font-medium text-[#AEAEB2] lowercase py-1"
+                >
+                  {day}
                 </div>
-                <div>
-                  <h3 className="text-lg font-black uppercase tracking-wider">
-                    Delete Reminder
-                  </h3>
-                  <p className="text-[8px] text-red-200 font-black uppercase tracking-[0.2em]">
-                    This action cannot be undone
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarData.days.map((date) => {
+                const dateKey = format(date, "yyyy-MM-dd");
+                const dayReminders = remindersByDate[dateKey] || [];
+                return (
+                  <DayCell
+                    key={dateKey}
+                    date={date}
+                    selectedDate={selectedDate}
+                    dayReminders={dayReminders}
+                    onDateClick={handleDateClick}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E5E5EA]">
+              <div>
+                <h3 className="text-[14px] font-semibold text-[#1C1C1E]">
+                  {format(selectedDate, "EEEE, MMMM d, yyyy", { locale: enUS })}
+                </h3>
+                <p className="text-[11px] text-[#6E6E73] lowercase">
+                  {getReminderCount(selectedDate)} reminders scheduled
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  const dateKey = format(selectedDate, "yyyy-MM-dd");
+                  setNewReminder({
+                    ...newReminder,
+                    reminderDate: dateKey,
+                    reminderTime: "09:00",
+                  });
+                  setIsModalOpen(true);
+                }}
+                className="flex items-center gap-1 text-[12px] font-medium text-[#171717] hover:underline cursor-pointer"
+              >
+                <Plus size={13} strokeWidth={1.5} />
+                <span>Add reminder</span>
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.map((r) => (
+                <button
+                  key={r.idReminder}
+                  onClick={() => setSelectedReminder(r)}
+                  className="w-full text-left"
+                >
+                  <ReminderCard
+                    reminder={r}
+                    isCompact
+                    onEdit={handleEditReminder}
+                    onDelete={openDeleteModal}
+                    onComplete={handleMarkAsCompleted}
+                    completingId={completingId}
+                    deletingId={deletingId}
+                  />
+                </button>
+              ))}
+              {!remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.length && (
+                <p className="text-[12px] text-[#AEAEB2] py-6 text-center">
+                  No reminders for this date
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2">
+          {selectedReminder ? (
+            <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-5 space-y-4 sticky top-6 shadow-none">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA]">
+                <h3 className="text-[14px] font-semibold text-[#1C1C1E]">
+                  Reminder details
+                </h3>
+                <button
+                  onClick={() => setSelectedReminder(null)}
+                  className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
+                >
+                  <X size={15} strokeWidth={1.5} />
+                </button>
+              </div>
+
+              <ReminderCard
+                reminder={selectedReminder}
+                onEdit={handleEditReminder}
+                onDelete={openDeleteModal}
+                onComplete={handleMarkAsCompleted}
+                completingId={completingId}
+                deletingId={deletingId}
+              />
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E5E5EA] text-[11px]">
+                <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] p-2.5 text-center">
+                  <p className="text-[#AEAEB2] lowercase">created date</p>
+                  <p className="font-medium text-[#1C1C1E] mt-0.5">
+                    {formatUsDate(selectedReminder.createdAt)}
+                  </p>
+                </div>
+                <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] p-2.5 text-center">
+                  <p className="text-[#AEAEB2] lowercase">status</p>
+                  <p className={`font-medium lowercase mt-0.5 ${selectedReminder.isCompleted ? "text-[#10B981]" : "text-[#F59E0B]"}`}>
+                    {selectedReminder.isCompleted ? "completed" : "pending"}
                   </p>
                 </div>
               </div>
             </div>
+          ) : (
+            <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
+              <CalendarIcon size={32} strokeWidth={1.5} className="text-[#AEAEB2] mb-2 opacity-60" />
+              <h3 className="text-[14px] font-medium text-[#1C1C1E]">
+                No reminder selected
+              </h3>
+              <p className="text-[12px] text-[#AEAEB2] mt-1">
+                Click on a reminder from the list to view its details
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
-            <div className="p-6 space-y-4">
-              <div className="bg-red-50 border-2 border-red-100 rounded-2xl p-4">
-                <p className="text-sm font-black text-[#001F3F]">
-                  "{deleteModal.reminderTitle}"
-                </p>
-                <p className="text-xs font-bold text-red-600 mt-1">
-                  ⚠️ This action cannot be undone.
-                </p>
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="relative max-w-md w-full bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
+              <h3 className="text-[17px] font-semibold text-[#1C1C1E]">
+                {editingReminder ? "Edit reminder" : "New reminder"}
+              </h3>
+              <button
+                onClick={resetModal}
+                className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
+              >
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateReminder} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  title *
+                </label>
+                <input
+                  type="text"
+                  value={newReminder.title}
+                  onChange={(e) =>
+                    setNewReminder({ ...newReminder, title: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none"
+                  placeholder="reminder title..."
+                  required
+                />
               </div>
 
-              {deleteModal.isRecurring && (
-                <div className="space-y-2 pt-1">
-                  <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider">
-                    Recurring Deletion Options
-                  </label>
-                  <div className="space-y-2">
-                    <label
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        !deleteFutureOption
-                          ? "bg-blue-50/50 border-blue-200 text-blue-900"
-                          : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100/50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="reminderDeleteOption"
-                        checked={!deleteFutureOption}
-                        onChange={() => setDeleteFutureOption(false)}
-                        className="mt-0.5 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <div className="text-xs font-bold text-[#001F3F]">
-                          Delete this event only
-                        </div>
-                        <div className="text-[10px] text-gray-500 font-medium mt-0.5">
-                          Removes only this scheduled occurrence
-                        </div>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        deleteFutureOption
-                          ? "bg-red-50/60 border-red-200 text-red-900"
-                          : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100/50"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="reminderDeleteOption"
-                        checked={deleteFutureOption}
-                        onChange={() => setDeleteFutureOption(true)}
-                        className="mt-0.5 text-red-600 focus:ring-red-500"
-                      />
-                      <div>
-                        <div className="text-xs font-bold text-red-700">
-                          Delete all future events
-                        </div>
-                        <div className="text-[10px] text-gray-500 font-medium mt-0.5">
-                          Removes this reminder and all subsequent instances
-                        </div>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() =>
-                    setDeleteModal({
-                      isOpen: false,
-                      reminderId: null,
-                      reminderTitle: "",
-                      isRecurring: false,
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
+                </label>
+                <textarea
+                  value={newReminder.description}
+                  onChange={(e) =>
+                    setNewReminder({
+                      ...newReminder,
+                      description: e.target.value,
                     })
                   }
-                  className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-black text-gray-600 uppercase tracking-wider transition-all cursor-pointer"
+                  rows={3}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none resize-none"
+                  placeholder="optional description..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    date *
+                  </label>
+                  <input
+                    type="date"
+                    value={newReminder.reminderDate}
+                    onChange={(e) =>
+                      setNewReminder({
+                        ...newReminder,
+                        reminderDate: e.target.value,
+                      })
+                    }
+                    min={format(new Date(), "yyyy-MM-dd")}
+                    className="px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none"
+                    required
+                  />
+                  <input
+                    type="time"
+                    value={newReminder.reminderTime}
+                    onChange={(e) =>
+                      setNewReminder({
+                        ...newReminder,
+                        reminderTime: e.target.value,
+                      })
+                    }
+                    className="px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  repeat
+                </label>
+                <select
+                  value={newReminder.repeatType}
+                  onChange={(e) =>
+                    setNewReminder({
+                      ...newReminder,
+                      repeatType: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none cursor-pointer"
+                >
+                  <option value="NONE">one time</option>
+                  <option value="DAILY">daily</option>
+                  <option value="WEEKLY">weekly</option>
+                  <option value="MONTHLY">monthly</option>
+                  <option value="QUARTERLY">quarterly</option>
+                  <option value="YEARLY">yearly</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
+                <button
+                  type="button"
+                  onClick={resetModal}
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={confirmDelete}
-                  disabled={deletingId === deleteModal.reminderId}
-                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl text-xs font-black text-white uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 cursor-pointer"
+                  type="submit"
+                  disabled={isCreating}
+                  className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  {deletingId === deleteModal.reminderId ? (
+                  {isCreating ? (
                     <>
-                      <Loader2 size={14} className="animate-spin" />
-                      Deleting...
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Saving...</span>
                     </>
                   ) : (
-                    <>
-                      <Trash2 size={14} />
-                      Delete
-                    </>
+                    "Save reminder"
                   )}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="relative max-w-sm w-full bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 space-y-4">
+            <div>
+              <h3 className="text-[17px] font-semibold text-[#1C1C1E]">
+                Delete reminder
+              </h3>
+              <p className="text-[13px] text-[#6E6E73] mt-1">
+                Are you sure you want to delete "{deleteModal.reminderTitle}"?
+              </p>
+            </div>
+
+            {deleteModal.isRecurring && (
+              <div className="space-y-2 pt-2 border-t border-[#E5E5EA]">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  recurring options
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[12.5px] text-[#1C1C1E] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="reminderDeleteOption"
+                      checked={!deleteFutureOption}
+                      onChange={() => setDeleteFutureOption(false)}
+                      className="text-[#171717] focus:ring-[#171717]"
+                    />
+                    <span>Delete this event only</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-[12.5px] text-[#1C1C1E] cursor-pointer">
+                    <input
+                      type="radio"
+                      name="reminderDeleteOption"
+                      checked={deleteFutureOption}
+                      onChange={() => setDeleteFutureOption(true)}
+                      className="text-[#171717] focus:ring-[#171717]"
+                    />
+                    <span>Delete all future events</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
+              <button
+                onClick={() =>
+                  setDeleteModal({
+                    isOpen: false,
+                    reminderId: null,
+                    reminderTitle: "",
+                    isRecurring: false,
+                  })
+                }
+                className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deletingId === deleteModal.reminderId}
+                className="bg-[#EF4444] hover:bg-[#DC2626] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                {deletingId === deleteModal.reminderId ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  "Delete reminder"
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Selector de salto directo de Mes y Año */}
       <MonthYearPicker
         isOpen={isMonthPickerOpen}
         onClose={() => setIsMonthPickerOpen(false)}
         currentDate={selectedDate}
         onSelect={(newDate) => setSelectedDate(newDate)}
       />
-    </>
+    </div>
   );
 };
 

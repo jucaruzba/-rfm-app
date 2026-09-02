@@ -1,4 +1,4 @@
-import { AlertCircle, Trash2, Loader2 } from "lucide-react";
+import { AlertCircle, Trash2, Loader2, X } from "lucide-react";
 
 const ConfirmDialog = ({
   isOpen,
@@ -11,107 +11,72 @@ const ConfirmDialog = ({
   itemName = "",
   itemDescription = "",
   isLoading = false,
-  type = "danger", // 'danger' or 'warning'
+  type = "danger",
 }) => {
   if (!isOpen) return null;
 
-  const getGradient = () => {
-    if (type === "danger") return "from-red-600 to-red-500";
-    return "from-amber-600 to-amber-500";
-  };
-
-  const getIconBg = () => {
-    if (type === "danger") return "bg-red-50";
-    return "bg-amber-50";
-  };
-
-  const getIconColor = () => {
-    if (type === "danger") return "text-red-600";
-    return "text-amber-600";
-  };
-
-  const getButtonBg = () => {
-    if (type === "danger") return "bg-red-600 hover:bg-red-700";
-    return "bg-amber-600 hover:bg-amber-700";
-  };
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl w-full max-w-md mx-4 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-        {/* Header con gradiente */}
-        <div className={`bg-gradient-to-r ${getGradient()} px-6 py-4`}>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-xl">
-              <Trash2 size={20} className="text-white" />
-            </div>
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">
-              {title}
-            </h3>
-          </div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-[14px] w-full max-w-sm border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA]">
+          <h3 className="text-[17px] font-semibold text-[#1C1C1E]">
+            {title || "Confirmation"}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-[#AEAEB2] hover:text-[#1C1C1E]"
+          >
+            <X size={16} strokeWidth={1.5} />
+          </button>
         </div>
 
-        {/* Contenido */}
-        <div className="p-6">
-          <div className="flex items-start gap-3 mb-4">
-            <div className={`p-2 ${getIconBg()} rounded-xl`}>
-              <AlertCircle size={20} className={getIconColor()} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-gray-800 mb-1">{message}</p>
-              <p className="text-xs text-gray-500">
-                This action cannot be undone. The item will be permanently
-                removed from the system.
-              </p>
-            </div>
-          </div>
+        <div className="space-y-2">
+          <p className="text-[13px] text-[#1C1C1E]">
+            {message || "Are you sure you want to perform this action?"}
+          </p>
 
-          {/* Detalles del item */}
           {(itemName || itemDescription) && (
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  {itemName && (
-                    <p className="text-sm font-bold text-[#001F3F] truncate">
-                      {itemName}
-                    </p>
-                  )}
-                  {itemDescription && (
-                    <p className="text-xs text-gray-500 truncate mt-1">
-                      {itemDescription}
-                    </p>
-                  )}
-                </div>
-              </div>
+            <div className="bg-[#FAFAFA] rounded-[8px] p-3 border border-[#E5E5EA] text-[12px]">
+              {itemName && (
+                <p className="font-medium text-[#1C1C1E] truncate">
+                  {itemName}
+                </p>
+              )}
+              {itemDescription && (
+                <p className="text-[#6E6E73] truncate mt-0.5">
+                  {itemDescription}
+                </p>
+              )}
             </div>
           )}
+        </div>
 
-          {/* Botones de acción */}
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              disabled={isLoading}
-              className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-widest rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {cancelText}
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={isLoading}
-              className={`flex-1 px-4 py-2.5 ${getButtonBg()} text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Trash2 size={14} />
-                  {confirmText}
-                </>
-              )}
-            </button>
-          </div>
+        <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] disabled:opacity-50"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={`px-4 py-1.5 rounded-[8px] text-[12px] font-medium text-white transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer ${
+              type === "danger"
+                ? "bg-[#EF4444] hover:bg-[#DC2626]"
+                : "bg-[#171717] hover:bg-[#2C2C2E]"
+            }`}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              confirmText
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -119,3 +84,4 @@ const ConfirmDialog = ({
 };
 
 export default ConfirmDialog;
+

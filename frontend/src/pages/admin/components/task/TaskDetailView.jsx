@@ -455,13 +455,13 @@ const handleConfirmDeletePending = async (id) => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case "pending":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
+        return "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20";
       case "in_progress":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20";
       case "completed":
-        return "bg-green-100 text-green-700 border-green-200";
+        return "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+        return "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20";
     }
   };
 
@@ -469,42 +469,35 @@ const handleConfirmDeletePending = async (id) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex justify-end bg-[#001F3F]/30 backdrop-blur-sm animate-in fade-in duration-300">
-        <div className="bg-[#F3F4F6] h-full max-h-screen w-full max-w-xl shadow-[-10px_0_50px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden animate-in slide-in-from-right duration-500">
-          {/* HEADER FIJO */}
-          <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white shrink-0 z-20 shadow-sm">
-            <div>
-              <h2 className="text-[9px] font-black text-blue-600 uppercase tracking-[0.4em] mb-0.5 italic">
-                Task Management
-              </h2>
-              <h1 className="text-xl font-black text-[#001F3F] uppercase italic tracking-tighter leading-none">
-                Task Detail
-              </h1>
-            </div>
+      <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="bg-[#FAFAFA] h-full max-h-screen w-full max-w-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border-l border-[#E5E5EA] flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-[#E5E5EA] flex justify-between items-center bg-white shrink-0 z-20">
+            <h1 className="text-[17px] font-semibold text-[#1C1C1E]">
+              Task details
+            </h1>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full text-[#001F3F] transition-all"
+              className="text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors"
             >
-              <X size={26} strokeWidth={2.5} />
+              <X size={18} strokeWidth={1.5} />
             </button>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto custom-scroll space-y-6 p-8">
-            {/* SECCIÓN INFORMACIÓN EDITABLE */}
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-white space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-2 h-full bg-[#001F3F]"></div>
-
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-4 p-6">
+            {/* Main Info Card */}
+            <div className="bg-white rounded-[12px] p-5 border border-[#E5E5EA] space-y-5">
               <div className="flex justify-between items-start gap-4">
-                <div className="flex-1 space-y-6">
+                <div className="flex-1 space-y-4">
                   {isEditing ? (
-                    <div className="space-y-6 animate-in fade-in">
-                      {/* TÍTULO */}
-                      <div className="space-y-2">
-                        <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                          Task Title
+                    <div className="space-y-4">
+                      {/* Title */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                          task title
                         </label>
                         <input
-                          className="text-2xl font-black text-[#001F3F] uppercase italic border-b-2 border-blue-600 outline-none w-full bg-blue-50/20 px-2 py-1"
+                          className="text-[16px] font-semibold text-[#1C1C1E] border border-[#E5E5EA] rounded-[10px] outline-none focus:border-[#171717] w-full bg-white px-3 py-2"
                           value={task.title}
                           onChange={(e) =>
                             setTask({ ...task, title: e.target.value })
@@ -512,11 +505,10 @@ const handleConfirmDeletePending = async (id) => {
                         />
                       </div>
 
-                      {/* USUARIO ASIGNADO */}
-                      <div className="space-y-2">
-                        <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                          <User size={10} className="inline mr-1" /> Assigned
-                          Operator
+                      {/* Operator */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                          assigned operator
                         </label>
                         <select
                           value={String(
@@ -530,7 +522,7 @@ const handleConfirmDeletePending = async (id) => {
                               idUser: val ? Number(val) : null,
                             });
                           }}
-                          className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
+                          className="w-full bg-white border border-[#E5E5EA] rounded-[10px] px-3 py-2 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
                         >
                           <option value="">-- No operator assigned --</option>
                           {users &&
@@ -549,14 +541,14 @@ const handleConfirmDeletePending = async (id) => {
                         </select>
                       </div>
 
-                      {/* FECHA */}
-                      <div className="space-y-2">
-                        <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                          <Calendar size={10} className="inline mr-1" /> Date
+                      {/* Date */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                          date
                         </label>
                         <input
                           type="date"
-                          className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                          className="w-full bg-white border border-[#E5E5EA] rounded-[10px] px-3 py-2 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                           value={formatDateForInput(task.startDate)}
                           onChange={(e) =>
                             setTask({
@@ -568,60 +560,50 @@ const handleConfirmDeletePending = async (id) => {
                         />
                       </div>
 
-                      {/* RECURRENCE SETTINGS */}
-                      <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl space-y-3">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-purple-900/60 flex items-center gap-1.5">
-                          <Repeat size={12} className="text-purple-600" /> Recurrence Settings
-                        </span>
-                        <div className="space-y-1">
-                          <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                            Repeat Frequency
-                          </label>
-                          <select
-                            value={task.repeatType || "NONE"}
-                            onChange={(e) =>
-                              setTask({ ...task, repeatType: e.target.value })
-                            }
-                            className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
-                          >
-                            <option value="NONE">One time (No repeat)</option>
-                            <option value="DAILY">Daily (Every day)</option>
-                            <option value="WEEKLY">Weekly (Every week)</option>
-                            <option value="MONTHLY">Monthly (Every month)</option>
-                            <option value="QUARTERLY">Quarterly (Every 3 months)</option>
-                            <option value="YEARLY">Yearly (Every year)</option>
-                          </select>
-                        </div>
+                      {/* Recurrence */}
+                      <div className="p-3 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] space-y-2">
+                        <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                          repeat frequency
+                        </label>
+                        <select
+                          value={task.repeatType || "NONE"}
+                          onChange={(e) =>
+                            setTask({ ...task, repeatType: e.target.value })
+                          }
+                          className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
+                        >
+                          <option value="NONE">One time (No repeat)</option>
+                          <option value="DAILY">Daily (Every day)</option>
+                          <option value="WEEKLY">Weekly (Every week)</option>
+                          <option value="MONTHLY">Monthly (Every month)</option>
+                          <option value="QUARTERLY">Quarterly (Every 3 months)</option>
+                          <option value="YEARLY">Yearly (Every year)</option>
+                        </select>
                       </div>
 
-                      {/* PRIORITY */}
-                      <div className="space-y-2">
-                        <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest flex items-center gap-1">
-                          <Flame size={10} className="text-red-500" /> Priority
+                      {/* Priority */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                          priority
                         </label>
                         <select
                           value={task.priority || "NORMAL"}
                           onChange={(e) =>
                             setTask({ ...task, priority: e.target.value })
                           }
-                          className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer"
+                          className="w-full bg-white border border-[#E5E5EA] rounded-[10px] px-3 py-2 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
                         >
                           <option value="LOW">Low</option>
                           <option value="NORMAL">Normal</option>
-                          <option value="HIGH">High</option>
+                          <option value="HIGH">High priority</option>
                         </select>
                       </div>
 
-                      {/* EMPRESA O CLIENTE EXTERNO */}
-                      <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-2xl space-y-4">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-[#001F3F]/40 block">
-                          Target Association (Exclusive Selection)
-                        </span>
-
-                        <div className="space-y-2">
-                          <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                            <Building2 size={10} className="inline mr-1" />{" "}
-                            System Company
+                      {/* Company or External client */}
+                      <div className="p-3 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] space-y-3">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                            company
                           </label>
                           <select
                             value={String(task.idCompany || "")}
@@ -635,7 +617,7 @@ const handleConfirmDeletePending = async (id) => {
                                 externalReferenceName: "",
                               })
                             }
-                            className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] cursor-pointer disabled:bg-gray-100/60 disabled:text-gray-400"
+                            className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer disabled:bg-gray-100 disabled:text-[#AEAEB2]"
                           >
                             <option value="">-- No corporate entity --</option>
                             {companies &&
@@ -651,21 +633,16 @@ const handleConfirmDeletePending = async (id) => {
                           </select>
                         </div>
 
-                        <div className="flex items-center justify-center text-[9px] font-black text-gray-300 uppercase tracking-widest">
-                          - OR -
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                            <Briefcase size={10} className="inline mr-1" />{" "}
-                            External Client Reference
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                            external client reference
                           </label>
                           <input
                             type="text"
                             disabled={!!task.idCompany}
                             placeholder={
                               task.idCompany
-                                ? "Clear Company field to type here..."
+                                ? "Clear company field first"
                                 : "Type external client reference..."
                             }
                             value={task.externalReferenceName || ""}
@@ -676,154 +653,146 @@ const handleConfirmDeletePending = async (id) => {
                                 idCompany: null,
                               })
                             }
-                            className="w-full bg-white border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] disabled:bg-gray-100/60 disabled:text-gray-400 italic"
+                            className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] disabled:bg-gray-100 disabled:text-[#AEAEB2]"
                           />
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <h3 className="text-3xl font-black text-[#001F3F] uppercase italic tracking-tight leading-tight">
+                    <div className="space-y-3">
+                      <h3 className="text-[18px] font-semibold text-[#1C1C1E]">
                         {task.title}
                       </h3>
-                      <div className="flex flex-col gap-2">
-                        <span className="flex items-center gap-1.5 text-[10px] font-black text-gray-600 bg-gray-50 px-3 py-1 rounded-lg uppercase self-start">
-                          <User size={12} strokeWidth={3} />{" "}
-                          {task.nameUser || "Unassigned"}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
+                          <User size={12} strokeWidth={1.5} />
+                          <span>{task.nameUser || "unassigned"}</span>
                         </span>
-                        <span className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                          <Calendar size={12} /> {formatDate(task.startDate)}
+                        <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
+                          <Calendar size={12} strokeWidth={1.5} />
+                          <span>{formatDate(task.startDate)}</span>
                         </span>
                         {task.nameCompany ? (
-                          <span className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg uppercase self-start">
-                            <Building2 size={12} /> {task.nameCompany}
+                          <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
+                            <Building2 size={12} strokeWidth={1.5} />
+                            <span>{task.nameCompany}</span>
                           </span>
                         ) : task.externalReferenceName ? (
-                          <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-lg uppercase self-start">
-                            <Briefcase size={12} /> {task.externalReferenceName}
+                          <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
+                            <Briefcase size={12} strokeWidth={1.5} />
+                            <span>client: {task.externalReferenceName}</span>
                           </span>
                         ) : null}
                         {task.repeatType && task.repeatType !== "NONE" && (
-                          <span className="flex items-center gap-1.5 text-[10px] font-black text-purple-700 bg-purple-50 border border-purple-100 px-3 py-1 rounded-lg uppercase self-start">
-                            <Repeat size={12} className="text-purple-600" />
-                            Repeat: {task.repeatType === "QUARTERLY" ? "Quarterly" : task.repeatType}
+                          <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
+                            <Repeat size={12} strokeWidth={1.5} />
+                            <span>repeat: {task.repeatType.toLowerCase()}</span>
                           </span>
                         )}
+                        {/* Priority: flame icon + #EF4444 text only, never a full badge */}
                         {task.priority === "HIGH" ? (
-                          <span className="flex items-center gap-1.5 text-[10px] font-black text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-lg uppercase self-start shadow-2xs">
-                            <Flame size={12} className="text-red-600 fill-red-600" />
-                            High Priority
+                          <span className="flex items-center gap-1 text-[#EF4444] text-[11px] font-medium lowercase">
+                            <Flame size={14} strokeWidth={1.5} className="text-[#EF4444]" />
+                            <span>high priority</span>
                           </span>
-                        ) : task.priority === "LOW" ? (
-                          <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-600 bg-gray-50 border border-gray-100 px-3 py-1 rounded-lg uppercase self-start">
-                            Low Priority
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-lg uppercase self-start">
-                            Normal Priority
-                          </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-1.5">
                   {isAdmin && !isEditing && (
                     <button
                       type="button"
                       onClick={() => setIsDeleteModalOpen(true)}
-                      className="p-3 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl transition-all shadow-md hover:shadow-red-600/20 border border-red-200 cursor-pointer"
-                      title="Delete Task (Admin only)"
+                      className="p-2 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[8px] transition-colors cursor-pointer"
+                      title="Delete task"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={16} strokeWidth={1.5} />
                     </button>
                   )}
                   <button
                     onClick={isEditing ? handleUpdate : () => setIsEditing(true)}
-                    className={`p-3 rounded-2xl transition-all shadow-lg cursor-pointer ${
+                    className={`p-2 rounded-[8px] transition-colors cursor-pointer ${
                       isEditing
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : "bg-[#001F3F] text-white hover:bg-blue-900"
+                        ? "bg-[#10B981] text-white hover:bg-[#059669]"
+                        : "bg-[#171717] text-white hover:bg-[#2C2C2E]"
                     }`}
-                    title={isEditing ? "Save Changes" : "Edit Task"}
+                    title={isEditing ? "Save changes" : "Edit task"}
                   >
-                    {isEditing ? <Save size={20} /> : <Edit3 size={20} />}
+                    {isEditing ? <Save size={16} strokeWidth={1.5} /> : <Edit3 size={16} strokeWidth={1.5} />}
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-2 border-t border-gray-50 pt-6">
-                <p className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest italic">
-                  <AlignLeft size={12} /> Task Description
-                </p>
+              {/* Description */}
+              <div className="space-y-1.5 border-t border-[#E5E5EA] pt-4">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
+                </label>
                 {isEditing ? (
                   <textarea
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600 rounded-xl p-4 text-xs font-medium h-36 max-h-48 overflow-y-auto custom-scroll outline-none transition-all resize-y"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[10px] p-3 text-[13px] text-[#1C1C1E] h-28 outline-none focus:border-[#171717] resize-y"
                     value={task.description || ""}
-                    placeholder="Enter detailed task description..."
+                    placeholder="Enter task description..."
                     onChange={(e) =>
                       setTask({ ...task, description: e.target.value })
                     }
                   />
                 ) : (
-                  <div className="bg-gray-50/80 border border-gray-100 rounded-xl p-4 text-xs text-gray-600 leading-relaxed font-medium whitespace-pre-wrap break-words max-h-48 overflow-y-auto custom-scroll select-text">
+                  <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] p-3 text-[13px] text-[#1C1C1E] leading-relaxed whitespace-pre-wrap">
                     {task.description || "No task description provided."}
                   </div>
                 )}
               </div>
 
-              <div className="space-y-3 border-t border-gray-50 pt-6">
-                <p className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest italic">
-                  <CheckCircle2 size={12} /> Task Status
-                </p>
-                <div className="grid grid-cols-2 gap-3">
+              {/* Status Section */}
+              <div className="space-y-2 border-t border-[#E5E5EA] pt-4">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  status
+                </label>
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     {
                       value: "PENDING",
-                      label: "Pending",
-                      icon: Clock,
-                      color: "gray",
+                      label: "pending",
+                      icon: AlertCircle,
+                      activeColor: "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]",
                     },
                     {
                       value: "PROGRESS",
-                      label: "In Progress",
+                      label: "in progress",
                       icon: PlayCircle,
-                      color: "blue",
+                      activeColor: "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]",
                     },
                     {
                       value: "BLOCK",
-                      label: "Blocked",
+                      label: "blocked",
                       icon: AlertCircle,
-                      color: "red",
+                      activeColor: "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]",
                     },
                     {
                       value: "COMPLETED",
-                      label: "Completed",
+                      label: "completed",
                       icon: CheckCircle2,
-                      color: "green",
+                      activeColor: "bg-[#10B981]/10 text-[#10B981] border-[#10B981]",
                     },
-                  ].map(({ value, label, icon: Icon, color }) => {
-                    const colorMap = {
-                      gray: "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100",
-                      blue: "border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100",
-                      red: "border-red-200 bg-red-50 text-red-600 hover:bg-red-100",
-                      green:
-                        "border-green-200 bg-green-50 text-green-600 hover:bg-green-100",
-                    };
+                  ].map(({ value, label, icon: Icon, activeColor }) => {
                     const isActive = task.status === value;
                     return (
                       <button
                         key={value}
                         onClick={() => handleStatusChange(value)}
                         disabled={updatingStatus || isActive}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all font-bold text-xs uppercase tracking-widest ${
+                        className={`flex items-center gap-2 px-3 py-2 rounded-[8px] border text-[12px] font-medium lowercase transition-colors cursor-pointer ${
                           isActive
-                            ? `${colorMap[color]} ring-2 ring-offset-2 ring-${color}-300`
-                            : `${colorMap[color]} opacity-60 hover:opacity-100`
+                            ? activeColor
+                            : "bg-white border-[#E5E5EA] text-[#6E6E73] hover:bg-[#FAFAFA]"
                         } disabled:opacity-50`}
                       >
-                        <Icon size={14} />
-                        {label}
+                        <Icon size={14} strokeWidth={1.5} />
+                        <span>{label}</span>
                       </button>
                     );
                   })}
@@ -831,27 +800,27 @@ const handleConfirmDeletePending = async (id) => {
               </div>
             </div>
 
-            {/* SECCIÓN DE ARCHIVOS */}
+            {/* Attached Files Section */}
             {task.idNode && (
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-white space-y-6">
-                <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-                  <div className="flex items-center gap-2">
-                    <Paperclip size={16} className="text-[#001F3F]" />
-                    <h4 className="text-[12px] font-black text-[#001F3F] uppercase tracking-[0.2em]">
-                      Attached Files
+              <div className="bg-white rounded-[12px] p-5 border border-[#E5E5EA] space-y-4">
+                <div className="flex items-center justify-between border-b border-[#E5E5EA] pb-3">
+                  <div className="flex items-center gap-2 text-[#1C1C1E]">
+                    <Paperclip size={15} strokeWidth={1.5} className="text-[#6E6E73]" />
+                    <h4 className="text-[13px] font-semibold">
+                      Attached files
                     </h4>
                   </div>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-2 text-[9px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-[12px] font-medium text-[#1C1C1E] hover:text-[#171717] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-1 rounded-[6px] transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {uploading ? (
-                      <Loader2 size={14} className="animate-spin" />
+                      <Loader2 size={13} strokeWidth={1.5} className="animate-spin" />
                     ) : (
-                      <FilePlus size={16} />
+                      <FilePlus size={14} strokeWidth={1.5} />
                     )}
-                    Upload File
+                    <span>Upload file</span>
                   </button>
                   <input
                     ref={fileInputRef}
@@ -862,45 +831,38 @@ const handleConfirmDeletePending = async (id) => {
                 </div>
 
                 {nodes.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400 text-xs font-bold uppercase tracking-widest">
-                    No files attached
+                  <div className="text-center py-4 text-[#AEAEB2] text-[12px] lowercase">
+                    no files attached
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {nodes.map((node) => (
                       <div
                         key={node.idNode}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-blue-200 transition-all group"
+                        className="flex items-center justify-between p-2.5 bg-[#FAFAFA] rounded-[8px] border border-[#E5E5EA]"
                       >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <FileText size={16} className="text-blue-600 shrink-0" />
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <FileText size={15} strokeWidth={1.5} className="text-[#6E6E73] shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-[#001F3F] truncate">
+                            <p className="text-[13px] font-medium text-[#1C1C1E] truncate">
                               {node.name}
                             </p>
-                            {node.description && (
-                              <p className="text-[9px] text-gray-400 truncate">
-                                {node.description}
-                              </p>
-                            )}
                           </div>
                         </div>
-                        <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all">
-                          {/* Botón Ver */}
+                        <div className="flex gap-1">
                           <button
                             onClick={() => handleViewFile(node)}
-                            className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition-colors"
-                            title="View File"
+                            className="p-1 hover:bg-white rounded text-[#6E6E73] hover:text-[#1C1C1E] transition-colors cursor-pointer"
+                            title="View file"
                           >
-                            <Eye size={14} />
+                            <Eye size={14} strokeWidth={1.5} />
                           </button>
-                          {/* Botón Eliminar */}
                           <button
                             onClick={() => handleDeleteFileClick(node)}
-                            className="p-1.5 hover:bg-red-100 rounded-lg text-red-600 transition-colors"
-                            title="Delete File"
+                            className="p-1 hover:bg-[#EF4444]/10 rounded text-[#AEAEB2] hover:text-[#EF4444] transition-colors cursor-pointer"
+                            title="Delete file"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={14} strokeWidth={1.5} />
                           </button>
                         </div>
                       </div>
@@ -910,32 +872,33 @@ const handleConfirmDeletePending = async (id) => {
               </div>
             )}
 
-            {/* SECCIÓN DE PENDIENTES */}
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-white space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={16} className="text-[#001F3F]" />
-                  <h4 className="text-[12px] font-black text-[#001F3F] uppercase tracking-[0.2em]">
-                    Pending Items
+            {/* Pending Items Section */}
+            <div className="bg-white rounded-[12px] p-5 border border-[#E5E5EA] space-y-4">
+              <div className="flex items-center justify-between border-b border-[#E5E5EA] pb-3">
+                <div className="flex items-center gap-2 text-[#1C1C1E]">
+                  <AlertCircle size={15} strokeWidth={1.5} className="text-[#6E6E73]" />
+                  <h4 className="text-[13px] font-semibold">
+                    Pending items
                   </h4>
                 </div>
                 <button
                   onClick={() =>
                     setIsCreatePendingModalOpen(!isCreatePendingModalOpen)
                   }
-                  className="flex items-center gap-2 text-[9px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors"
+                  className="flex items-center gap-1.5 text-[12px] font-medium text-[#1C1C1E] hover:text-[#171717] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-1 rounded-[6px] transition-colors cursor-pointer"
                 >
-                  <Plus size={16} /> New Pending
+                  <Plus size={14} strokeWidth={1.5} />
+                  <span>New pending item</span>
                 </button>
               </div>
 
-              {/* Lista de pendientes existentes */}
+              {/* Pending List */}
               {pendingItems.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-xs font-bold uppercase tracking-widest">
-                  No pending items for this task
+                <div className="text-center py-4 text-[#AEAEB2] text-[12px] lowercase">
+                  no pending items for this task
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {pendingItems.map((item) => {
                     const assignedUser = users.find(
                       (u) => (u.idUser || u.id) === item.assignedTo,
@@ -948,45 +911,38 @@ const handleConfirmDeletePending = async (id) => {
                     return (
                       <div
                         key={item.idPending}
-                        className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3"
+                        className="p-3 bg-[#FAFAFA] rounded-[8px] border border-[#E5E5EA] space-y-2"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h5 className="text-sm font-black text-[#001F3F]">
+                            <h5 className="text-[13px] font-semibold text-[#1C1C1E]">
                               {item.title}
                             </h5>
                             {item.description && (
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-[12px] text-[#6E6E73] mt-0.5">
                                 {item.description}
                               </p>
                             )}
                           </div>
-                          <div
-                            className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg border ${getStatusColor(item.status)}`}
+                          <span
+                            className={`text-[10px] font-medium lowercase px-2 py-0.5 rounded-full border ${getStatusColor(item.status)}`}
                           >
-                            {item.status === "pending" && "Pending"}
-                            {item.status === "in_progress" && "In Progress"}
-                            {item.status === "completed" && "Completed"}
-                          </div>
+                            {item.status}
+                          </span>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-                          <div className="flex items-center gap-1 text-[12px] text-gray-500">
-                            <User size={10} />
-                            <span className="font-medium">
-                              Assigned to: {assignedToName}
-                            </span>
-                          </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E5EA] text-[11px] text-[#6E6E73]">
+                          <span>assigned to: {assignedToName}</span>
                           <button
                             onClick={() => handleDeletePendingClick(item)}
                             disabled={deletingPending === item.idPending}
-                            className="p-1 hover:bg-red-100 rounded-lg text-red-600 transition-colors disabled:opacity-50"
-                            title="Delete Pending Item"
+                            className="p-1 hover:bg-[#EF4444]/10 rounded text-[#AEAEB2] hover:text-[#EF4444] transition-colors disabled:opacity-50 cursor-pointer"
+                            title="Delete pending item"
                           >
                             {deletingPending === item.idPending ? (
                               <Loader2 size={12} className="animate-spin" />
                             ) : (
-                              <Trash2 size={12} />
+                              <Trash2 size={13} strokeWidth={1.5} />
                             )}
                           </button>
                         </div>
@@ -996,16 +952,16 @@ const handleConfirmDeletePending = async (id) => {
                 </div>
               )}
 
-              {/* Modal para crear nuevo pendiente */}
+              {/* Create Pending Form */}
               {isCreatePendingModalOpen && (
-                <div className="space-y-4 animate-in fade-in pt-4 border-t border-gray-100">
-                  <div className="space-y-2">
-                    <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                      Title *
+                <div className="space-y-3 pt-3 border-t border-[#E5E5EA]">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                      title *
                     </label>
                     <input
                       type="text"
-                      placeholder="Enter pending item title..."
+                      placeholder="enter title..."
                       value={pendingFormData.title}
                       onChange={(e) =>
                         setPendingFormData({
@@ -1013,16 +969,16 @@ const handleConfirmDeletePending = async (id) => {
                           title: e.target.value,
                         })
                       }
-                      className="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                      className="w-full bg-white border border-[#E5E5EA] rounded-[8px] px-3 py-1.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                      Description
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                      description
                     </label>
                     <textarea
-                      placeholder="Enter description..."
+                      placeholder="enter description..."
                       value={pendingFormData.description}
                       onChange={(e) =>
                         setPendingFormData({
@@ -1030,14 +986,14 @@ const handleConfirmDeletePending = async (id) => {
                           description: e.target.value,
                         })
                       }
-                      className="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F] h-20 resize-none"
+                      className="w-full bg-white border border-[#E5E5EA] rounded-[8px] px-3 py-1.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] h-16 resize-none"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                        Status
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                        status
                       </label>
                       <select
                         value={pendingFormData.status}
@@ -1047,17 +1003,17 @@ const handleConfirmDeletePending = async (id) => {
                             status: e.target.value,
                           })
                         }
-                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                        className="w-full bg-white border border-[#E5E5EA] rounded-[8px] px-2.5 py-1.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                       >
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
+                        <option value="pending">pending</option>
+                        <option value="in_progress">in progress</option>
+                        <option value="completed">completed</option>
                       </select>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[8px] font-black uppercase text-gray-400 tracking-widest">
-                        Assign To *
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                        assign to *
                       </label>
                       <select
                         value={pendingFormData.assignedTo}
@@ -1067,9 +1023,9 @@ const handleConfirmDeletePending = async (id) => {
                             assignedTo: e.target.value,
                           })
                         }
-                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] font-bold text-xs text-[#001F3F]"
+                        className="w-full bg-white border border-[#E5E5EA] rounded-[8px] px-2.5 py-1.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
                       >
-                        <option value="">-- Select User --</option>
+                        <option value="">-- Select user --</option>
                         {users &&
                           users.length > 0 &&
                           users.map((u) => {
@@ -1087,21 +1043,21 @@ const handleConfirmDeletePending = async (id) => {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-2 pt-2">
                     <button
                       onClick={handleCreatePending}
                       disabled={creatingPending}
-                      className="flex-1 bg-green-600 text-white font-bold text-xs uppercase rounded-xl px-4 py-2.5 hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 bg-[#171717] hover:bg-[#2C2C2E] text-white font-medium text-[12px] rounded-[8px] px-3 py-1.5 transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
                     >
                       {creatingPending ? (
-                        <Loader2 size={14} className="animate-spin mx-auto" />
+                        <Loader2 size={13} className="animate-spin mx-auto" />
                       ) : (
-                        "Create Pending Item"
+                        "Create pending item"
                       )}
                     </button>
                     <button
                       onClick={() => setIsCreatePendingModalOpen(false)}
-                      className="flex-1 bg-gray-200 text-gray-700 font-bold text-xs uppercase rounded-xl px-4 py-2.5 hover:bg-gray-300 transition-colors"
+                      className="px-3 py-1.5 bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] text-[12px] font-medium rounded-[8px] hover:bg-[#F2F2F7] cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -1110,33 +1066,33 @@ const handleConfirmDeletePending = async (id) => {
               )}
             </div>
 
-            {/* SECCIÓN DE COMENTARIOS */}
-            <div className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-gray-200/50 border border-white space-y-6">
-              <div className="flex items-center gap-2 border-b border-gray-50 pb-4">
-                <MessageSquare size={16} className="text-[#001F3F]" />
-                <h4 className="text-[12px] font-black text-[#001F3F] uppercase tracking-[0.2em]">
-                  Comments & Activity
+            {/* Comments Section */}
+            <div className="bg-white rounded-[12px] p-5 border border-[#E5E5EA] space-y-4">
+              <div className="flex items-center gap-2 border-b border-[#E5E5EA] pb-3">
+                <MessageSquare size={15} strokeWidth={1.5} className="text-[#6E6E73]" />
+                <h4 className="text-[13px] font-semibold text-[#1C1C1E]">
+                  Comments & activity
                 </h4>
               </div>
 
-              <div className="space-y-4 max-h-80 overflow-y-auto">
+              <div className="space-y-3 max-h-72 overflow-y-auto">
                 {comments.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400 text-xs font-bold uppercase tracking-widest">
-                    No comments yet
+                  <div className="text-center py-4 text-[#AEAEB2] text-[12px] lowercase">
+                    no comments yet
                   </div>
                 ) : (
                   comments.map((comment) => (
                     <div key={comment.idComment} className="group relative">
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                          <User size={14} className="text-blue-600" />
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] flex items-center justify-center shrink-0">
+                          <User size={13} strokeWidth={1.5} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-black text-[#001F3F]">
+                        <div className="flex-1 min-w-0 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] p-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[12px] font-semibold text-[#1C1C1E]">
                               {comment.userName || `${comment.username}`}
                             </span>
-                            <span className="text-[9px] text-gray-400">
+                            <span className="text-[10px] text-[#AEAEB2]">
                               {comment.createdAt &&
                                 format(
                                   parseISO(comment.createdAt),
@@ -1144,7 +1100,7 @@ const handleConfirmDeletePending = async (id) => {
                                 )}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-600 mt-1 break-words">
+                          <p className="text-[12px] text-[#6E6E73] mt-1 break-words">
                             {comment.content}
                           </p>
                         </div>
@@ -1154,9 +1110,10 @@ const handleConfirmDeletePending = async (id) => {
                             onClick={() =>
                               handleDeleteComment(comment.idComment)
                             }
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded-lg text-red-600 shrink-0"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-[#EF4444]/10 rounded text-[#AEAEB2] hover:text-[#EF4444] shrink-0 cursor-pointer"
+                            title="Delete comment"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={12} strokeWidth={1.5} />
                           </button>
                         )}
                       </div>
@@ -1167,24 +1124,25 @@ const handleConfirmDeletePending = async (id) => {
 
               <form
                 onSubmit={handleAddComment}
-                className="flex gap-3 pt-4 border-t border-gray-100"
+                className="flex gap-2 pt-3 border-t border-[#E5E5EA]"
               >
                 <input
                   type="text"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Write a comment..."
-                  className="flex-1 bg-gray-50 border border-gray-100 rounded-xl p-2.5 outline-none focus:border-[#001F3F] text-xs font-medium"
+                  className="flex-1 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] px-3 py-1.5 outline-none focus:border-[#171717] focus:bg-white text-[13px] text-[#1C1C1E]"
                 />
                 <button
                   type="submit"
                   disabled={sendingComment || !newComment.trim()}
-                  className="bg-[#001F3F] text-white p-2.5 rounded-xl hover:bg-[#001F3F]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#171717] text-white p-2 rounded-[8px] hover:bg-[#2C2C2E] transition-colors disabled:opacity-50 cursor-pointer"
+                  title="Send comment"
                 >
                   {sendingComment ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={14} className="animate-spin" />
                   ) : (
-                    <Send size={16} />
+                    <Send size={14} strokeWidth={1.5} />
                   )}
                 </button>
               </form>
@@ -1198,7 +1156,7 @@ const handleConfirmDeletePending = async (id) => {
         <FileViewer file={selectedFile} onClose={() => setSelectedFile(null)} />
       )}
 
-      {/* ConfirmDialog Componente Reutilizable */}
+      {/* ConfirmDialog Component */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
         onClose={handleCloseConfirmDialog}
@@ -1215,7 +1173,7 @@ const handleConfirmDeletePending = async (id) => {
         type={confirmDialog.type}
       />
 
-      {/* Modal de confirmación de eliminación de tarea (Admin Only) */}
+      {/* Delete Task Confirmation Dialog (Admin Only) */}
       <TaskDeleteDialog
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -1227,4 +1185,4 @@ const handleConfirmDeletePending = async (id) => {
   );
 };
 
-export default TaskDetailView;
+export default TaskDetailView;

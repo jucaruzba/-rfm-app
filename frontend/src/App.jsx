@@ -38,8 +38,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
   if (loading)
     return (
-      <div className="flex h-screen items-center justify-center font-black uppercase tracking-[0.3em] text-[#001F3F]">
-        Cargando Sistema...
+      <div className="flex h-screen items-center justify-center bg-[#FAFAFA] text-[#6E6E73] text-[13px] font-medium">
+        Loading...
       </div>
     );
   if (!user) return <Navigate to="/login" replace />;
@@ -50,8 +50,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 const RoleBasedRedirect = () => {
   const { user } = useAuth();
-  if (user?.role === "ADMIN") return <Navigate to="/reminders" replace />;
-  if (user?.role === "ASSISTANT") return <Navigate to="/reminders" replace />;
+  if (user?.role === "ADMIN") return <Navigate to="/tasks" replace />;
+  if (user?.role === "ASSISTANT") return <Navigate to="/pending-items" replace />;
   return <Navigate to="/login" replace />;
 };
 

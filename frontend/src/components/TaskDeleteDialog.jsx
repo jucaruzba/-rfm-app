@@ -26,115 +26,81 @@ const TaskDeleteDialog = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header con fondo rojo idéntico a Pending */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-red-600 text-white">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <Trash2 size={20} />
-            Confirm Deletion
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="w-full max-w-md bg-white rounded-[14px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA] overflow-hidden">
+        {/* Popup Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5EA] bg-white">
+          <h3 className="font-semibold text-[16px] text-[#1C1C1E]">
+            Delete task
           </h3>
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="text-white/80 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+            className="text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors disabled:opacity-50"
           >
-            <X size={20} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="flex items-center justify-center text-5xl text-red-500 mb-2">
-            <AlertCircle size={64} className="text-red-500" />
-          </div>
+          <p className="text-[13.5px] text-[#1C1C1E]">
+            Are you sure you want to delete <span className="font-semibold text-[#1C1C1E]">"{task.title}"</span>? This action cannot be undone.
+          </p>
 
-          <h4 className="text-center text-lg font-semibold text-gray-900">
-            Are you sure you want to delete this task?
-          </h4>
-
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-1.5">
-            <p className="text-sm text-gray-700">
-              <span className="font-semibold text-gray-900">Title:</span>{" "}
-              {task.title}
-            </p>
+          <div className="bg-[#FAFAFA] rounded-[10px] p-3.5 border border-[#E5E5EA] space-y-1.5 text-[13px]">
             {task.description && (
-              <p className="text-sm text-gray-600 line-clamp-2">
-                <span className="font-semibold text-gray-900">Description:</span>{" "}
-                {task.description}
+              <p className="text-[#6E6E73] line-clamp-2">
+                <span className="font-medium text-[#1C1C1E] lowercase">description:</span> {task.description}
               </p>
             )}
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-900">Status:</span>{" "}
-              <span className="font-bold uppercase text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-800">
-                {task.status}
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-[#1C1C1E] text-[11px] lowercase">status:</span>
+              <span className="text-[11px] font-medium lowercase px-2 py-0.5 rounded-full bg-[#E5E5EA]/60 text-[#6E6E73]">
+                {task.status?.toLowerCase()}
               </span>
-            </p>
-            {task.priority && (
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">Priority:</span>{" "}
-                <span className="font-bold uppercase text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-800">
-                  {task.priority}
-                </span>
-              </p>
-            )}
+            </div>
           </div>
 
-          {/* Opciones de recurrencia si es tarea repetitiva */}
+          {/* Recurring Options */}
           {isRecurring && (
-            <div className="bg-purple-50/80 border border-purple-200 rounded-xl p-4 space-y-2.5">
-              <div className="flex items-center gap-1.5 text-purple-900 font-bold text-xs uppercase tracking-wider">
-                <Repeat size={14} />
-                Recurring Task Options
+            <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] p-3.5 space-y-2">
+              <div className="flex items-center gap-1.5 text-[#1C1C1E] font-semibold text-[12px]">
+                <Repeat size={14} strokeWidth={1.5} />
+                <span>Recurring options</span>
               </div>
-              <div className="space-y-2">
-                <label className="flex items-start gap-2 text-xs font-semibold text-gray-800 cursor-pointer">
+              <div className="space-y-1.5">
+                <label className="flex items-start gap-2 text-[13px] text-[#1C1C1E] cursor-pointer">
                   <input
                     type="radio"
                     name="deleteRecurringTask"
                     checked={!deleteFuture}
                     onChange={() => setDeleteFuture(false)}
-                    className="mt-0.5 text-red-600 focus:ring-red-500"
+                    className="mt-0.5 accent-[#171717] cursor-pointer"
                   />
-                  <div>
-                    <span className="text-gray-900">Delete this event only</span>
-                    <p className="text-[11px] text-gray-500 font-normal">
-                      Removes only this specific occurrence.
-                    </p>
-                  </div>
+                  <span>Delete this event only</span>
                 </label>
 
-                <label className="flex items-start gap-2 text-xs font-semibold text-gray-800 cursor-pointer">
+                <label className="flex items-start gap-2 text-[13px] text-[#1C1C1E] cursor-pointer">
                   <input
                     type="radio"
                     name="deleteRecurringTask"
                     checked={deleteFuture}
                     onChange={() => setDeleteFuture(true)}
-                    className="mt-0.5 text-red-600 focus:ring-red-500"
+                    className="mt-0.5 accent-[#171717] cursor-pointer"
                   />
-                  <div>
-                    <span className="text-red-700 font-bold">
-                      Delete all future events
-                    </span>
-                    <p className="text-[11px] text-gray-500 font-normal">
-                      Removes this occurrence and cancels all future recurrences.
-                    </p>
-                  </div>
+                  <span>Delete all future events</span>
                 </label>
               </div>
             </div>
           )}
-
-          <p className="text-sm text-red-600 text-center font-semibold">
-            ⚠️ This action cannot be undone.
-          </p>
         </div>
 
-        <div className="flex justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
+        <div className="flex justify-end gap-2.5 px-6 py-4 border-t border-[#E5E5EA] bg-[#FAFAFA]">
           <button
             type="button"
             onClick={onClose}
             disabled={isDeleting}
-            className="px-5 py-2 text-sm font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 text-[13px] font-medium bg-white hover:bg-[#F2F2F7] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[10px] transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
@@ -142,17 +108,17 @@ const TaskDeleteDialog = ({
             type="button"
             onClick={handleConfirm}
             disabled={isDeleting}
-            className="px-5 py-2 text-sm font-semibold bg-red-600 text-white hover:bg-red-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-md shadow-red-600/20"
+            className="px-4 py-2 text-[13px] font-medium bg-[#EF4444] text-white hover:bg-[#EF4444]/90 rounded-[10px] transition-colors flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
           >
             {isDeleting ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
-                Deleting...
+                <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                <span>Deleting...</span>
               </>
             ) : (
               <>
-                <Trash2 size={16} />
-                Delete
+                <Trash2 size={14} strokeWidth={1.5} />
+                <span>Delete task</span>
               </>
             )}
           </button>
@@ -163,3 +129,4 @@ const TaskDeleteDialog = ({
 };
 
 export default TaskDeleteDialog;
+

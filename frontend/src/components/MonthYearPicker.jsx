@@ -63,56 +63,54 @@ const MonthYearPicker = ({ isOpen, onClose, currentDate, onSelect, lang = "en" }
   const activeCurrentYear = getYear(activeDate);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div
         ref={popupRef}
-        className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-sm bg-white rounded-[14px] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA]"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
-          <div className="flex items-center gap-2 text-[#001F3F]">
-            <Calendar size={18} className="text-blue-600" />
-            <h3 className="text-sm font-black uppercase tracking-wider">
-              {lang === "es" ? "Saltar a Mes / Año" : "Jump to Month / Year"}
+        <div className="flex items-center justify-between pb-4 border-b border-[#E5E5EA] mb-4">
+          <div className="flex items-center gap-2 text-[#1C1C1E]">
+            <Calendar size={16} strokeWidth={1.5} className="text-[#1C1C1E]" />
+            <h3 className="text-[14px] font-semibold">
+              {lang === "es" ? "Seleccionar mes y año" : "Select month and year"}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+            className="text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors cursor-pointer"
           >
-            <X size={18} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Year Selector */}
-        <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-2 mb-4 border border-gray-100">
+        <div className="flex items-center justify-between bg-[#FAFAFA] rounded-[10px] p-2 mb-4 border border-[#E5E5EA]">
           <button
             type="button"
             onClick={() => setSelectedYear((y) => y - 1)}
-            className="p-2 hover:bg-white rounded-xl text-gray-700 hover:text-[#001F3F] transition-all hover:shadow-xs cursor-pointer"
+            className="p-1.5 hover:bg-white rounded-[8px] text-[#6E6E73] hover:text-[#1C1C1E] transition-all cursor-pointer"
             title="Previous Year"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} strokeWidth={1.5} />
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-black text-[#001F3F] tracking-tight">
-              {selectedYear}
-            </span>
-          </div>
+          <span className="text-[15px] font-semibold text-[#1C1C1E]">
+            {selectedYear}
+          </span>
 
           <button
             type="button"
             onClick={() => setSelectedYear((y) => y + 1)}
-            className="p-2 hover:bg-white rounded-xl text-gray-700 hover:text-[#001F3F] transition-all hover:shadow-xs cursor-pointer"
+            className="p-1.5 hover:bg-white rounded-[8px] text-[#6E6E73] hover:text-[#1C1C1E] transition-all cursor-pointer"
             title="Next Year"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* 12 Months Grid */}
-        <div className="grid grid-cols-3 gap-2 mb-5">
+        <div className="grid grid-cols-3 gap-2 mb-4">
           {MONTHS.map((m) => {
             const isSelected =
               selectedMonth === m.value && selectedYear === activeCurrentYear;
@@ -125,36 +123,33 @@ const MonthYearPicker = ({ isOpen, onClose, currentDate, onSelect, lang = "en" }
                 type="button"
                 key={`month-picker-${m.value}`}
                 onClick={() => handleMonthClick(m.value)}
-                className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all text-center flex flex-col items-center justify-center relative cursor-pointer ${
+                className={`py-2 px-2.5 rounded-[8px] text-[12px] font-medium transition-colors text-center cursor-pointer ${
                   isSelected
-                    ? "bg-[#001F3F] text-white shadow-md shadow-blue-900/20"
+                    ? "bg-[#171717] text-white shadow-xs"
                     : isCurrentYearMonth
-                    ? "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
-                    : "bg-gray-50/80 text-gray-700 hover:bg-gray-100 hover:text-black border border-gray-100"
+                    ? "bg-[#FAFAFA] text-[#1C1C1E] border border-[#171717]/40 font-semibold"
+                    : "bg-[#FAFAFA] text-[#1C1C1E] hover:bg-[#F2F2F7] border border-[#E5E5EA]"
                 }`}
               >
-                <span>{lang === "es" ? m.es : m.name}</span>
-                {isSelected && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-0.5"></span>
-                )}
+                <span>{lang === "es" ? m.es : m.short}</span>
               </button>
             );
           })}
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
+        <div className="flex items-center justify-between pt-3 border-t border-[#E5E5EA]">
           <button
             type="button"
             onClick={handleTodayClick}
-            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors cursor-pointer"
+            className="px-3 py-1.5 text-[12px] font-medium text-[#171717] hover:underline rounded-[8px] transition-colors cursor-pointer"
           >
-            {lang === "es" ? "Mes Actual" : "Current Month"}
+            {lang === "es" ? "Mes actual" : "Current month"}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] rounded-[8px] transition-colors cursor-pointer"
           >
             {lang === "es" ? "Cerrar" : "Close"}
           </button>
@@ -165,3 +160,4 @@ const MonthYearPicker = ({ isOpen, onClose, currentDate, onSelect, lang = "en" }
 };
 
 export default MonthYearPicker;
+
