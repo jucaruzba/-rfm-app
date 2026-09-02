@@ -52,20 +52,19 @@ export const pendingItemService = {
     return data; // Retorna Page<PendingItemDTO>
   },
 
-  // Obtener lista de pending items sin paginación (todos los filtros)
-  getFilter: async (filters = {}) => {
-    const params = new URLSearchParams();
+  // Obtener pending items por asignado
+  getByAssignedTo: async (assignedTo, page = 0, size = 10, filters = {}) => {
+    return pendingItemService.getFilters(page, size, {
+      ...filters,
+      assignedTo,
+    });
+  },
 
-    // Filtros opcionales
-    if (filters.status) params.append("status", filters.status);
-    if (filters.createdBy) params.append("createdBy", filters.createdBy);
-    if (filters.assignedTo) params.append("assignedTo", filters.assignedTo);
-    if (filters.referenceType)
-      params.append("referenceType", filters.referenceType);
-
-    const { data } = await api.get(
-      `/pending-items/filter?${params.toString()}`,
-    );
-    return data; // Retorna List<PendingItemDTO>
+  // Obtener pending items por creador
+  getByCreatedBy: async (createdBy, page = 0, size = 10, filters = {}) => {
+    return pendingItemService.getFilters(page, size, {
+      ...filters,
+      createdBy,
+    });
   },
 };

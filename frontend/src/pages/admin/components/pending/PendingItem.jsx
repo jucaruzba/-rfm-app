@@ -157,38 +157,30 @@ const PendingItem = () => {
     setLoading(true);
     try {
       const currentUserId = user.idUser || user.id;
+      const queryFilters = {};
+      if (filters.status) queryFilters.status = filters.status;
+      if (filters.referenceType) queryFilters.referenceType = filters.referenceType;
+
       let data;
       if (filters.viewType === "assigned") {
         data = await pendingItemService.getByAssignedTo(
           currentUserId,
           page,
           pageSize,
+          queryFilters,
         );
       } else {
         data = await pendingItemService.getByCreatedBy(
           currentUserId,
           page,
           pageSize,
+          queryFilters,
         );
       }
 
-      let items = data.content || [];
-      if (filters.status) {
-        items = items.filter(
-          (item) => item.status?.toLowerCase() === filters.status.toLowerCase(),
-        );
-      }
-      if (filters.referenceType) {
-        items = items.filter(
-          (item) =>
-            item.referenceType?.toLowerCase() ===
-            filters.referenceType.toLowerCase(),
-        );
-      }
-
-      setPendingItems(items);
-      setTotalPages(data.totalPages || 0);
-      setTotalElements(data.totalElements || 0);
+      setPendingItems(data?.content || []);
+      setTotalPages(data?.totalPages || 0);
+      setTotalElements(data?.totalElements || 0);
     } catch (err) {
       console.error("Error loading pending items", err);
       toast.error("Failed to load pending items");
