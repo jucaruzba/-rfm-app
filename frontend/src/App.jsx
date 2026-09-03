@@ -21,7 +21,6 @@ import UserProfile from "./pages/assistant/UserProfile";
 
 // Company Workspace Pages
 import CompanyDashboard from "./pages/company/CompanyDashboard";
-import CompanyActivities from "./pages/company/components/CompanyActivities";
 import CompanyTasks from "./pages/company/components/CompanyTasks";
 import CompanyExplorer from "./pages/company/components/CompanyExplorer";
 
@@ -178,7 +177,6 @@ function App() {
             }
           >
             <Route index element={<CompanyDashboard />} />
-            <Route path="activities" element={<CompanyActivities />} />
             <Route path="tasks" element={<CompanyTasks />} />
             <Route path="files" element={<CompanyExplorer />} />
           </Route>

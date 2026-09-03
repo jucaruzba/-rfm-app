@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../../../context/AuthContext";
 import {
   Eye,
@@ -12,7 +12,6 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Plus,
   Loader2,
   Users,
@@ -25,7 +24,6 @@ import {
 import { toast } from "sonner";
 import { pendingItemService } from "../../../../services/pendingItemService";
 import { userService } from "../../../../services/userService";
-import TaskDetailView from "../task/TaskDetailView";
 
 // ==========================================
 // STATUS COLOR CONFIG
@@ -121,9 +119,16 @@ const PendingItem = () => {
     assignedTo: "",
   });
   const [savingEdit, setSavingEdit] = useState(false);
+  const descriptionTextareaRef = useRef(null);
 
-  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  useEffect(() => {
+    if (isEditing && descriptionTextareaRef.current) {
+      descriptionTextareaRef.current.style.height = "auto";
+      descriptionTextareaRef.current.style.height = `${descriptionTextareaRef.current.scrollHeight}px`;
+    }
+  }, [isEditing, editForm.description]);
+
+  const newDescriptionTextareaRef = useRef(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [creatingPending, setCreatingPending] = useState(false);
@@ -134,6 +139,13 @@ const PendingItem = () => {
     status: "pending",
     assignedTo: "",
   });
+
+  useEffect(() => {
+    if (isCreateModalOpen && newDescriptionTextareaRef.current) {
+      newDescriptionTextareaRef.current.style.height = "auto";
+      newDescriptionTextareaRef.current.style.height = `${newDescriptionTextareaRef.current.scrollHeight}px`;
+    }
+  }, [isCreateModalOpen, newPendingForm.description]);
 
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
@@ -344,25 +356,6 @@ const PendingItem = () => {
     setItemToDelete(null);
   };
 
-  const handleShowTask = () => {
-    if (
-      selectedItem?.referenceType?.toLowerCase() === "task" &&
-      selectedItem?.referenceId
-    ) {
-      setSelectedTaskId(selectedItem.referenceId);
-      setIsDetailViewOpen(true);
-      setIsViewModalOpen(false);
-    }
-  };
-
-  const handleCloseTaskDetail = () => {
-    setIsDetailViewOpen(false);
-    setSelectedTaskId(null);
-  };
-
-  const handleTaskUpdated = () => {
-    fetchItems();
-  };
 
   const handleCreatePending = async (e) => {
     e.preventDefault();
@@ -381,9 +374,9 @@ const PendingItem = () => {
         title: newPendingForm.title.trim(),
         description: newPendingForm.description.trim() || "",
         status: newPendingForm.status,
-        createdBy: user.idUser || user.id,
+        createdBy: user?.id || user?.idUser,
         assignedTo: Number(newPendingForm.assignedTo),
-        referenceType: "DIRECT",
+        referenceType: null,
         referenceId: null,
       };
 
@@ -447,12 +440,12 @@ const PendingItem = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white px-5 py-3 rounded-[12px] border border-[#E5E5EA]">
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
             <button
               onClick={() => handleViewTypeChange("assigned")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
                 filters.viewType === "assigned"
                   ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
                   : "text-[#6E6E73] hover:text-[#1C1C1E]"
@@ -463,7 +456,7 @@ const PendingItem = () => {
             </button>
             <button
               onClick={() => handleViewTypeChange("created")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
                 filters.viewType === "created"
                   ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
                   : "text-[#6E6E73] hover:text-[#1C1C1E]"
@@ -478,48 +471,19 @@ const PendingItem = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={fetchItems}
-            className="p-2 bg-[#FAFAFA] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[10px] transition-colors"
+            className="p-1.5 bg-[#FAFAFA] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[8px] transition-colors cursor-pointer"
             title="Refresh"
           >
-            <RefreshCw size={15} strokeWidth={1.5} />
+            <RefreshCw size={14} strokeWidth={1.5} />
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
-            <Plus size={15} strokeWidth={1.5} />
-            <span>New pending item</span>
+            <Plus size={14} strokeWidth={1.5} />
+            <span>New pending</span>
           </button>
         </div>
-      </div>
-
-      {/* Filter Bar */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4 flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs">
-          <label className="text-[11px] font-medium lowercase text-[#6E6E73]">
-            status:
-          </label>
-          <select
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
-            className="w-full px-3 py-1.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
-          >
-            <option value="">all status</option>
-            <option value="pending">pending</option>
-            <option value="in_progress">in progress</option>
-            <option value="completed">completed</option>
-          </select>
-        </div>
-
-        {filters.status && (
-          <button
-            onClick={clearFilters}
-            className="text-[12px] text-[#EF4444] hover:underline transition-colors cursor-pointer"
-          >
-            Clear filter
-          </button>
-        )}
       </div>
 
       {/* Table */}
@@ -530,11 +494,9 @@ const PendingItem = () => {
               <tr className="bg-[#FAFAFA] text-[#6E6E73] text-[11px] font-medium lowercase border-b border-[#E5E5EA]">
                 <th className="p-3.5">title</th>
                 <th className="p-3.5">status</th>
-                <th className="p-3.5">
-                  {filters.viewType === "assigned"
-                    ? "created by"
-                    : "assigned to"}
-                </th>
+                {filters.viewType === "created" && (
+                  <th className="p-3.5">assigned to</th>
+                )}
                 <th className="p-3.5">date</th>
                 <th className="p-3.5 text-center">actions</th>
               </tr>
@@ -542,7 +504,7 @@ const PendingItem = () => {
             <tbody className="divide-y divide-[#E5E5EA]">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-[#AEAEB2]">
+                  <td colSpan={filters.viewType === "created" ? 5 : 4} className="p-8 text-center text-[#AEAEB2]">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-[#171717]" />
                       <span className="text-[13px]">Loading items...</span>
@@ -551,7 +513,7 @@ const PendingItem = () => {
                 </tr>
               ) : pendingItems.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="p-8 text-center text-[#AEAEB2]">
+                  <td colSpan={filters.viewType === "created" ? 5 : 4} className="p-8 text-center text-[#AEAEB2]">
                     <div className="flex flex-col items-center gap-1.5">
                       <AlertCircle size={22} strokeWidth={1.5} className="text-[#AEAEB2]" />
                       <p className="text-[13px]">No pending items found</p>
@@ -605,16 +567,14 @@ const PendingItem = () => {
                         />
                       )}
                     </td>
-                    <td className="p-3.5 text-[12px] text-[#6E6E73]">
-                      <div className="flex items-center gap-1.5">
-                        <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
-                        <span>
-                          {filters.viewType === "assigned"
-                            ? getUserNameById(item.createdBy)
-                            : getUserNameById(item.assignedTo)}
-                        </span>
-                      </div>
-                    </td>
+                    {filters.viewType === "created" && (
+                      <td className="p-3.5 text-[12px] text-[#6E6E73]">
+                        <div className="flex items-center gap-1.5">
+                          <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                          <span>{getUserNameById(item.assignedTo)}</span>
+                        </div>
+                      </td>
+                    )}
                     <td className="p-3.5 text-[12px] text-[#6E6E73]">
                       {item.createdAt
                         ? new Date(item.createdAt).toLocaleDateString()
@@ -684,7 +644,7 @@ const PendingItem = () => {
           <div className="bg-white w-full max-w-md rounded-[14px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA] overflow-hidden">
             <div className="flex justify-between items-center px-5 py-4 border-b border-[#E5E5EA]">
               <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
-                {isEditing ? "Edit pending item" : "Pending item details"}
+                Pending Item
               </h3>
               <div className="flex items-center gap-1.5">
                 {!isEditing ? (
@@ -757,97 +717,96 @@ const PendingItem = () => {
                 </label>
                 {isEditing ? (
                   <textarea
+                    ref={descriptionTextareaRef}
                     name="description"
                     value={editForm.description}
-                    onChange={handleEditChange}
-                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-20"
+                    onChange={(e) => {
+                      handleEditChange(e);
+                      e.target.style.height = "auto";
+                      e.target.style.height = `${e.target.scrollHeight}px`;
+                    }}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none overflow-hidden leading-relaxed"
                     placeholder="enter description..."
                   />
                 ) : (
-                  <div className="bg-[#FAFAFA] border border-[#E5E5EA] p-2.5 rounded-[8px] max-h-28 overflow-y-auto">
-                    <p className="text-[13px] text-[#6E6E73] whitespace-pre-wrap">
+                  <div className="bg-[#FAFAFA] border border-[#E5E5EA] p-2.5 rounded-[8px]">
+                    <p className="text-[13px] text-[#6E6E73] whitespace-pre-wrap break-words leading-relaxed">
                       {selectedItem.description || "no description provided"}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Status */}
-              <div>
-                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
-                  status
-                </label>
-                {isEditing ? (
-                  <select
-                    name="status"
-                    value={editForm.status}
-                    onChange={handleEditChange}
-                    className={`w-full text-[12px] font-medium lowercase px-2.5 py-1.5 rounded-[8px] border cursor-pointer ${getStatusColor(editForm.status)} outline-none`}
-                  >
-                    {STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span
-                    className={`inline-flex items-center text-[11px] font-medium lowercase px-2.5 py-0.5 rounded-full border ${getStatusColor(selectedItem.status)}`}
-                  >
-                    <StatusDot status={selectedItem.status} />
-                    {formatStatusForUI(selectedItem.status)}
-                  </span>
-                )}
-              </div>
-
-              {/* Assigned To */}
-              <div>
-                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
-                  assigned to *
-                </label>
-                {isEditing ? (
-                  <select
-                    name="assignedTo"
-                    value={editForm.assignedTo}
-                    onChange={handleEditChange}
-                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
-                  >
-                    <option value="">-- Select user --</option>
-                    {allUsers.map((u) => {
-                      const currentId = u.idUser || u.id;
-                      const currentUserId = user?.idUser || user?.id;
-                      return (
-                        <option
-                          key={`edit-user-${currentId}`}
-                          value={currentId}
-                        >
-                          {u.username || u.name}
-                          {currentId === currentUserId && " (You)"}
+              {/* Status & Assigned To in the same line */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                    status
+                  </label>
+                  {isEditing ? (
+                    <select
+                      name="status"
+                      value={editForm.status}
+                      onChange={handleEditChange}
+                      className={`w-full text-[12px] font-medium lowercase px-2.5 py-1.5 rounded-[8px] border cursor-pointer ${getStatusColor(editForm.status)} outline-none h-[38px]`}
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
                         </option>
-                      );
-                    })}
-                  </select>
-                ) : (
-                  <p className="text-[13px] text-[#1C1C1E] bg-[#FAFAFA] border border-[#E5E5EA] p-2.5 rounded-[8px] flex items-center gap-2">
-                    <Users size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
-                    <span>{getUserNameById(selectedItem.assignedTo)}</span>
-                  </p>
-                )}
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-2 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] flex items-center h-[38px]">
+                      <span
+                        className={`inline-flex items-center text-[11px] font-medium lowercase px-2.5 py-0.5 rounded-full border ${getStatusColor(selectedItem.status)}`}
+                      >
+                        <StatusDot status={selectedItem.status} />
+                        {formatStatusForUI(selectedItem.status)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                    assigned to *
+                  </label>
+                  {isEditing ? (
+                    <select
+                      name="assignedTo"
+                      value={editForm.assignedTo}
+                      onChange={handleEditChange}
+                      className="w-full px-2.5 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[12.5px] text-[#1C1C1E] truncate h-[38px]"
+                    >
+                      <option value="">-- Select user --</option>
+                      {allUsers.map((u) => {
+                        const currentId = u.idUser || u.id;
+                        const currentUserId = user?.idUser || user?.id;
+                        return (
+                          <option
+                            key={`edit-user-${currentId}`}
+                            value={currentId}
+                          >
+                            {u.username || u.name}
+                            {currentId === currentUserId && " (You)"}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <p className="text-[12.5px] text-[#1C1C1E] bg-[#FAFAFA] border border-[#E5E5EA] p-2 rounded-[8px] flex items-center gap-1.5 truncate h-[38px]">
+                      <Users size={13} strokeWidth={1.5} className="text-[#AEAEB2] shrink-0" />
+                      <span className="truncate">{getUserNameById(selectedItem.assignedTo)}</span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 px-5 py-3 border-t border-[#E5E5EA] bg-[#FAFAFA]">
-              {selectedItem.referenceType?.toLowerCase() === "task" && (
-                <button
-                  onClick={handleShowTask}
-                  className="px-4 py-1.5 text-[12px] font-medium bg-[#171717] text-white hover:bg-[#2C2C2E] rounded-[8px] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <ExternalLink size={14} strokeWidth={1.5} />
-                  <span>View task</span>
-                </button>
-              )}
-
-              {isEditing ? (
+            {isEditing && (
+              <div className="flex justify-end gap-2 px-5 py-3 border-t border-[#E5E5EA] bg-[#FAFAFA]">
                 <button
                   onClick={handleSaveEdit}
                   disabled={savingEdit}
@@ -860,18 +819,8 @@ const PendingItem = () => {
                   )}
                   <span>Save changes</span>
                 </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    setIsViewModalOpen(false);
-                    setIsEditing(false);
-                  }}
-                  className="px-4 py-1.5 text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] rounded-[8px] hover:bg-[#F2F2F7] transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -906,13 +855,6 @@ const PendingItem = () => {
         </div>
       )}
 
-      {/* Task Detail View */}
-      <TaskDetailView
-        isOpen={isDetailViewOpen}
-        onClose={handleCloseTaskDetail}
-        taskId={selectedTaskId}
-        onTaskUpdated={handleTaskUpdated}
-      />
 
       {/* Create Modal */}
       {isCreateModalOpen && (
@@ -920,7 +862,7 @@ const PendingItem = () => {
           <div className="bg-white w-full max-w-md rounded-[14px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA] p-6 space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-[#E5E5EA]">
               <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
-                New pending item
+                New pending
               </h3>
               <button
                 onClick={() => {
@@ -963,70 +905,76 @@ const PendingItem = () => {
                   description
                 </label>
                 <textarea
+                  ref={newDescriptionTextareaRef}
                   placeholder="enter description..."
                   value={newPendingForm.description}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setNewPendingForm({
                       ...newPendingForm,
                       description: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] h-18 resize-none"
+                    });
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none overflow-hidden leading-relaxed"
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
-                  status
-                </label>
-                <select
-                  value={newPendingForm.status}
-                  onChange={(e) =>
-                    setNewPendingForm({
-                      ...newPendingForm,
-                      status: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
-                  assign to *
-                </label>
-                <select
-                  required
-                  value={newPendingForm.assignedTo}
-                  onChange={(e) =>
-                    setNewPendingForm({
-                      ...newPendingForm,
-                      assignedTo: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
-                >
-                  <option value="">-- Select user --</option>
-                  {allUsers.map((u) => {
-                    const currentId = u.idUser || u.id;
-                    const currentUserId = user?.idUser || user?.id;
-                    return (
-                      <option
-                        key={`create-user-${currentId}`}
-                        value={currentId}
-                      >
-                        {u.username || u.name}
-                        {currentId === currentUserId && " (You)"}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                    status
+                  </label>
+                  <select
+                    value={newPendingForm.status}
+                    onChange={(e) =>
+                      setNewPendingForm({
+                        ...newPendingForm,
+                        status: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
+                  >
+                    {STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
                       </option>
-                    );
-                  })}
-                </select>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium lowercase text-[#6E6E73] mb-1">
+                    assign to *
+                  </label>
+                  <select
+                    required
+                    value={newPendingForm.assignedTo}
+                    onChange={(e) =>
+                      setNewPendingForm({
+                        ...newPendingForm,
+                        assignedTo: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none cursor-pointer text-[13px] text-[#1C1C1E]"
+                  >
+                    <option value="">-- Select user --</option>
+                    {allUsers.map((u) => {
+                      const currentId = u.idUser || u.id;
+                      const currentUserId = user?.idUser || user?.id;
+                      return (
+                        <option
+                          key={`create-user-${currentId}`}
+                          value={currentId}
+                        >
+                          {u.username || u.name}
+                          {currentId === currentUserId && " (You)"}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
@@ -1050,7 +998,7 @@ const PendingItem = () => {
                   disabled={creatingPending}
                   className="px-4 py-1.5 text-[12px] font-medium bg-[#171717] text-white hover:bg-[#2C2C2E] rounded-[8px] transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
-                  {creatingPending ? "Saving..." : "Save item"}
+                  {creatingPending ? "Creating..." : "Create"}
                 </button>
               </div>
             </form>

@@ -21,6 +21,7 @@ import {
   Eye,
   Repeat,
   Tag,
+  Home,
 } from "lucide-react";
 import { projectObjectService } from "../../../services/projectObjectService";
 import { nodeService } from "../../../services/nodeService";

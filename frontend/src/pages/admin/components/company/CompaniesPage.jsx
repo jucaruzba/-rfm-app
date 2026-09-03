@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -72,6 +72,7 @@ const CompaniesPage = () => {
     type: "MY_BUSINESS",
     status: "ACTIVE",
   });
+  const descRef = useRef(null);
 
   // --- CONFIRMATION MODAL STATES ---
   const [confirmModal, setConfirmModal] = useState({
@@ -124,6 +125,9 @@ const CompaniesPage = () => {
         type: "MY_BUSINESS",
         status: "ACTIVE",
       });
+      if (descRef.current) {
+        descRef.current.style.height = "auto";
+      }
       fetchCompanies();
     } catch (err) {
       toast.error("Error creating company");
@@ -200,42 +204,57 @@ const CompaniesPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Action bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
-        <div className="flex items-center gap-2">
+      {/* Action bar & Search */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-4 py-2.5 rounded-[12px] border border-[#E5E5EA]">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto flex-1 max-w-md">
+          <div className="relative flex-1">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
+              size={14}
+              strokeWidth={1.5}
+            />
+            <input
+              type="text"
+              placeholder="Search companies..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-8 pr-3 outline-none focus:border-[#171717] focus:bg-white text-[12.5px] text-[#1C1C1E] transition-all"
+            />
+          </div>
+
           {/* View switcher */}
-          <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
+          <div className="flex items-center bg-[#FAFAFA] p-0.5 rounded-[8px] border border-[#E5E5EA] shrink-0">
             <button
               type="button"
               onClick={() => setViewMode("icons")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[12px] font-medium transition-colors cursor-pointer ${
                 viewMode === "icons"
                   ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
                   : "text-[#6E6E73] hover:text-[#1C1C1E]"
               }`}
             >
-              <LayoutGrid size={14} strokeWidth={1.5} />
+              <LayoutGrid size={13} strokeWidth={1.5} />
               <span>Grid</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[12px] font-medium transition-colors cursor-pointer ${
                 viewMode === "list"
                   ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
                   : "text-[#6E6E73] hover:text-[#1C1C1E]"
               }`}
             >
-              <List size={14} strokeWidth={1.5} />
+              <List size={13} strokeWidth={1.5} />
               <span>List</span>
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[12px] font-medium transition-colors border border-[#E5E5EA] ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors border border-[#E5E5EA] cursor-pointer ${
               showArchived
                 ? "bg-[#FAFAFA] text-[#1C1C1E]"
                 : "bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA]"
@@ -243,82 +262,77 @@ const CompaniesPage = () => {
           >
             {showArchived ? (
               <>
-                <EyeOff size={14} strokeWidth={1.5} />
+                <EyeOff size={13} strokeWidth={1.5} />
                 <span>Hide archived</span>
               </>
             ) : (
               <>
-                <Archive size={14} strokeWidth={1.5} />
+                <Archive size={13} strokeWidth={1.5} />
                 <span>Show archived</span>
               </>
             )}
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
           >
-            <Plus size={15} strokeWidth={1.5} />
+            <Plus size={14} strokeWidth={1.5} />
             <span>New company</span>
           </button>
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="relative">
-        <Search
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
-          size={15}
-          strokeWidth={1.5}
-        />
-        <input
-          type="text"
-          placeholder="Search companies..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-white border border-[#E5E5EA] rounded-[10px] py-2.5 pl-9 pr-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] transition-all"
-        />
-      </div>
-
       {/* Companies view (Grid or List) */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {[1, 2, 3].map((n) => (
             <div
               key={n}
-              className="h-44 bg-white border border-[#E5E5EA] animate-pulse rounded-[12px]"
+              className="h-28 bg-white border border-[#E5E5EA] animate-pulse rounded-[10px]"
             />
           ))}
         </div>
       ) : filteredCompanies.length > 0 ? (
         viewMode === "icons" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredCompanies.map((company) => (
               <div
                 key={company.idCompany}
-                className={`bg-white rounded-[12px] border p-5 flex flex-col justify-between transition-colors ${
+                className={`bg-white rounded-[10px] border p-3.5 flex flex-col justify-between transition-colors ${
                   company.status === "ARCHIVED"
                     ? "border-[#E5E5EA] opacity-60"
                     : "border-[#E5E5EA] hover:border-[#171717]/30"
                 }`}
               >
                 <div>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div
-                      className="w-12 h-12 bg-[#FAFAFA] rounded-[10px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden cursor-pointer"
-                      onClick={() => navigate(`/companies/${company.idCompany}`)}
-                    >
-                      {company.logoPath ? (
-                        <img
-                          src={fileService.getFileUrl(company.logoPath)}
-                          alt={company.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Building2 size={20} strokeWidth={1.5} className="text-[#AEAEB2]" />
-                      )}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-9 h-9 bg-[#FAFAFA] rounded-[8px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden cursor-pointer"
+                        onClick={() => navigate(`/companies/${company.idCompany}`)}
+                      >
+                        {company.logoPath ? (
+                          <img
+                            src={fileService.getFileUrl(company.logoPath)}
+                            alt={company.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Building2 size={16} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                        )}
+                      </div>
+
+                      <div
+                        className="min-w-0 cursor-pointer"
+                        onClick={() => navigate(`/companies/${company.idCompany}`)}
+                      >
+                        <h2 className="text-[13.5px] font-semibold text-[#1C1C1E] hover:text-[#171717] transition-colors truncate">
+                          {company.name}
+                        </h2>
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5 items-center">
+                    <div className="flex items-center gap-1 shrink-0">
                       {company.status && (
                         <span
                           className={`inline-flex items-center text-[10px] font-medium lowercase px-2 py-0.5 rounded-full border ${getStatusColor(company.status)}`}
@@ -336,26 +350,23 @@ const CompaniesPage = () => {
                     </div>
                   </div>
 
-                  <div
-                    className="space-y-1.5 cursor-pointer"
-                    onClick={() => navigate(`/companies/${company.idCompany}`)}
-                  >
-                    <h2 className="text-[15px] font-semibold text-[#1C1C1E] hover:text-[#171717] transition-colors line-clamp-1">
-                      {company.name}
-                    </h2>
-
-                    <p className="text-[12.5px] text-[#6E6E73] line-clamp-2">
-                      {company.description || "No description provided."}
+                  {company.description && (
+                    <p
+                      className="text-[11.5px] text-[#6E6E73] line-clamp-1 cursor-pointer mb-1"
+                      onClick={() => navigate(`/companies/${company.idCompany}`)}
+                    >
+                      {company.description}
                     </p>
-                  </div>
+                  )}
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-[#E5E5EA] flex items-center justify-between">
+                <div className="mt-2.5 pt-2 border-t border-[#E5E5EA] flex items-center justify-between">
                   <button
                     onClick={() => navigate(`/companies/${company.idCompany}`)}
-                    className="text-[12px] font-medium text-[#1C1C1E] hover:underline transition-colors cursor-pointer"
+                    className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors cursor-pointer"
+                    title="View workspace"
                   >
-                    View workspace →
+                    <Eye size={15} strokeWidth={1.5} />
                   </button>
 
                   <div className="flex items-center gap-1">
@@ -365,10 +376,10 @@ const CompaniesPage = () => {
                           e.stopPropagation();
                           handleRestore(company.idCompany, company.name);
                         }}
-                        className="p-1.5 text-[#10B981] hover:bg-[#10B981]/10 rounded-[6px] transition-colors"
+                        className="p-1.5 text-[#10B981] hover:bg-[#10B981]/10 rounded-[6px] transition-colors cursor-pointer"
                         title="Restore company"
                       >
-                        <RotateCcw size={15} strokeWidth={1.5} />
+                        <RotateCcw size={14} strokeWidth={1.5} />
                       </button>
                     ) : (
                       <button
@@ -376,10 +387,10 @@ const CompaniesPage = () => {
                           e.stopPropagation();
                           handleDelete(company.idCompany, company.name);
                         }}
-                        className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors"
+                        className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors cursor-pointer"
                         title="Delete company"
                       >
-                        <Trash2 size={15} strokeWidth={1.5} />
+                        <Trash2 size={14} strokeWidth={1.5} />
                       </button>
                     )}
                   </div>
@@ -469,9 +480,10 @@ const CompaniesPage = () => {
                             onClick={() =>
                               navigate(`/companies/${company.idCompany}`)
                             }
-                            className="px-2.5 py-1 text-[11px] font-medium text-[#1C1C1E] hover:bg-[#FAFAFA] border border-[#E5E5EA] rounded-[6px] transition-colors cursor-pointer"
+                            className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors cursor-pointer"
+                            title="View workspace"
                           >
-                            View
+                            <Eye size={14} strokeWidth={1.5} />
                           </button>
                           {company.status === "ARCHIVED" ? (
                             <button
@@ -554,54 +566,61 @@ const CompaniesPage = () => {
                   description
                 </label>
                 <textarea
-                  rows="3"
-                  placeholder="Briefly describe company operations..."
+                  ref={descRef}
+                  rows={1}
+                  placeholder="briefly describe company operations..."
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] resize-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, description: e.target.value });
+                    if (descRef.current) {
+                      descRef.current.style.height = "auto";
+                      descRef.current.style.height = `${descRef.current.scrollHeight}px`;
+                    }
+                  }}
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] resize-none overflow-hidden transition-all"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-                  company type *
-                </label>
-                <select
-                  required
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData({ ...formData, type: e.target.value })
-                  }
-                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
-                >
-                  {COMPANY_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    company type *
+                  </label>
+                  <select
+                    required
+                    value={formData.type}
+                    onChange={(e) =>
+                      setFormData({ ...formData, type: e.target.value })
+                    }
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
+                  >
+                    {COMPANY_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-                  status *
-                </label>
-                <select
-                  required
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
-                  }
-                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
-                >
-                  {COMPANY_STATUSES.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    status *
+                  </label>
+                  <select
+                    required
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-2.5 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] cursor-pointer"
+                  >
+                    {COMPANY_STATUSES.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA]">

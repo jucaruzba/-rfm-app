@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
   Folder,
   FileText,
   ChevronRight,
-  HardDrive,
   Search,
   Plus,
   Trash2,
@@ -16,12 +15,16 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { nodeService } from "../../../services/nodeService";
+import { useAuth } from "../../../context/AuthContext";
 import FileViewer from "../../admin/components/FileViewer";
 import ConfirmDialog from "../../ui/ConfirmDialog";
 import { toast } from "sonner";
 
 const CompanyExplorer = () => {
   const { companyId } = useParams();
+  const { user } = useAuth();
+  const isAdmin =
+    user?.role?.toLowerCase() === "admin" || user?.role === "ADMIN";
 
   const [nodes, setNodes] = useState([]);
   const [currentNodeId, setCurrentNodeId] = useState(null);
@@ -36,12 +39,14 @@ const CompanyExplorer = () => {
   const [folderName, setFolderName] = useState("");
   const [folderDesc, setFolderDesc] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const folderDescRef = useRef(null);
 
   // Modal upload file
   const [showUpload, setShowUpload] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [fileDesc, setFileDesc] = useState("");
   const [uploading, setUploading] = useState(false);
+  const fileDescRef = useRef(null);
 
   // Modal confirm
   const [confirmDialog, setConfirmDialog] = useState({
@@ -110,6 +115,10 @@ const CompanyExplorer = () => {
     const targetNode = newPath[index];
     setCurrentNodeId(targetNode.idNode);
     await loadNodeChildren(targetNode.idNode);
+  };
+
+  const handleFileClick = (file) => {
+    setSelectedFile(file);
   };
 
   const handleCreateFolder = async (e) => {
@@ -203,27 +212,23 @@ const CompanyExplorer = () => {
     node.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const getFileExt = (filename) => {
-    return filename?.split(".").pop() || "FILE";
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Action and Navigation bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
-        {/* Breadcrumb Path */}
-        <div className="flex items-center gap-2 overflow-x-auto max-w-full">
+    <div className="space-y-4">
+      {/* Unified Slim Action & Navigation Card */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-white px-4 py-2.5 rounded-[12px] border border-[#E5E5EA]">
+        {/* Left: Back button & Breadcrumb path */}
+        <div className="flex items-center gap-2 overflow-x-auto max-w-full w-full md:w-auto">
           {pathStack.length > 1 && (
             <button
               onClick={handleBack}
-              className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] hover:bg-[#FAFAFA] transition-colors"
+              className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] rounded-[6px] hover:bg-[#FAFAFA] border border-[#E5E5EA] transition-colors cursor-pointer shrink-0"
               title="Back"
             >
-              <ArrowLeft size={16} strokeWidth={1.5} />
+              <ArrowLeft size={13} strokeWidth={1.5} />
             </button>
           )}
 
-          <div className="flex items-center gap-1 text-[13px] font-medium text-[#1C1C1E]">
+          <div className="flex items-center gap-1 text-[12.5px] font-medium text-[#1C1C1E] shrink-0">
             {pathStack.map((item, idx) => (
               <div key={item.idNode || idx} className="flex items-center">
                 <button
@@ -237,83 +242,88 @@ const CompanyExplorer = () => {
                   {item.name}
                 </button>
                 {idx < pathStack.length - 1 && (
-                  <ChevronRight size={14} strokeWidth={1.5} className="text-[#AEAEB2] mx-1" />
+                  <ChevronRight size={13} strokeWidth={1.5} className="text-[#AEAEB2] mx-1" />
                 )}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right: Search, New folder, Upload file */}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end shrink-0">
+          <div className="relative flex-1 md:w-56">
+            <Search
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
+              size={13}
+              strokeWidth={1.5}
+            />
+            <input
+              type="text"
+              placeholder="Search in folder..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-7 pr-3 outline-none focus:border-[#171717] focus:bg-white text-[12px] text-[#1C1C1E] transition-all"
+            />
+          </div>
+
           <button
             onClick={() => setShowCreateFolder(true)}
-            className="flex items-center gap-1.5 bg-white hover:bg-[#FAFAFA] text-[#1C1C1E] border border-[#E5E5EA] px-3.5 py-2 rounded-[10px] text-[12px] font-medium transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 bg-white hover:bg-[#FAFAFA] text-[#1C1C1E] border border-[#E5E5EA] px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer shrink-0"
           >
-            <Plus size={14} strokeWidth={1.5} />
+            <Plus size={13} strokeWidth={1.5} />
             <span>New folder</span>
           </button>
 
           <button
             onClick={() => setShowUpload(true)}
-            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer shrink-0"
           >
-            <Upload size={14} strokeWidth={1.5} />
-            <span>Upload file</span>
+            <Upload size={13} strokeWidth={1.5} />
+            <span>Upload</span>
           </button>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
-          size={15}
-          strokeWidth={1.5}
-        />
-        <input
-          type="text"
-          placeholder="Search files and folders..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-white border border-[#E5E5EA] rounded-[10px] py-2.5 pl-9 pr-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] transition-all"
-        />
-      </div>
-
       {/* Content Area */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-6 min-h-[360px]">
+      <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-5 min-h-[380px]">
         {error && (
           <div className="bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-[8px] p-3 flex items-center gap-2 mb-4">
-            <AlertCircle size={16} strokeWidth={1.5} className="text-[#EF4444]" />
-            <p className="text-[13px] text-[#EF4444] font-medium">{error}</p>
+            <AlertCircle size={15} strokeWidth={1.5} className="text-[#EF4444]" />
+            <p className="text-[12.5px] text-[#EF4444] font-medium">{error}</p>
           </div>
         )}
 
         {loading ? (
           <div className="h-64 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="text-[#171717] animate-spin" size={24} strokeWidth={1.5} />
+            <Loader2 className="text-[#171717] animate-spin" size={22} strokeWidth={1.5} />
             <p className="text-[12px] text-[#AEAEB2]">Loading explorer...</p>
           </div>
         ) : filteredNodes.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {filteredNodes.map((item) => (
               <div
                 key={item.idNode}
-                className="group flex flex-col items-center gap-2.5 p-3 rounded-[10px] border border-[#E5E5EA] hover:border-[#171717]/30 hover:bg-[#FAFAFA] transition-colors relative shadow-xs"
+                className="group flex flex-col items-center gap-2 p-3 rounded-[10px] border border-[#E5E5EA] hover:border-[#171717]/30 hover:bg-[#FAFAFA] transition-colors relative shadow-xs"
               >
                 <div
-                  className={`w-14 h-14 flex items-center justify-center rounded-[8px] transition-colors ${
+                  className={`w-12 h-12 flex items-center justify-center rounded-[8px] transition-colors ${
                     item.nodeType === "FOLDER"
-                      ? "bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] cursor-pointer"
-                      : "bg-[#FAFAFA] text-[#AEAEB2]"
+                      ? "bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] cursor-pointer hover:bg-white"
+                      : "bg-[#FAFAFA] text-[#AEAEB2] cursor-pointer hover:bg-white"
                   }`}
+                  onClick={() =>
+                    item.nodeType === "FOLDER"
+                      ? handleFolderClick(item)
+                      : handleFileClick(item)
+                  }
                   onDoubleClick={() =>
                     item.nodeType === "FOLDER" && handleFolderClick(item)
                   }
                 >
                   {item.nodeType === "FOLDER" ? (
-                    <Folder size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />
+                    <Folder size={24} strokeWidth={1.5} className="text-[#1C1C1E]" />
                   ) : (
-                    <FileText size={28} strokeWidth={1.5} />
+                    <FileText size={24} strokeWidth={1.5} className="text-[#6E6E73]" />
                   )}
                 </div>
 
@@ -332,11 +342,11 @@ const CompanyExplorer = () => {
                 </div>
 
                 {/* Quick actions on hover */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 flex items-center gap-1 bg-white/90 backdrop-blur-xs rounded-[6px] p-0.5 border border-[#E5E5EA]">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 flex items-center gap-1 bg-white/95 backdrop-blur-xs rounded-[6px] p-0.5 border border-[#E5E5EA] shadow-xs">
                   {item.nodeType !== "FOLDER" && (
                     <button
                       onClick={() => handleFileClick(item)}
-                      className="p-1 hover:bg-[#FAFAFA] rounded text-[#6E6E73] hover:text-[#1C1C1E] transition-colors"
+                      className="p-1 hover:bg-[#FAFAFA] rounded text-[#6E6E73] hover:text-[#1C1C1E] transition-colors cursor-pointer"
                       title="View file"
                     >
                       <Eye size={12} strokeWidth={1.5} />
@@ -345,7 +355,7 @@ const CompanyExplorer = () => {
                   {isAdmin && (
                     <button
                       onClick={() => handleDeleteClick(item)}
-                      className="p-1 hover:bg-[#EF4444]/10 rounded text-[#AEAEB2] hover:text-[#EF4444] transition-colors"
+                      className="p-1 hover:bg-[#EF4444]/10 rounded text-[#AEAEB2] hover:text-[#EF4444] transition-colors cursor-pointer"
                       title="Delete"
                     >
                       <Trash2 size={12} strokeWidth={1.5} />
@@ -357,7 +367,7 @@ const CompanyExplorer = () => {
           </div>
         ) : (
           <div className="h-64 flex flex-col items-center justify-center gap-2 text-center">
-            <p className="text-[13px] text-[#AEAEB2]">This folder is empty</p>
+            <p className="text-[12.5px] text-[#AEAEB2]">This folder is empty</p>
           </div>
         )}
       </div>
@@ -367,14 +377,14 @@ const CompanyExplorer = () => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-[14px] p-6 max-w-sm w-full border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
-              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+              <h3 className="text-[15px] font-semibold text-[#1C1C1E]">
                 New folder
               </h3>
               <button
                 onClick={() => setShowCreateFolder(false)}
                 className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -385,10 +395,10 @@ const CompanyExplorer = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="enter folder name..."
+                  placeholder="Enter folder name..."
                   value={folderName}
                   onChange={(e) => setFolderName(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[12.5px] text-[#1C1C1E]"
                   required
                 />
               </div>
@@ -398,10 +408,18 @@ const CompanyExplorer = () => {
                   description
                 </label>
                 <textarea
-                  placeholder="optional description..."
+                  ref={folderDescRef}
+                  placeholder="Optional description..."
                   value={folderDesc}
-                  onChange={(e) => setFolderDesc(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-20"
+                  rows={2}
+                  onChange={(e) => {
+                    setFolderDesc(e.target.value);
+                    if (folderDescRef.current) {
+                      folderDescRef.current.style.height = "auto";
+                      folderDescRef.current.style.height = `${folderDescRef.current.scrollHeight}px`;
+                    }
+                  }}
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[12.5px] text-[#1C1C1E] resize-none overflow-hidden"
                 />
               </div>
 
@@ -419,7 +437,7 @@ const CompanyExplorer = () => {
                   className="px-4 py-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   {creatingFolder && <Loader2 size={13} className="animate-spin" />}
-                  <span>Save folder</span>
+                  <span>Create</span>
                 </button>
               </div>
             </form>
@@ -432,19 +450,19 @@ const CompanyExplorer = () => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-[14px] p-6 max-w-sm w-full border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
-              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+              <h3 className="text-[15px] font-semibold text-[#1C1C1E]">
                 Upload file
               </h3>
               <button
                 onClick={() => setShowUpload(false)}
                 className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
             <form onSubmit={handleUploadFile} className="space-y-3.5">
-              <div className="border border-dashed border-[#E5E5EA] rounded-[10px] p-6 text-center hover:border-[#171717] transition-colors">
+              <div className="border border-dashed border-[#E5E5EA] rounded-[10px] p-5 text-center hover:border-[#171717] transition-colors bg-[#FAFAFA]">
                 <input
                   type="file"
                   onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
@@ -452,7 +470,7 @@ const CompanyExplorer = () => {
                   id="file-input"
                 />
                 <label htmlFor="file-input" className="cursor-pointer block">
-                  <Upload size={24} strokeWidth={1.5} className="mx-auto mb-1 text-[#AEAEB2]" />
+                  <Upload size={22} strokeWidth={1.5} className="mx-auto mb-1.5 text-[#AEAEB2]" />
                   <p className="text-[12px] font-medium text-[#1C1C1E]">
                     {uploadFile ? uploadFile.name : "Select a file"}
                   </p>
@@ -464,10 +482,18 @@ const CompanyExplorer = () => {
                   description
                 </label>
                 <textarea
-                  placeholder="optional description..."
+                  ref={fileDescRef}
+                  placeholder="Optional description..."
                   value={fileDesc}
-                  onChange={(e) => setFileDesc(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-18"
+                  rows={2}
+                  onChange={(e) => {
+                    setFileDesc(e.target.value);
+                    if (fileDescRef.current) {
+                      fileDescRef.current.style.height = "auto";
+                      fileDescRef.current.style.height = `${fileDescRef.current.scrollHeight}px`;
+                    }
+                  }}
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[12.5px] text-[#1C1C1E] resize-none overflow-hidden"
                 />
               </div>
 

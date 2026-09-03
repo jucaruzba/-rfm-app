@@ -35,7 +35,7 @@ export const nodeService = {
 
     const { data } = await api.post("/nodes/upload", formData, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": undefined,
       },
     });
     return data;

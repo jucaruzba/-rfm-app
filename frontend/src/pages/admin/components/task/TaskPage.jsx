@@ -69,7 +69,6 @@ const TasksPage = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterPriority, setFilterPriority] = useState("");
 
   // --- NUEVOS ESTADOS DE PAGINACIÓN ---
   const [page, setPage] = useState(0);
@@ -120,6 +119,13 @@ const TasksPage = () => {
     };
     loadMetadata();
   }, []);
+
+  useEffect(() => {
+    if (companyId) {
+      setFilterCompany(companyId);
+      setFormData((prev) => ({ ...prev, idCompany: companyId }));
+    }
+  }, [companyId]);
 
   // Consulta paginada para la vista Lista
   const fetchTasks = useCallback(async () => {
@@ -223,6 +229,7 @@ const TasksPage = () => {
     setTaskToDelete(task);
     setIsDeleteModalOpen(true);
   };
+  const handleRequestDelete = handleDeleteClick;
 
   const handleConfirmDelete = async (task, deleteFuture) => {
     if (!task) return;
@@ -385,143 +392,71 @@ const TasksPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Action bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-[#E5E5EA] rounded-[12px] px-6 py-4 shadow-none shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
-            <button
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
-                viewMode === "list"
-                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
-                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
-              }`}
-            >
-              <ListIcon size={14} strokeWidth={1.5} />
-              <span>List</span>
-            </button>
-            <button
-              onClick={() => setViewMode("calendar")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors ${
-                viewMode === "calendar"
-                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
-                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
-              }`}
-            >
-              <CalendarDays size={14} strokeWidth={1.5} />
-              <span>Calendar</span>
-            </button>
+      {/* Control panel: View mode, New task, Status filters & Search in one unified card */}
+      <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-5 shadow-xs space-y-4">
+        {/* Top row: View mode switch & New task button */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                    : "text-[#6E6E73] hover:text-[#1C1C1E]"
+                }`}
+              >
+                <ListIcon size={14} strokeWidth={1.5} />
+                <span>List</span>
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
+                  viewMode === "calendar"
+                    ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                    : "text-[#6E6E73] hover:text-[#1C1C1E]"
+                }`}
+              >
+                <CalendarDays size={14} strokeWidth={1.5} />
+                <span>Calendar</span>
+              </button>
+            </div>
           </div>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] active:bg-black text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
+          >
+            <Plus size={15} strokeWidth={1.5} />
+            <span>New task</span>
+          </button>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] active:bg-black text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
-        >
-          <Plus size={15} strokeWidth={1.5} />
-          <span>New task</span>
-        </button>
-      </div>
-
-      {/* Advanced filter panel */}
-      <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-5 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* Corporate Client */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              corporate client
-            </label>
-            <select
-              value={filterCompany}
-              disabled={!!companyId}
-              onChange={(e) => setFilterCompany(e.target.value)}
-              className="w-full bg-white border border-[#E5E5EA] rounded-[10px] px-3 py-2 text-[13px] text-[#1C1C1E] outline-none focus:border-[#171717] focus:ring-1 focus:ring-[#171717]/20 cursor-pointer"
-            >
-              <option value="">All companies</option>
-              {companies.map((c) => (
-                <option
-                  key={`filter-company-${c.idCompany}`}
-                  value={c.idCompany}
-                >
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Assigned Operator */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              assigned operator
-            </label>
-            <select
-              value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
-              className="w-full bg-white border border-[#E5E5EA] rounded-[10px] px-3 py-2 text-[13px] text-[#1C1C1E] outline-none focus:border-[#171717] focus:ring-1 focus:ring-[#171717]/20 cursor-pointer"
-            >
-              <option value="">All operators</option>
-              {users.map((u) => (
-                <option key={`filter-user-${u.idUser || u.id}`} value={u.idUser || u.id}>
-                  {u.name || u.username}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* From Date */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              from date
-            </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full bg-white border border-[#E5E5EA] rounded-[10px] px-3 py-2 text-[13px] text-[#1C1C1E] outline-none focus:border-[#171717] focus:ring-1 focus:ring-[#171717]/20"
-            />
-          </div>
-
-          {/* To Date */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              to date
-            </label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full bg-white border border-[#E5E5EA] rounded-[10px] px-3 py-2 text-[13px] text-[#1C1C1E] outline-none focus:border-[#171717] focus:ring-1 focus:ring-[#171717]/20"
-            />
-          </div>
-        </div>
-
-        {/* Priority Filter and Search Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-[#E5E5EA]">
+        {/* Bottom row: Status filters & Search bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3.5 border-t border-[#E5E5EA]">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-medium lowercase text-[#6E6E73] mr-1">
-              priority:
+              status:
             </span>
-            {["", "LOW", "NORMAL", "HIGH"].map((p) => {
-              const isSelected = filterPriority === p;
-              const isHigh = p === "HIGH";
+            {[
+              { label: "Pending", value: "PENDING" },
+              { label: "In Progress", value: "IN_PROGRESS" },
+              { label: "Blocked", value: "BLOCK" },
+              { label: "Completed", value: "COMPLETED" },
+              { label: "All Workflows", value: "ALL" },
+            ].map((option) => {
+              const isSelected = statusTab === option.value;
               return (
                 <button
-                  key={`priority-${p || "all"}`}
-                  onClick={() => setFilterPriority(p)}
-                  className={`px-3 py-1 rounded-[8px] text-[12px] font-medium lowercase transition-colors cursor-pointer ${
+                  key={`status-${option.value}`}
+                  onClick={() => setStatusTab(option.value)}
+                  className={`px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
                     isSelected
                       ? "bg-[#171717] text-white shadow-xs"
                       : "bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-white"
                   }`}
                 >
-                  {isHigh ? (
-                    <span className="flex items-center gap-1">
-                      <Flame size={13} strokeWidth={1.5} className={isSelected ? "text-[#EF4444]" : "text-[#EF4444]"} />
-                      <span>high</span>
-                    </span>
-                  ) : (
-                    p ? p.toLowerCase() : "all"
-                  )}
+                  {option.label}
                 </button>
               );
             })}
@@ -553,9 +488,9 @@ const TasksPage = () => {
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="animate-spin text-[#171717]" size={28} strokeWidth={1.5} />
             </div>
-          ) : (filterPriority ? tasks.filter(t => t.priority === filterPriority) : tasks).length > 0 ? (
+          ) : tasks.length > 0 ? (
             <div className="space-y-3">
-              {(filterPriority ? tasks.filter(t => t.priority === filterPriority) : tasks).map((task) => {
+              {tasks.map((task) => {
                 const currentStatus = getStatusConfig(task.status);
                 return (
                   <div
@@ -625,7 +560,7 @@ const TasksPage = () => {
                     </div>
 
                     <div
-                      className="shrink-0 flex items-center gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-[#E5E5EA]"
+                      className="shrink-0 flex items-center gap-5 border-t md:border-t-0 pt-3 md:pt-0 border-[#E5E5EA]"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <select
@@ -643,8 +578,8 @@ const TasksPage = () => {
 
                       {isAdmin && (
                         <button
-                          onClick={() => handleRequestDelete(task)}
-                          className="p-2 text-[#AEAEB2] hover:text-[#EF4444] rounded-[8px] hover:bg-[#EF4444]/10 transition-colors cursor-pointer"
+                          onClick={() => handleDeleteClick(task)}
+                          className="p-2 text-[#AEAEB2] hover:text-[#EF4444] rounded-[8px] hover:bg-[#EF4444]/10 transition-colors cursor-pointer ml-1"
                           title="Delete task"
                         >
                           <Trash2 size={15} strokeWidth={1.5} />

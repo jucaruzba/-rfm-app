@@ -116,15 +116,18 @@ export const taskService = {
     return data;
   },
 
-  uploadTaskNodeFile: async (payload) => {
+  uploadTaskNodeFile: async ({ file, idParent, idCompany, description }) => {
     const formData = new FormData();
-    Object.entries(payload).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value);
-      }
-    });
+    formData.append("file", file);
+    formData.append("idParent", idParent);
+    if (idCompany && Number(idCompany) > 0) {
+      formData.append("idCompany", idCompany);
+    }
+    if (description) {
+      formData.append("description", description);
+    }
     const { data } = await api.post("/nodes/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: { "Content-Type": undefined },
     });
     return data;
   },

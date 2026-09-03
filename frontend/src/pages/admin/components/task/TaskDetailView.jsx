@@ -144,9 +144,10 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
   const fetchComments = async () => {
     try {
       const data = await taskService.getTaskComments(taskId);
-      setComments(
-        data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)),
+      const sorted = (data || []).sort(
+        (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
       );
+      setComments(sorted);
     } catch (err) {
       console.error("Comments error", err);
     }
@@ -155,7 +156,10 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
   const fetchPendingItems = async () => {
     try {
       const data = await pendingItemService.getByReferenceId(taskId);
-      setPendingItems(data || []);
+      const sorted = (data || []).sort(
+        (a, b) => (a.idPending || 0) - (b.idPending || 0),
+      );
+      setPendingItems(sorted);
     } catch (err) {
       console.error("Pending items error", err);
     }
@@ -164,7 +168,10 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
   const fetchTaskNodes = async (parentId) => {
     try {
       const data = await taskService.getTaskNodes(parentId);
-      setNodes(data || []);
+      const sorted = (data || []).sort(
+        (a, b) => (a.idNode || 0) - (b.idNode || 0),
+      );
+      setNodes(sorted);
     } catch (err) {
       console.error("Nodes fetch error", err);
     }
@@ -488,7 +495,7 @@ const handleConfirmDeletePending = async (id) => {
             {/* Main Info Card */}
             <div className="bg-white rounded-[12px] p-5 border border-[#E5E5EA] space-y-5">
               <div className="flex justify-between items-start gap-4">
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 min-w-0 space-y-4">
                   {isEditing ? (
                     <div className="space-y-4">
                       {/* Title */}
@@ -659,59 +666,13 @@ const handleConfirmDeletePending = async (id) => {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <h3 className="text-[18px] font-semibold text-[#1C1C1E]">
-                        {task.title}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
-                          <User size={12} strokeWidth={1.5} />
-                          <span>{task.nameUser || "unassigned"}</span>
-                        </span>
-                        <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
-                          <Calendar size={12} strokeWidth={1.5} />
-                          <span>{formatDate(task.startDate)}</span>
-                        </span>
-                        {task.nameCompany ? (
-                          <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
-                            <Building2 size={12} strokeWidth={1.5} />
-                            <span>{task.nameCompany}</span>
-                          </span>
-                        ) : task.externalReferenceName ? (
-                          <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
-                            <Briefcase size={12} strokeWidth={1.5} />
-                            <span>client: {task.externalReferenceName}</span>
-                          </span>
-                        ) : null}
-                        {task.repeatType && task.repeatType !== "NONE" && (
-                          <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-0.5 rounded-full">
-                            <Repeat size={12} strokeWidth={1.5} />
-                            <span>repeat: {task.repeatType.toLowerCase()}</span>
-                          </span>
-                        )}
-                        {/* Priority: flame icon + #EF4444 text only, never a full badge */}
-                        {task.priority === "HIGH" ? (
-                          <span className="flex items-center gap-1 text-[#EF4444] text-[11px] font-medium lowercase">
-                            <Flame size={14} strokeWidth={1.5} className="text-[#EF4444]" />
-                            <span>high priority</span>
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
+                    <h3 className="text-[18px] font-semibold text-[#1C1C1E]">
+                      {task.title}
+                    </h3>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  {isAdmin && !isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => setIsDeleteModalOpen(true)}
-                      className="p-2 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[8px] transition-colors cursor-pointer"
-                      title="Delete task"
-                    >
-                      <Trash2 size={16} strokeWidth={1.5} />
-                    </button>
-                  )}
+                <div className="flex items-center gap-2 shrink-0 mr-3">
                   <button
                     onClick={isEditing ? handleUpdate : () => setIsEditing(true)}
                     className={`p-2 rounded-[8px] transition-colors cursor-pointer ${
@@ -723,8 +684,56 @@ const handleConfirmDeletePending = async (id) => {
                   >
                     {isEditing ? <Save size={16} strokeWidth={1.5} /> : <Edit3 size={16} strokeWidth={1.5} />}
                   </button>
+                  {isAdmin && !isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteModalOpen(true)}
+                      className="p-2 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[8px] transition-colors cursor-pointer"
+                      title="Delete task"
+                    >
+                      <Trash2 size={16} strokeWidth={1.5} />
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {/* Dedicated full row for task metadata without scroll */}
+              {!isEditing && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-1 rounded-full">
+                    <User size={12} strokeWidth={1.5} />
+                    <span>{task.nameUser || "unassigned"}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-1 rounded-full">
+                    <Calendar size={12} strokeWidth={1.5} />
+                    <span>{formatDate(task.startDate)}</span>
+                  </span>
+                  {task.nameCompany ? (
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-1 rounded-full">
+                      <Building2 size={12} strokeWidth={1.5} />
+                      <span>{task.nameCompany}</span>
+                    </span>
+                  ) : task.externalReferenceName ? (
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-1 rounded-full">
+                      <Briefcase size={12} strokeWidth={1.5} />
+                      <span>client: {task.externalReferenceName}</span>
+                    </span>
+                  ) : null}
+                  {task.repeatType && task.repeatType !== "NONE" && (
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium lowercase text-[#6E6E73] bg-[#FAFAFA] border border-[#E5E5EA] px-2.5 py-1 rounded-full">
+                      <Repeat size={12} strokeWidth={1.5} />
+                      <span>repeat: {task.repeatType.toLowerCase()}</span>
+                    </span>
+                  )}
+                  {/* Priority: flame icon + #EF4444 text only, never a full badge */}
+                  {task.priority === "HIGH" ? (
+                    <span className="flex items-center gap-1 text-[#EF4444] text-[11px] font-medium lowercase">
+                      <Flame size={14} strokeWidth={1.5} className="text-[#EF4444]" />
+                      <span>high priority</span>
+                    </span>
+                  ) : null}
+                </div>
+              )}
 
               {/* Description */}
               <div className="space-y-1.5 border-t border-[#E5E5EA] pt-4">
@@ -733,7 +742,7 @@ const handleConfirmDeletePending = async (id) => {
                 </label>
                 {isEditing ? (
                   <textarea
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[10px] p-3 text-[13px] text-[#1C1C1E] h-28 outline-none focus:border-[#171717] resize-y"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[10px] p-3 text-[13px] text-[#1C1C1E] h-28 outline-none focus:border-[#171717] resize-y overflow-auto"
                     value={task.description || ""}
                     placeholder="Enter task description..."
                     onChange={(e) =>
@@ -741,7 +750,7 @@ const handleConfirmDeletePending = async (id) => {
                     }
                   />
                 ) : (
-                  <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] p-3 text-[13px] text-[#1C1C1E] leading-relaxed whitespace-pre-wrap">
+                  <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] p-3 text-[13px] text-[#1C1C1E] leading-relaxed whitespace-pre-wrap max-h-48 overflow-x-auto overflow-y-auto break-words">
                     {task.description || "No task description provided."}
                   </div>
                 )}
@@ -752,7 +761,7 @@ const handleConfirmDeletePending = async (id) => {
                 <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
                   status
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                   {[
                     {
                       value: "PENDING",
@@ -761,7 +770,7 @@ const handleConfirmDeletePending = async (id) => {
                       activeColor: "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]",
                     },
                     {
-                      value: "PROGRESS",
+                      value: "IN_PROGRESS",
                       label: "in progress",
                       icon: PlayCircle,
                       activeColor: "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]",
@@ -779,20 +788,22 @@ const handleConfirmDeletePending = async (id) => {
                       activeColor: "bg-[#10B981]/10 text-[#10B981] border-[#10B981]",
                     },
                   ].map(({ value, label, icon: Icon, activeColor }) => {
-                    const isActive = task.status === value;
+                    const isActive =
+                      task.status === value ||
+                      (value === "IN_PROGRESS" && task.status === "PROGRESS");
                     return (
                       <button
                         key={value}
                         onClick={() => handleStatusChange(value)}
                         disabled={updatingStatus || isActive}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-[8px] border text-[12px] font-medium lowercase transition-colors cursor-pointer ${
+                        className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-[8px] border text-[11px] sm:text-[12px] font-medium lowercase transition-colors cursor-pointer whitespace-nowrap ${
                           isActive
                             ? activeColor
                             : "bg-white border-[#E5E5EA] text-[#6E6E73] hover:bg-[#FAFAFA]"
                         } disabled:opacity-50`}
                       >
-                        <Icon size={14} strokeWidth={1.5} />
-                        <span>{label}</span>
+                        <Icon size={14} strokeWidth={1.5} className="shrink-0" />
+                        <span className="truncate">{label}</span>
                       </button>
                     );
                   })}
@@ -820,7 +831,7 @@ const handleConfirmDeletePending = async (id) => {
                     ) : (
                       <FilePlus size={14} strokeWidth={1.5} />
                     )}
-                    <span>Upload file</span>
+                    <span>Upload</span>
                   </button>
                   <input
                     ref={fileInputRef}
@@ -835,7 +846,7 @@ const handleConfirmDeletePending = async (id) => {
                     no files attached
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className={`space-y-2 ${nodes.length > 5 ? "max-h-[250px] overflow-y-auto pr-1" : ""}`}>
                     {nodes.map((node) => (
                       <div
                         key={node.idNode}
@@ -898,7 +909,7 @@ const handleConfirmDeletePending = async (id) => {
                   no pending items for this task
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className={`space-y-2 ${pendingItems.length > 5 ? "max-h-[350px] overflow-y-auto pr-1" : ""}`}>
                   {pendingItems.map((item) => {
                     const assignedUser = users.find(
                       (u) => (u.idUser || u.id) === item.assignedTo,
@@ -1075,7 +1086,7 @@ const handleConfirmDeletePending = async (id) => {
                 </h4>
               </div>
 
-              <div className="space-y-3 max-h-72 overflow-y-auto">
+              <div className={`space-y-3 ${comments.length > 5 ? "max-h-[320px] overflow-y-auto pr-1" : ""}`}>
                 {comments.length === 0 ? (
                   <div className="text-center py-4 text-[#AEAEB2] text-[12px] lowercase">
                     no comments yet

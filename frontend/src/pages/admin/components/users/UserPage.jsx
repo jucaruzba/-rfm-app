@@ -83,6 +83,19 @@ const UserPage = () => {
     setIsModalOpen(true);
   };
 
+  const handleTriggerReset = async (email) => {
+    if (!email) {
+      toast.error("No email associated with this user");
+      return;
+    }
+    try {
+      await userService.forgotPassword({ email });
+      toast.success(`Temporary password sent to ${email}`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error sending reset email");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -138,61 +151,56 @@ const UserPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
-        <div>
-          <h1 className="text-[20px] font-semibold text-[#1C1C1E]">
-            Users
-          </h1>
-          <p className="text-[12px] text-[#6E6E73] mt-0.5">
-            {users.length} active system accounts
-          </p>
+      {/* Unified Action, Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white px-4 py-2.5 rounded-[12px] border border-[#E5E5EA]">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto flex-1 max-w-xl">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
+              size={14}
+              strokeWidth={1.5}
+            />
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-8 pr-3 outline-none focus:border-[#171717] focus:bg-white text-[12.5px] text-[#1C1C1E] transition-all"
+            />
+          </div>
+
+          {/* Role Filter Tabs */}
+          <div className="flex items-center gap-0.5 bg-[#FAFAFA] p-0.5 rounded-[8px] border border-[#E5E5EA] shrink-0">
+            {[
+              { id: "ALL", label: "all users" },
+              { id: "ADMIN", label: "admins" },
+              { id: "ASSISTANT", label: "assistants" },
+            ].map((tab) => (
+              <button
+                key={`tab-role-${tab.id}`}
+                onClick={() => setRoleFilter(tab.id)}
+                className={`px-2.5 py-1 text-[12px] font-medium lowercase rounded-[6px] whitespace-nowrap transition-colors cursor-pointer ${
+                  roleFilter === tab.id
+                    ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                    : "text-[#6E6E73] hover:text-[#1C1C1E]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
-        >
-          <Plus size={15} strokeWidth={1.5} />
-          <span>New user</span>
-        </button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        <div className="flex items-center gap-1 bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA] overflow-x-auto">
-          {[
-            { id: "ALL", label: "all users" },
-            { id: "ADMIN", label: "admins" },
-            { id: "ASSISTANT", label: "assistants" },
-          ].map((tab) => (
-            <button
-              key={`tab-role-${tab.id}`}
-              onClick={() => setRoleFilter(tab.id)}
-              className={`px-3 py-1.5 text-[12px] font-medium lowercase rounded-[8px] whitespace-nowrap transition-colors ${
-                roleFilter === tab.id
-                  ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
-                  : "text-[#6E6E73] hover:text-[#1C1C1E]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative flex-1 md:max-w-xs">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#AEAEB2]"
-            size={14}
-            strokeWidth={1.5}
-          />
-          <input
-            type="text"
-            placeholder="search users..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-8 pr-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
-          />
+        {/* New user button */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3.5 py-1.5 rounded-[8px] text-[12.5px] font-medium transition-colors shadow-xs cursor-pointer whitespace-nowrap"
+          >
+            <Plus size={14} strokeWidth={1.5} />
+            <span>New user</span>
+          </button>
         </div>
       </div>
 
@@ -406,10 +414,12 @@ const UserPage = () => {
                   {submitting ? (
                     <>
                       <Loader2 size={13} className="animate-spin" />
-                      <span>Saving...</span>
+                      <span>{isEditing ? "Saving..." : "Creating..."}</span>
                     </>
-                  ) : (
+                  ) : isEditing ? (
                     "Save user"
+                  ) : (
+                    "Create user"
                   )}
                 </button>
               </div>

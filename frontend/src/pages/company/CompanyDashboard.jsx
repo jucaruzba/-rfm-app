@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Building2,
   Upload,
@@ -16,9 +16,12 @@ import {
   Clock,
   Archive,
   AlertCircle,
+  CheckSquare,
+  FolderTree,
 } from "lucide-react";
 import { companyService } from "../../services/companyService";
 import { fileService } from "../../services/fileService";
+import { taskService } from "../../services/taskService";
 import { toast } from "sonner";
 
 const COMPANY_TYPES = [
@@ -50,9 +53,16 @@ const getStatusColor = (status) => {
 
 const CompanyDashboard = () => {
   const { companyId } = useParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [company, setCompany] = useState(null);
+  const [stats, setStats] = useState({
+    totalTasks: 0,
+    inProgressTasks: 0,
+    pendingTasks: 0,
+    completedTasks: 0,
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     type: "",
@@ -65,12 +75,35 @@ const CompanyDashboard = () => {
 
   const fetchCompanyData = async () => {
     try {
+      setLoading(true);
       const data = await companyService.getCompany(companyId);
       setCompany(data);
       setEditForm({
-        type: data.type || "MY_BUSINESS",
-        status: data.status || "ACTIVE",
+        type: data?.type || "MY_BUSINESS",
+        status: data?.status || "ACTIVE",
       });
+
+      // Load task stats for company
+      try {
+        const tasks = await taskService.getTasksList({ idCompany: companyId });
+        if (Array.isArray(tasks)) {
+          const totalTasks = tasks.length;
+          const completedTasks = tasks.filter(
+            (t) => t.status?.toLowerCase() === "completed",
+          ).length;
+          const inProgressTasks = tasks.filter(
+            (t) =>
+              t.status?.toLowerCase() === "in_progress" ||
+              t.status?.toLowerCase() === "in-progress",
+          ).length;
+          const pendingTasks = tasks.filter(
+            (t) => t.status?.toLowerCase() === "pending",
+          ).length;
+          setStats({ totalTasks, inProgressTasks, pendingTasks, completedTasks });
+        }
+      } catch (statsErr) {
+        console.warn("Could not load task stats for company", statsErr);
+      }
     } catch (err) {
       toast.error("Error loading company details");
     } finally {
@@ -202,94 +235,79 @@ const CompanyDashboard = () => {
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5">
-            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
-              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
-                total tasks
-              </div>
-              <div className="text-[20px] font-semibold text-[#1C1C1E] mt-1">
-                {stats.totalTasks}
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
-              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
-                in progress
-              </div>
-              <div className="text-[20px] font-semibold text-[#F59E0B] mt-1">
-                {stats.inProgressTasks}
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
-              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
-                pending
-              </div>
-              <div className="text-[20px] font-semibold text-[#EF4444] mt-1">
-                {stats.pendingTasks}
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px]">
-              <div className="text-[11px] font-medium lowercase text-[#6E6E73]">
-                completed
-              </div>
-              <div className="text-[20px] font-semibold text-[#10B981] mt-1">
-                {stats.completedTasks}
-              </div>
-            </div>
+      {/* Key Metrics - Full Width Cards with Generous Width */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] shadow-xs">
+          <div className="text-[12px] font-medium lowercase text-[#6E6E73]">
+            total tasks
+          </div>
+          <div className="text-[26px] font-semibold text-[#1C1C1E] mt-2">
+            {stats.totalTasks}
           </div>
         </div>
 
-        {/* Workspace navigation cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => navigate(`/companies/${idCompany}/tasks`)}
-            className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
-          >
-            <div className="w-9 h-9 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3">
-              <CheckSquare size={17} strokeWidth={1.5} />
-            </div>
-            <h3 className="text-[14px] font-semibold text-[#1C1C1E] mb-1">
-              Company tasks
-            </h3>
-            <p className="text-[12px] text-[#6E6E73]">
-              Manage and track assigned tasks and workflows.
-            </p>
-          </button>
-
-          <button
-            onClick={() => navigate(`/companies/${idCompany}/activities`)}
-            className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
-          >
-            <div className="w-9 h-9 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3">
-              <Activity size={17} strokeWidth={1.5} />
-            </div>
-            <h3 className="text-[14px] font-semibold text-[#1C1C1E] mb-1">
-              Activities & notes
-            </h3>
-            <p className="text-[12px] text-[#6E6E73]">
-              View ongoing events, timelines, and meeting notes.
-            </p>
-          </button>
-
-          <button
-            onClick={() => navigate(`/companies/${idCompany}/explorer`)}
-            className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
-          >
-            <div className="w-9 h-9 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3">
-              <FolderTree size={17} strokeWidth={1.5} />
-            </div>
-            <h3 className="text-[14px] font-semibold text-[#1C1C1E] mb-1">
-              Object explorer
-            </h3>
-            <p className="text-[12px] text-[#6E6E73]">
-              Access folder structure, files, and project links.
-            </p>
-          </button>
+        <div className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] shadow-xs">
+          <div className="text-[12px] font-medium lowercase text-[#6E6E73]">
+            in progress
+          </div>
+          <div className="text-[26px] font-semibold text-[#F59E0B] mt-2">
+            {stats.inProgressTasks}
+          </div>
         </div>
+
+        <div className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] shadow-xs">
+          <div className="text-[12px] font-medium lowercase text-[#6E6E73]">
+            pending
+          </div>
+          <div className="text-[26px] font-semibold text-[#EF4444] mt-2">
+            {stats.pendingTasks}
+          </div>
+        </div>
+
+        <div className="p-5 bg-white border border-[#E5E5EA] rounded-[12px] shadow-xs">
+          <div className="text-[12px] font-medium lowercase text-[#6E6E73]">
+            completed
+          </div>
+          <div className="text-[26px] font-semibold text-[#10B981] mt-2">
+            {stats.completedTasks}
+          </div>
+        </div>
+      </div>
+
+      {/* Workspace navigation cards - 2 Wide Cards (Activities removed) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button
+          onClick={() => navigate(`/companies/${companyId}/tasks`)}
+          className="p-6 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
+        >
+          <div className="w-10 h-10 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3.5 group-hover:bg-[#171717] group-hover:text-white transition-colors">
+            <CheckSquare size={18} strokeWidth={1.5} />
+          </div>
+          <h3 className="text-[15px] font-semibold text-[#1C1C1E] mb-1">
+            Company tasks
+          </h3>
+          <p className="text-[12.5px] text-[#6E6E73]">
+            Manage, schedule, and track assigned company tasks and workflows.
+          </p>
+        </button>
+
+        <button
+          onClick={() => navigate(`/companies/${companyId}/files`)}
+          className="p-6 bg-white border border-[#E5E5EA] rounded-[12px] text-left hover:border-[#171717]/30 transition-colors group cursor-pointer shadow-xs"
+        >
+          <div className="w-10 h-10 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center mb-3.5 group-hover:bg-[#171717] group-hover:text-white transition-colors">
+            <FolderTree size={18} strokeWidth={1.5} />
+          </div>
+          <h3 className="text-[15px] font-semibold text-[#1C1C1E] mb-1">
+            Object explorer
+          </h3>
+          <p className="text-[12.5px] text-[#6E6E73]">
+            Access folder structure, files, and stored company documents.
+          </p>
+        </button>
       </div>
 
       {/* Edit Modal */}

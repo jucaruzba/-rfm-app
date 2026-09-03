@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -35,6 +35,7 @@ import {
   isToday,
   parseISO,
   addDays,
+  addMonths,
   startOfDay,
   endOfDay,
   differenceInDays,
@@ -280,6 +281,15 @@ const ReminderCalendar = () => {
     repeatEndDate: "",
   });
 
+  const reminderDescRef = useRef(null);
+
+  useEffect(() => {
+    if (isModalOpen && reminderDescRef.current) {
+      reminderDescRef.current.style.height = "auto";
+      reminderDescRef.current.style.height = `${reminderDescRef.current.scrollHeight}px`;
+    }
+  }, [isModalOpen, newReminder.description]);
+
   const fetchReminders = useCallback(async () => {
     try {
       setLoading(true);
@@ -324,7 +334,7 @@ const ReminderCalendar = () => {
     return grouped;
   }, [reminders]);
 
-  const calendarData = useMemo(() => {
+  const monthData = useMemo(() => {
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(monthStart);
     const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -332,6 +342,12 @@ const ReminderCalendar = () => {
 
     const days = eachDayOfInterval({ start: startDate, end: endDate });
     return { days, monthStart, monthEnd };
+  }, [selectedDate]);
+
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(selectedDate, { weekStartsOn: 0 });
+    const end = endOfWeek(selectedDate, { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
   }, [selectedDate]);
 
   const handleDateClick = (date) => {
@@ -369,10 +385,13 @@ const ReminderCalendar = () => {
       const reminderDateTime = `${newReminder.reminderDate}T${newReminder.reminderTime}:00`;
 
       if (editingReminder) {
-        await reminderService.updateReminder(editingReminder.idReminder, {
+        const reminderId =
+          editingReminder.parentReminderId || editingReminder.idReminder;
+        await reminderService.updateReminder(reminderId, {
           title: newReminder.title.trim(),
           description: newReminder.description.trim() || null,
           reminderDate: reminderDateTime,
+          repeatType: newReminder.repeatType,
         });
         toast.success("Reminder updated");
       } else {
@@ -470,14 +489,14 @@ const ReminderCalendar = () => {
     const amount = direction === "next" ? 1 : -1;
     switch (viewMode) {
       case "day":
-        setSelectedDate(addDays(selectedDate, amount));
+        setSelectedDate((prev) => addDays(prev, amount));
         break;
       case "week":
-        setSelectedDate(addDays(selectedDate, amount * 7));
+        setSelectedDate((prev) => addDays(prev, amount * 7));
         break;
       case "month":
       default:
-        // logic for month navigation if needed
+        setSelectedDate((prev) => addMonths(prev, amount));
         break;
     }
   };
@@ -518,41 +537,38 @@ const ReminderCalendar = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#E5E5EA]">
-        <div>
-          <h1 className="text-[20px] font-semibold text-[#1C1C1E]">
-            Calendar
-          </h1>
-          <p className="text-[12px] text-[#6E6E73] mt-0.5">
-            Operational reminders & schedule
-          </p>
+      {/* Top Controls Toolbar - Slim card with separated views and actions */}
+      <div className="flex items-center justify-between gap-3 bg-white px-5 py-2.5 rounded-[12px] border border-[#E5E5EA]">
+        {/* Left: View Mode Toggle (month, week, day) */}
+        <div className="flex bg-[#FAFAFA] p-1 rounded-[8px] border border-[#E5E5EA]">
+          {[
+            { id: "month", icon: LayoutGrid, label: "month" },
+            { id: "week", icon: CalendarDays, label: "week" },
+            { id: "day", icon: List, label: "day" },
+          ].map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setViewMode(id)}
+              className={`
+                px-3 py-1.5 rounded-[6px] text-[12px] font-medium lowercase transition-colors cursor-pointer flex items-center gap-1.5
+                ${
+                  viewMode === id
+                    ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                    : "text-[#6E6E73] hover:text-[#1C1C1E]"
+                }
+              `}
+            >
+              <Icon size={13} strokeWidth={1.5} />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex bg-[#FAFAFA] p-1 rounded-[8px] border border-[#E5E5EA]">
-            {[
-              { id: "month", icon: LayoutGrid, label: "month" },
-              { id: "week", icon: CalendarDays, label: "week" },
-              { id: "day", icon: List, label: "day" },
-            ].map(({ id, icon: Icon, label }) => (
-              <button
-                key={id}
-                onClick={() => setViewMode(id)}
-                className={`
-                  px-3 py-1.5 rounded-[6px] text-[12px] font-medium lowercase transition-colors cursor-pointer
-                  ${
-                    viewMode === id
-                      ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
-                      : "text-[#6E6E73] hover:text-[#1C1C1E]"
-                  }
-                `}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
+        {/* Right: Today & New Reminder */}
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={goToToday}
             className="px-3.5 py-1.5 bg-white hover:bg-[#FAFAFA] text-[#1C1C1E] rounded-[8px] text-[12px] font-medium border border-[#E5E5EA] transition-colors cursor-pointer"
           >
@@ -560,8 +576,9 @@ const ReminderCalendar = () => {
           </button>
 
           <button
+            type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
           >
             <Plus size={14} strokeWidth={1.5} />
             <span>New reminder</span>
@@ -598,88 +615,258 @@ const ReminderCalendar = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 space-y-4">
-          <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4">
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {["sun", "mon", "tue", "wed", "thu", "fri", "sat"].map((day) => (
-                <div
-                  key={day}
-                  className="text-center text-[11px] font-medium text-[#AEAEB2] lowercase py-1"
-                >
-                  {day}
+          {/* 1. MONTH VIEW */}
+          {viewMode === "month" && (
+            <>
+              <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4">
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {["sun", "mon", "tue", "wed", "thu", "fri", "sat"].map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-[11px] font-medium text-[#AEAEB2] lowercase py-1"
+                    >
+                      {day}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="grid grid-cols-7 gap-1">
-              {calendarData.days.map((date) => {
-                const dateKey = format(date, "yyyy-MM-dd");
-                const dayReminders = remindersByDate[dateKey] || [];
-                return (
-                  <DayCell
-                    key={dateKey}
-                    date={date}
-                    selectedDate={selectedDate}
-                    dayReminders={dayReminders}
-                    onDateClick={handleDateClick}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E5E5EA]">
-              <div>
-                <h3 className="text-[14px] font-semibold text-[#1C1C1E]">
-                  {format(selectedDate, "EEEE, MMMM d, yyyy", { locale: enUS })}
-                </h3>
-                <p className="text-[11px] text-[#6E6E73] lowercase">
-                  {getReminderCount(selectedDate)} reminders scheduled
-                </p>
+                <div className="grid grid-cols-7 gap-1">
+                  {monthData.days.map((date) => {
+                    const dateKey = format(date, "yyyy-MM-dd");
+                    const dayReminders = remindersByDate[dateKey] || [];
+                    return (
+                      <DayCell
+                        key={dateKey}
+                        date={date}
+                        selectedDate={selectedDate}
+                        dayReminders={dayReminders}
+                        onDateClick={handleDateClick}
+                      />
+                    );
+                  })}
+                </div>
               </div>
 
-              <button
-                onClick={() => {
-                  const dateKey = format(selectedDate, "yyyy-MM-dd");
-                  setNewReminder({
-                    ...newReminder,
-                    reminderDate: dateKey,
-                    reminderTime: "09:00",
-                  });
-                  setIsModalOpen(true);
-                }}
-                className="flex items-center gap-1 text-[12px] font-medium text-[#171717] hover:underline cursor-pointer"
-              >
-                <Plus size={13} strokeWidth={1.5} />
-                <span>Add reminder</span>
-              </button>
-            </div>
+              <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-[#E5E5EA]">
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-[#1C1C1E]">
+                      {format(selectedDate, "EEEE, MMMM d, yyyy", { locale: enUS })}
+                    </h3>
+                    <p className="text-[11px] text-[#6E6E73] lowercase">
+                      {getReminderCount(selectedDate)} reminders scheduled
+                    </p>
+                  </div>
 
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.map((r) => (
+                  <button
+                    onClick={() => {
+                      const dateKey = format(selectedDate, "yyyy-MM-dd");
+                      setNewReminder({
+                        ...newReminder,
+                        reminderDate: dateKey,
+                        reminderTime: "09:00",
+                      });
+                      setIsModalOpen(true);
+                    }}
+                    className="flex items-center gap-1 text-[12px] font-medium text-[#171717] hover:underline cursor-pointer"
+                  >
+                    <Plus size={13} strokeWidth={1.5} />
+                    <span>Add reminder</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.map((r) => (
+                    <button
+                      key={r.idReminder}
+                      onClick={() => setSelectedReminder(r)}
+                      className="w-full text-left"
+                    >
+                      <ReminderCard
+                        reminder={r}
+                        isCompact
+                        onEdit={handleEditReminder}
+                        onDelete={openDeleteModal}
+                        onComplete={handleMarkAsCompleted}
+                        completingId={completingId}
+                        deletingId={deletingId}
+                      />
+                    </button>
+                  ))}
+                  {!remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.length && (
+                    <p className="text-[12px] text-[#AEAEB2] py-6 text-center">
+                      No reminders for this date
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 2. WEEK VIEW */}
+          {viewMode === "week" && (
+            <>
+              {/* Single row of 7 days for the current week */}
+              <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4">
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {["sun", "mon", "tue", "wed", "thu", "fri", "sat"].map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-[11px] font-medium text-[#AEAEB2] lowercase py-1"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-1">
+                  {weekDays.map((date) => {
+                    const dateKey = format(date, "yyyy-MM-dd");
+                    const dayReminders = remindersByDate[dateKey] || [];
+                    return (
+                      <DayCell
+                        key={dateKey}
+                        date={date}
+                        selectedDate={selectedDate}
+                        dayReminders={dayReminders}
+                        onDateClick={handleDateClick}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Week Schedule for selected day */}
+              <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-4 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-[#E5E5EA]">
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-[#1C1C1E]">
+                      {format(selectedDate, "EEEE, MMMM d, yyyy", { locale: enUS })}
+                    </h3>
+                    <p className="text-[11px] text-[#6E6E73] lowercase">
+                      {getReminderCount(selectedDate)} reminders on this day
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const dateKey = format(selectedDate, "yyyy-MM-dd");
+                      setNewReminder({
+                        ...newReminder,
+                        reminderDate: dateKey,
+                        reminderTime: "09:00",
+                      });
+                      setIsModalOpen(true);
+                    }}
+                    className="flex items-center gap-1 text-[12px] font-medium text-[#171717] hover:underline cursor-pointer"
+                  >
+                    <Plus size={13} strokeWidth={1.5} />
+                    <span>Add reminder</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-72 overflow-y-auto">
+                  {remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.map((r) => (
+                    <button
+                      key={r.idReminder}
+                      onClick={() => setSelectedReminder(r)}
+                      className="w-full text-left"
+                    >
+                      <ReminderCard
+                        reminder={r}
+                        isCompact
+                        onEdit={handleEditReminder}
+                        onDelete={openDeleteModal}
+                        onComplete={handleMarkAsCompleted}
+                        completingId={completingId}
+                        deletingId={deletingId}
+                      />
+                    </button>
+                  ))}
+                  {!remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.length && (
+                    <p className="text-[12px] text-[#AEAEB2] py-6 text-center">
+                      No reminders for this date
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* 3. DAY VIEW */}
+          {viewMode === "day" && (
+            <div className="bg-white rounded-[12px] border border-[#E5E5EA] p-5 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA]">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-[10px] bg-[#171717] text-white flex flex-col items-center justify-center font-semibold shrink-0 shadow-xs">
+                    <span className="text-[9px] uppercase tracking-wider text-white/70">
+                      {format(selectedDate, "MMM")}
+                    </span>
+                    <span className="text-[17px] leading-tight font-bold">
+                      {format(selectedDate, "d")}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[15px] font-semibold text-[#1C1C1E]">
+                        {format(selectedDate, "EEEE, MMMM d, yyyy", { locale: enUS })}
+                      </h3>
+                      {isToday(selectedDate) && (
+                        <span className="text-[9.5px] uppercase font-bold tracking-wider bg-[#171717]/10 text-[#171717] px-2 py-0.5 rounded-full">
+                          Today
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11.5px] text-[#6E6E73] mt-0.5">
+                      {getReminderCount(selectedDate)} reminders scheduled
+                    </p>
+                  </div>
+                </div>
+
                 <button
-                  key={r.idReminder}
-                  onClick={() => setSelectedReminder(r)}
-                  className="w-full text-left"
+                  onClick={() => {
+                    const dateKey = format(selectedDate, "yyyy-MM-dd");
+                    setNewReminder({
+                      ...newReminder,
+                      reminderDate: dateKey,
+                      reminderTime: "09:00",
+                    });
+                    setIsModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
                 >
-                  <ReminderCard
-                    reminder={r}
-                    isCompact
-                    onEdit={handleEditReminder}
-                    onDelete={openDeleteModal}
-                    onComplete={handleMarkAsCompleted}
-                    completingId={completingId}
-                    deletingId={deletingId}
-                  />
+                  <Plus size={13} strokeWidth={1.5} />
+                  <span>Add reminder</span>
                 </button>
-              ))}
-              {!remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.length && (
-                <p className="text-[12px] text-[#AEAEB2] py-6 text-center">
-                  No reminders for this date
-                </p>
-              )}
+              </div>
+
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.map((r) => (
+                  <button
+                    key={r.idReminder}
+                    onClick={() => setSelectedReminder(r)}
+                    className="w-full text-left"
+                  >
+                    <ReminderCard
+                      reminder={r}
+                      onEdit={handleEditReminder}
+                      onDelete={openDeleteModal}
+                      onComplete={handleMarkAsCompleted}
+                      completingId={completingId}
+                      deletingId={deletingId}
+                    />
+                  </button>
+                ))}
+                {!remindersByDate[format(selectedDate, "yyyy-MM-dd")]?.length && (
+                  <div className="py-12 text-center">
+                    <CalendarIcon size={32} strokeWidth={1.2} className="mx-auto text-[#AEAEB2] mb-2 opacity-50" />
+                    <p className="text-[13px] font-medium text-[#1C1C1E]">No reminders scheduled</p>
+                    <p className="text-[11.5px] text-[#AEAEB2] mt-0.5">There are no reminders for this day.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="lg:col-span-2">
@@ -772,20 +959,23 @@ const ReminderCalendar = () => {
                   description
                 </label>
                 <textarea
+                  ref={reminderDescRef}
                   value={newReminder.description}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setNewReminder({
                       ...newReminder,
                       description: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none resize-none"
-                  placeholder="optional description..."
+                    });
+                    e.target.style.height = "auto";
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none resize-none overflow-hidden leading-relaxed"
+                  placeholder="enter description..."
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2.5">
                 <div className="space-y-1">
                   <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
                     date *
@@ -800,9 +990,15 @@ const ReminderCalendar = () => {
                       })
                     }
                     min={format(new Date(), "yyyy-MM-dd")}
-                    className="px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none"
+                    className="w-full px-2.5 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] text-[12.5px] text-[#1C1C1E] focus:border-[#171717] outline-none"
                     required
                   />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    time *
+                  </label>
                   <input
                     type="time"
                     value={newReminder.reminderTime}
@@ -812,33 +1008,33 @@ const ReminderCalendar = () => {
                         reminderTime: e.target.value,
                       })
                     }
-                    className="px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none"
+                    className="w-full px-2.5 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] text-[12.5px] text-[#1C1C1E] focus:border-[#171717] outline-none"
                     required
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-                  repeat
-                </label>
-                <select
-                  value={newReminder.repeatType}
-                  onChange={(e) =>
-                    setNewReminder({
-                      ...newReminder,
-                      repeatType: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 bg-white border border-[#E5E5EA] rounded-[8px] text-[13px] text-[#1C1C1E] focus:border-[#171717] outline-none cursor-pointer"
-                >
-                  <option value="NONE">one time</option>
-                  <option value="DAILY">daily</option>
-                  <option value="WEEKLY">weekly</option>
-                  <option value="MONTHLY">monthly</option>
-                  <option value="QUARTERLY">quarterly</option>
-                  <option value="YEARLY">yearly</option>
-                </select>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                    repeat
+                  </label>
+                  <select
+                    value={newReminder.repeatType}
+                    onChange={(e) =>
+                      setNewReminder({
+                        ...newReminder,
+                        repeatType: e.target.value,
+                      })
+                    }
+                    className="w-full px-2 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] text-[12.5px] text-[#1C1C1E] focus:border-[#171717] outline-none cursor-pointer"
+                  >
+                    <option value="NONE">one time</option>
+                    <option value="DAILY">daily</option>
+                    <option value="WEEKLY">weekly</option>
+                    <option value="MONTHLY">monthly</option>
+                    <option value="QUARTERLY">quarterly</option>
+                    <option value="YEARLY">yearly</option>
+                  </select>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
@@ -857,10 +1053,10 @@ const ReminderCalendar = () => {
                   {isCreating ? (
                     <>
                       <Loader2 size={13} className="animate-spin" />
-                      <span>Saving...</span>
+                      <span>{editingReminder ? "Saving..." : "Creating..."}</span>
                     </>
                   ) : (
-                    "Save reminder"
+                    editingReminder ? "Save changes" : "Create"
                   )}
                 </button>
               </div>
