@@ -31,11 +31,17 @@ public class PendingItemService {
 
 	@Transactional
 	public PendingItemDTO create(PendingItemRequest request) {
-		String status = request.status() == null ? "PENDING" : request.status();
+		String status = request.status() == null ? "pending" : request.status().toLowerCase();
+
+		String referenceType = request.referenceType();
+		if (referenceType != null && !("task".equalsIgnoreCase(referenceType) || "activity".equalsIgnoreCase(referenceType))) {
+			referenceType = null;
+		}
+		Long referenceId = (referenceType != null) ? request.referenceId() : null;
 
 		PendingItem p = PendingItem.builder().title(request.title()).description(request.description()).status(status)
-				.createdBy(request.createdBy()).assignedTo(request.assignedTo()).referenceType(request.referenceType())
-				.referenceId(request.referenceId()).createdAt(LocalDateTime.now()).build();
+				.createdBy(request.createdBy()).assignedTo(request.assignedTo()).referenceType(referenceType)
+				.referenceId(referenceId).createdAt(LocalDateTime.now()).build();
 
 		PendingItem saved = pendingItemRepository.save(p);
 
@@ -58,13 +64,21 @@ public class PendingItemService {
 
 		boolean userAssignmentChanged = !java.util.Objects.equals(p.getAssignedTo(), request.assignedTo());
 
+		String status = request.status() == null ? p.getStatus() : request.status().toLowerCase();
+
+		String referenceType = request.referenceType();
+		if (referenceType != null && !("task".equalsIgnoreCase(referenceType) || "activity".equalsIgnoreCase(referenceType))) {
+			referenceType = null;
+		}
+		Long referenceId = (referenceType != null) ? request.referenceId() : null;
+
 		p.setTitle(request.title());
 		p.setDescription(request.description());
-		p.setStatus(request.status());
+		p.setStatus(status);
 		p.setCreatedBy(request.createdBy());
 		p.setAssignedTo(request.assignedTo());
-		p.setReferenceType(request.referenceType());
-		p.setReferenceId(request.referenceId());
+		p.setReferenceType(referenceType);
+		p.setReferenceId(referenceId);
 		p.setUpdatedAt(LocalDateTime.now());
 
 		PendingItem saved = pendingItemRepository.save(p);
@@ -99,8 +113,8 @@ public class PendingItemService {
 
 	public List<PendingItemDTO> findByIdReference(Long idReference) {
 		List<PendingItem> pendingItems = pendingItemRepository.findByReferenceId(idReference);
-		if (pendingItems.isEmpty()) {
-			throw new RuntimeException("No PendingItems found with referenceId: " + idReference);
+		if (pendingItems == null || pendingItems.isEmpty()) {
+			return List.of();
 		}
 		return pendingItems.stream().map(this::mapToDTO).collect(Collectors.toList());
 	}

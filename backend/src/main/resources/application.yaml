@@ -2,6 +2,12 @@ spring:
   application:
     name: application
   
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 200MB
+      max-request-size: 200MB
+  
   datasource:
     url: jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}
     username: ${DB_USER}
@@ -14,7 +20,6 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
-    # ✅ AGREGAR ESTA SECCIÓN
     properties:
       hibernate:
         jdbc:
@@ -39,6 +44,10 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
+server:
+  tomcat:
+    max-swallow-size: 52428800
+
 project:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
@@ -59,7 +68,6 @@ project:
     root-activities: ${STORAGE_ROOT_PATH}/activities
     default-profile-image: ${STORAGE_ROOT_PATH}/profiles/default.png
 
-# ✅ LOGS DE DEBUG PARA SPRING SECURITY
 logging:
   level:
     org.springframework.security: DEBUG

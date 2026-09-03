@@ -51,10 +51,10 @@ public class NodeController {
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Node> uploadFile(
-            @RequestParam Long idParent,
-            @RequestParam (required = false)Long idCompany,
-            @RequestParam(required = false) String description,
-            @RequestPart("file") MultipartFile file) {
+            @RequestParam("idParent") Long idParent,
+            @RequestParam(value = "idCompany", required = false) Long idCompany,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(nodeService.uploadFile(idParent, file, description, idCompany));
     }
     
@@ -66,5 +66,11 @@ public class NodeController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<String> handleMaxSizeException(org.springframework.web.multipart.MaxUploadSizeExceededException exc) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.PAYLOAD_TOO_LARGE)
+                .body("File size exceeds maximum allowed limit (200MB)");
     }
 }

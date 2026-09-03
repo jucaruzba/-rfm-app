@@ -266,8 +266,14 @@ public class ReminderService {
 
     @Transactional
     public ReminderDTO update(Long id, ReminderRequest request) {
-        Reminder reminder = reminderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reminder not found with id: " + id));
+        Long targetId = id;
+        if (id != null && id < 0) {
+            long pos = -id;
+            targetId = pos / 1000000000L;
+        }
+        final Long lookupId = targetId;
+        Reminder reminder = reminderRepository.findById(lookupId)
+                .orElseThrow(() -> new RuntimeException("Reminder not found with id: " + lookupId));
 
         // Si el reminder tiene repetición, actualizar también los hijos
         if (reminder.getRepeatType() != RepeatType.NONE && reminder.getParentReminderId() == null) {
@@ -333,19 +339,30 @@ public class ReminderService {
 
     @Transactional
     public void delete(Long id) {
-        if (!reminderRepository.existsById(id)) {
-            throw new RuntimeException("Reminder not found with id: " + id);
+        Long targetId = id;
+        if (id != null && id < 0) {
+            long pos = -id;
+            targetId = pos / 1000000000L;
         }
-        reminderRepository.deleteById(id);
+        if (!reminderRepository.existsById(targetId)) {
+            throw new RuntimeException("Reminder not found with id: " + targetId);
+        }
+        reminderRepository.deleteById(targetId);
     }
 
     @Transactional
     public void deleteChain(Long id) {
-        Reminder reminder = reminderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reminder not found with id: " + id));
+        Long targetId = id;
+        if (id != null && id < 0) {
+            long pos = -id;
+            targetId = pos / 1000000000L;
+        }
+        final Long lookupId = targetId;
+        Reminder reminder = reminderRepository.findById(lookupId)
+                .orElseThrow(() -> new RuntimeException("Reminder not found with id: " + lookupId));
         
         Long chainStartId = reminder.getParentReminderId() != null ? 
-                            reminder.getParentReminderId() : id;
+                            reminder.getParentReminderId() : lookupId;
         
         reminderRepository.deleteChain(chainStartId);
     }
