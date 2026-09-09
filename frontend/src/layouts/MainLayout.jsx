@@ -210,7 +210,7 @@ const MainLayout = () => {
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* HEADER: DATE + BELL ICON TOP-RIGHT ON EVERY SINGLE PAGE */}
-        <header className="h-16 bg-white border-b border-[#E5E5EA] flex items-center justify-between px-6 lg:px-8 shrink-0 z-20">
+        <header className="h-16 bg-white border-b border-[#E5E5EA] flex items-center justify-between px-6 lg:px-8 shrink-0 relative z-40">
           <div className="flex items-center gap-3">
             <button
               onClick={toggleMobileMenu}

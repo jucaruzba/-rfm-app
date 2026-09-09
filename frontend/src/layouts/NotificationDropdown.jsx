@@ -90,10 +90,10 @@ const NotificationDropdown = ({ user }) => {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={`relative ${isOpen ? "z-50" : ""}`} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[10px] border border-[#E5E5EA] transition-colors flex items-center justify-center"
+        className="relative p-2 bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[10px] border border-[#E5E5EA] transition-colors flex items-center justify-center cursor-pointer"
         aria-label="Notifications"
       >
         <Bell size={16} strokeWidth={1.5} />
@@ -103,7 +103,7 @@ const NotificationDropdown = ({ user }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-[12px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] border border-[#E5E5EA] overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-[12px] shadow-[0_12px_40px_rgba(0,0,0,0.14)] border border-[#E5E5EA] overflow-hidden z-[100]">
           <div className="px-4 py-3 border-b border-[#E5E5EA] flex items-center justify-between bg-white">
             <h3 className="font-semibold text-[#1C1C1E] text-[14px]">
               Notifications

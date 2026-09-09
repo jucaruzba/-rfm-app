@@ -109,7 +109,7 @@ const CriticalAlertBanner = () => {
 
   return (
     <>
-      <div className="w-full bg-[#EF4444]/10 border-b border-[#EF4444]/20 px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 z-30">
+      <div className="w-full bg-[#EF4444]/10 border-b border-[#EF4444]/20 px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 relative z-10">
         <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
           {/* Flame icon + #EF4444 text only, per specification */}
           <div className="flex items-center gap-1.5 text-[#EF4444] shrink-0 font-medium text-[12px] lowercase">
