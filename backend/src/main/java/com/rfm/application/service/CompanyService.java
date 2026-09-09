@@ -62,6 +62,7 @@ public class CompanyService {
                 .nas_root_folder(companyPath.toString())
                 .type(request.type())
                 .status(request.status())  
+                .colorCode(request.colorCode())
                 .build();
         company = companyRepository.save(company);
 
@@ -276,6 +277,40 @@ public class CompanyService {
         return mapToDTO(company);
     }
 
+    @Transactional
+    public CompanyDTO updateColor(Long idCompany, String colorCode) {
+        Company company = companyRepository.findById(idCompany)
+                .orElseThrow(() -> new RuntimeException("Company not found with id: " + idCompany));
+        company.setColorCode(colorCode);
+        company = companyRepository.save(company);
+        log.info("Company color updated: {} (ID: {}) - Color: {}", company.getName(), idCompany, colorCode);
+        return mapToDTO(company);
+    }
+
+    @Transactional
+    public CompanyDTO update(Long idCompany, CompanyRequest request) {
+        Company company = companyRepository.findById(idCompany)
+                .orElseThrow(() -> new RuntimeException("Company not found with id: " + idCompany));
+        if (request.name() != null && !request.name().isBlank()) {
+            company.setName(request.name());
+        }
+        if (request.description() != null) {
+            company.setDescription(request.description());
+        }
+        if (request.type() != null) {
+            company.setType(request.type());
+        }
+        if (request.status() != null) {
+            company.setStatus(request.status());
+        }
+        if (request.colorCode() != null) {
+            company.setColorCode(request.colorCode());
+        }
+        company = companyRepository.save(company);
+        log.info("Company updated: {} (ID: {})", company.getName(), idCompany);
+        return mapToDTO(company);
+    }
+
     // --- PRIVATE METHODS ---
 
     private Node createNode(String name, String desc, String type, String path, Long parentId, Long companyId) {
@@ -299,6 +334,7 @@ public class CompanyService {
                 .nasRootFolder(c.getNas_root_folder())
                 .type(c.getType())
                 .status(c.getStatus())
+                .colorCode(c.getColorCode())
                 .build();
     }
 

@@ -25,6 +25,7 @@ import {
 import { companyService } from "../../../../services/companyService";
 import { fileService } from "../../../../services/fileService";
 import { toast } from "sonner";
+import { COMPANY_PALETTE, getCompanyColor } from "../../../../utils/companyColors";
 
 // Company type constants
 const COMPANY_TYPES = [
@@ -71,6 +72,7 @@ const CompaniesPage = () => {
     description: "",
     type: "MY_BUSINESS",
     status: "ACTIVE",
+    colorCode: COMPANY_PALETTE[0],
   });
   const descRef = useRef(null);
 
@@ -124,6 +126,7 @@ const CompaniesPage = () => {
         description: "",
         type: "MY_BUSINESS",
         status: "ACTIVE",
+        colorCode: COMPANY_PALETTE[0],
       });
       if (descRef.current) {
         descRef.current.style.height = "auto";
@@ -323,9 +326,13 @@ const CompaniesPage = () => {
                       </div>
 
                       <div
-                        className="min-w-0 cursor-pointer"
+                        className="min-w-0 cursor-pointer flex items-center gap-1.5"
                         onClick={() => navigate(`/companies/${company.idCompany}`)}
                       >
+                        <span 
+                          className="w-2.5 h-2.5 rounded-full shrink-0" 
+                          style={{ backgroundColor: getCompanyColor(company) }}
+                        />
                         <h2 className="text-[13.5px] font-semibold text-[#1C1C1E] hover:text-[#171717] transition-colors truncate">
                           {company.name}
                         </h2>
@@ -433,9 +440,15 @@ const CompaniesPage = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-semibold text-[13.5px] text-[#1C1C1E]">
-                              {company.name}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <span 
+                                className="w-2.5 h-2.5 rounded-full shrink-0" 
+                                style={{ backgroundColor: getCompanyColor(company) }}
+                              />
+                              <p className="text-[13px] font-medium text-[#1C1C1E]">
+                                {company.name}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -620,6 +633,29 @@ const CompaniesPage = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Color picker */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  calendar & badge color
+                </label>
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  {COMPANY_PALETTE.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, colorCode: c })}
+                      style={{ backgroundColor: c }}
+                      className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
+                        formData.colorCode === c
+                          ? "ring-2 ring-offset-2 ring-[#171717] scale-110"
+                          : "hover:scale-105 opacity-80 hover:opacity-100"
+                      }`}
+                      title={c}
+                    />
+                  ))}
                 </div>
               </div>
 

@@ -441,7 +441,7 @@ const PendingItem = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white px-5 py-3 rounded-[12px] border border-[#E5E5EA]">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
             <button
               onClick={() => handleViewTypeChange("assigned")}
@@ -465,6 +465,34 @@ const PendingItem = () => {
               <ClipboardList size={14} strokeWidth={1.5} />
               <span>Created by me</span>
             </button>
+          </div>
+
+          {/* Status filter buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {[
+              { label: "All", value: "" },
+              { label: "Pending", value: "pending" },
+              { label: "In Progress", value: "in_progress" },
+              { label: "Completed", value: "completed" },
+            ].map((option) => {
+              const isSelected = filters.status === option.value;
+              return (
+                <button
+                  key={`pending-status-${option.value || "all"}`}
+                  onClick={() => {
+                    setFilters((prev) => ({ ...prev, status: option.value }));
+                    setPage(0);
+                  }}
+                  className={`px-2.5 py-1 rounded-[7px] text-[11.5px] font-medium transition-colors cursor-pointer ${
+                    isSelected
+                      ? "bg-[#171717] text-white shadow-xs"
+                      : "bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-white"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -494,8 +522,10 @@ const PendingItem = () => {
               <tr className="bg-[#FAFAFA] text-[#6E6E73] text-[11px] font-medium lowercase border-b border-[#E5E5EA]">
                 <th className="p-3.5">title</th>
                 <th className="p-3.5">status</th>
-                {filters.viewType === "created" && (
+                {filters.viewType === "created" ? (
                   <th className="p-3.5">assigned to</th>
+                ) : (
+                  <th className="p-3.5">by</th>
                 )}
                 <th className="p-3.5">date</th>
                 <th className="p-3.5 text-center">actions</th>
@@ -504,7 +534,7 @@ const PendingItem = () => {
             <tbody className="divide-y divide-[#E5E5EA]">
               {loading ? (
                 <tr>
-                  <td colSpan={filters.viewType === "created" ? 5 : 4} className="p-8 text-center text-[#AEAEB2]">
+                  <td colSpan={5} className="p-8 text-center text-[#AEAEB2]">
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-[#171717]" />
                       <span className="text-[13px]">Loading items...</span>
@@ -513,7 +543,7 @@ const PendingItem = () => {
                 </tr>
               ) : pendingItems.length === 0 ? (
                 <tr>
-                  <td colSpan={filters.viewType === "created" ? 5 : 4} className="p-8 text-center text-[#AEAEB2]">
+                  <td colSpan={5} className="p-8 text-center text-[#AEAEB2]">
                     <div className="flex flex-col items-center gap-1.5">
                       <AlertCircle size={22} strokeWidth={1.5} className="text-[#AEAEB2]" />
                       <p className="text-[13px]">No pending items found</p>
@@ -567,11 +597,18 @@ const PendingItem = () => {
                         />
                       )}
                     </td>
-                    {filters.viewType === "created" && (
+                    {filters.viewType === "created" ? (
                       <td className="p-3.5 text-[12px] text-[#6E6E73]">
                         <div className="flex items-center gap-1.5">
                           <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
                           <span>{getUserNameById(item.assignedTo)}</span>
+                        </div>
+                      </td>
+                    ) : (
+                      <td className="p-3.5 text-[12px] text-[#6E6E73]">
+                        <div className="flex items-center gap-1.5">
+                          <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                          <span>{getUserNameById(item.createdBy)}</span>
                         </div>
                       </td>
                     )}

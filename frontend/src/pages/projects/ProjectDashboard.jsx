@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Briefcase,
   Loader2,
@@ -8,16 +8,28 @@ import {
   Calendar,
   User,
   Clock,
+  FolderTree,
+  FileText,
+  Bell,
+  ArrowRight,
+  Layers,
+  ChevronRight,
+  Plus,
+  ShieldCheck,
+  Folder,
 } from "lucide-react";
 import { projectService } from "../../services/projectService";
+import { projectObjectService } from "../../services/projectObjectService";
 import { toast } from "sonner";
 import { formatUsDate } from "../../utils/dateUtils";
 
 const ProjectDashboard = () => {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [project, setProject] = useState(null);
+  const [objects, setObjects] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -30,11 +42,17 @@ const ProjectDashboard = () => {
 
   const fetchProjectData = async () => {
     try {
-      const data = await projectService.getProject(projectId);
-      setProject(data);
+      setLoading(true);
+      const [projectData, objectsData] = await Promise.all([
+        projectService.getProject(projectId),
+        projectObjectService.getObjectsByProject(projectId).catch(() => []),
+      ]);
+
+      setProject(projectData);
+      setObjects(objectsData || []);
       setEditForm({
-        title: data.title || "",
-        description: data.description || "",
+        title: projectData.title || "",
+        description: projectData.description || "",
       });
     } catch (err) {
       toast.error("Error loading project information");
@@ -74,84 +92,229 @@ const ProjectDashboard = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-200">
-      {/* Main Project Card */}
-      <div className="bg-white rounded-[14px] border border-[#E5E5EA] p-6 sm:p-8 space-y-6 shadow-none">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-[#E5E5EA]">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-[12px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center shrink-0">
-              <Briefcase size={26} strokeWidth={1.5} />
+    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-200">
+      {/* 1. Main Project Card */}
+      <div className="bg-white rounded-[14px] border border-[#E5E5EA] p-6 sm:p-7 space-y-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E5E5EA]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-[12px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E] flex items-center justify-center shrink-0">
+              <Briefcase size={22} strokeWidth={1.5} />
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
                 <span className="px-2.5 py-0.5 bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] rounded-full text-[11px] font-medium lowercase">
-                  project
+                  active project
                 </span>
               </div>
-              <h1 className="text-[22px] font-semibold text-[#1C1C1E]">
+              <h1 className="text-[20px] sm:text-[22px] font-semibold text-[#1C1C1E]">
                 {project?.title}
               </h1>
             </div>
           </div>
 
-          <button
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] border border-[#E5E5EA] bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] text-[12.5px] font-medium transition-colors self-start cursor-pointer"
-          >
-            <Edit3 size={13} strokeWidth={1.5} />
-            <span>Edit project</span>
-          </button>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-[#E5E5EA] bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] text-[12px] font-medium transition-colors cursor-pointer"
+            >
+              <Edit3 size={13} strokeWidth={1.5} />
+              <span>Edit project</span>
+            </button>
+
+            <button
+              onClick={() => navigate(`/projects/${projectId}/objects`)}
+              className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
+            >
+              <FolderTree size={14} strokeWidth={1.5} />
+              <span>Open objects</span>
+              <ArrowRight size={13} strokeWidth={1.5} className="ml-0.5" />
+            </button>
+          </div>
         </div>
 
-        {/* Description */}
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-            description
-          </label>
-          <p className="text-[13.5px] text-[#1C1C1E] leading-relaxed whitespace-pre-line">
-            {project?.description || "No description provided for this project."}
+        {/* Project Description */}
+        <div className="space-y-1">
+          <p className="text-[13.5px] text-[#3C3C43] leading-relaxed whitespace-pre-line">
+            {project?.description || "No project description provided."}
           </p>
         </div>
 
-        {/* Metadata Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[#E5E5EA]">
-          <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] p-3.5 flex items-center gap-3">
-            <User size={16} strokeWidth={1.5} className="text-[#AEAEB2]" />
-            <div>
-              <p className="text-[10.5px] font-medium lowercase text-[#6E6E73]">
-                created by
-              </p>
-              <p className="text-[13px] font-medium text-[#1C1C1E]">
-                {project?.createdByUsername || "Unknown"}
-              </p>
+        {/* Metadata summary */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-[#E5E5EA] text-[12px] text-[#6E6E73]">
+          <span className="flex items-center gap-1.5">
+            <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
+            <span>Created by: <strong className="font-medium text-[#1C1C1E]">{project?.createdByUsername || "Admin"}</strong></span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Calendar size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
+            <span>Created: <strong className="font-medium text-[#1C1C1E]">{formatUsDate(project?.createdAt)}</strong></span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
+            <span>Updated: <strong className="font-medium text-[#1C1C1E]">{formatUsDate(project?.updatedAt || project?.createdAt)}</strong></span>
+          </span>
+        </div>
+      </div>
+
+      {/* 2. Educational Section: Understanding Projects & Objects */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-[15px] font-semibold text-[#1C1C1E]">
+              Project Workspace Capabilities
+            </h2>
+            <p className="text-[12px] text-[#6E6E73]">
+              Organize your project into objects, manage associated documents, and set milestone reminders.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Capability 1: Hierarchical Objects */}
+          <div
+            onClick={() => navigate(`/projects/${projectId}/objects`)}
+            className="bg-white rounded-[12px] border border-[#E5E5EA] p-5 hover:border-[#171717]/30 transition-all cursor-pointer group shadow-xs flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-[9px] bg-[#FAFAFA] border border-[#E5E5EA] flex items-center justify-center text-[#1C1C1E] group-hover:bg-[#171717] group-hover:text-white transition-colors">
+                <Layers size={18} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-[14.5px] font-semibold text-[#1C1C1E] mb-1">
+                  1. Modular Objects
+                </h3>
+                <p className="text-[12px] text-[#6E6E73] leading-relaxed">
+                  Objects represent functional units (phases, deliverables, milestones, or sub-components) of your project in a tree structure.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-[#E5E5EA] flex items-center justify-between text-[11.5px] font-medium text-[#171717]">
+              <span>{objects.length} root object{objects.length === 1 ? "" : "s"}</span>
+              <ChevronRight size={14} strokeWidth={1.5} className="group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
 
-          <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] p-3.5 flex items-center gap-3">
-            <Calendar size={16} strokeWidth={1.5} className="text-[#AEAEB2]" />
-            <div>
-              <p className="text-[10.5px] font-medium lowercase text-[#6E6E73]">
-                created date
-              </p>
-              <p className="text-[13px] font-medium text-[#1C1C1E]">
-                {formatUsDate(project?.createdAt)}
-              </p>
+          {/* Capability 2: File Organization */}
+          <div
+            onClick={() => navigate(`/projects/${projectId}/objects`)}
+            className="bg-white rounded-[12px] border border-[#E5E5EA] p-5 hover:border-[#171717]/30 transition-all cursor-pointer group shadow-xs flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-[9px] bg-[#FAFAFA] border border-[#E5E5EA] flex items-center justify-center text-[#1C1C1E] group-hover:bg-[#171717] group-hover:text-white transition-colors">
+                <FileText size={18} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-[14.5px] font-semibold text-[#1C1C1E] mb-1">
+                  2. Document Hub
+                </h3>
+                <p className="text-[12px] text-[#6E6E73] leading-relaxed">
+                  Store and organize assets, drawings, spreadsheets, and specifications directly inside each object, stored securely on the corporate NAS.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-[#E5E5EA] flex items-center justify-between text-[11.5px] font-medium text-[#171717]">
+              <span>Integrated preview & download</span>
+              <ChevronRight size={14} strokeWidth={1.5} className="group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
 
-          <div className="bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] p-3.5 flex items-center gap-3">
-            <Clock size={16} strokeWidth={1.5} className="text-[#AEAEB2]" />
-            <div>
-              <p className="text-[10.5px] font-medium lowercase text-[#6E6E73]">
-                last updated
-              </p>
-              <p className="text-[13px] font-medium text-[#1C1C1E]">
-                {formatUsDate(project?.updatedAt || project?.createdAt)}
-              </p>
+          {/* Capability 3: Deadlines & Reminders */}
+          <div
+            onClick={() => navigate(`/projects/${projectId}/objects`)}
+            className="bg-white rounded-[12px] border border-[#E5E5EA] p-5 hover:border-[#171717]/30 transition-all cursor-pointer group shadow-xs flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-[9px] bg-[#FAFAFA] border border-[#E5E5EA] flex items-center justify-center text-[#1C1C1E] group-hover:bg-[#171717] group-hover:text-white transition-colors">
+                <Bell size={18} strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-[14.5px] font-semibold text-[#1C1C1E] mb-1">
+                  3. Linked Reminders
+                </h3>
+                <p className="text-[12px] text-[#6E6E73] leading-relaxed">
+                  Attach date-specific alerts, recurring checkpoints, and deadlines to specific objects to keep project deliverables on track.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-[#E5E5EA] flex items-center justify-between text-[11.5px] font-medium text-[#171717]">
+              <span>Calendar-integrated alerts</span>
+              <ChevronRight size={14} strokeWidth={1.5} className="group-hover:translate-x-0.5 transition-transform" />
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 3. Objects in this Project (Direct Access list) */}
+      <div className="bg-white rounded-[14px] border border-[#E5E5EA] p-6 space-y-4 shadow-xs">
+        <div className="flex items-center justify-between pb-3 border-b border-[#E5E5EA]">
+          <div className="flex items-center gap-2">
+            <FolderTree size={16} strokeWidth={1.5} className="text-[#171717]" />
+            <h2 className="text-[15px] font-semibold text-[#1C1C1E]">
+              Project Objects
+            </h2>
+            <span className="text-[11px] font-medium bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] px-2 py-0.5 rounded-full">
+              {objects.length}
+            </span>
+          </div>
+
+          <button
+            onClick={() => navigate(`/projects/${projectId}/objects`)}
+            className="text-[12px] font-medium text-[#171717] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <span>View in explorer</span>
+            <ChevronRight size={13} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {objects.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {objects.map((obj) => (
+              <div
+                key={obj.idObject}
+                onClick={() => navigate(`/projects/${projectId}/objects`)}
+                className="p-3.5 bg-[#FAFAFA] hover:bg-white border border-[#E5E5EA] hover:border-[#171717]/30 rounded-[10px] transition-all cursor-pointer flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-[7px] bg-white border border-[#E5E5EA] flex items-center justify-center text-[#1C1C1E] shrink-0">
+                    <Folder size={15} strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-[#1C1C1E] truncate group-hover:text-[#171717]">
+                      {obj.title}
+                    </p>
+                    {obj.description && (
+                      <p className="text-[11px] text-[#6E6E73] truncate">
+                        {obj.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight size={14} strokeWidth={1.5} className="text-[#AEAEB2] group-hover:text-[#1C1C1E] shrink-0 transition-colors ml-2" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] space-y-2">
+            <FolderTree size={28} strokeWidth={1.5} className="mx-auto text-[#AEAEB2]" />
+            <h3 className="text-[14px] font-medium text-[#1C1C1E]">
+              No objects created yet
+            </h3>
+            <p className="text-[12px] text-[#6E6E73] max-w-sm mx-auto">
+              Objects let you organize files, documents, and reminders by phase or category. Create your first object in the explorer.
+            </p>
+            <button
+              onClick={() => navigate(`/projects/${projectId}/objects`)}
+              className="mt-2 inline-flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
+            >
+              <Plus size={13} strokeWidth={1.5} />
+              <span>Go to objects explorer</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

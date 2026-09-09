@@ -19,6 +19,7 @@ import {
   Inbox,
   AlertTriangle,
   Tag,
+  Search,
 } from "lucide-react";
 import { reminderService } from "../services/reminderService";
 import { getUserIdFromToken } from "../utils/auth";
@@ -290,27 +291,16 @@ const ReminderCalendar = () => {
     }
   }, [isModalOpen, newReminder.description]);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   const fetchReminders = useCallback(async () => {
     try {
       setLoading(true);
       const userId = await getUserIdFromToken();
       if (!userId) return;
 
-      const startDate = format(
-        startOfDay(startOfMonth(selectedDate)),
-        "yyyy-MM-dd'T'HH:mm:ss",
-      );
-      const endDate = format(
-        endOfDay(endOfMonth(selectedDate)),
-        "yyyy-MM-dd'T'HH:mm:ss",
-      );
-
-      const data = await reminderService.filterReminders({
-        idUser: userId,
-        startDate,
-        endDate,
-      });
-
+      const data = await reminderService.getRemindersByUser(userId);
       setReminders(data || []);
     } catch (err) {
       console.error("Error loading reminders:", err);
@@ -318,21 +308,52 @@ const ReminderCalendar = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedDate]);
+  }, []);
 
   useEffect(() => {
     fetchReminders();
   }, [fetchReminders]);
 
+  const filteredReminders = useMemo(() => {
+    if (!searchQuery.trim()) return reminders;
+    const q = searchQuery.toLowerCase().trim();
+    return reminders.filter(
+      (r) =>
+        r.title?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q),
+    );
+  }, [reminders, searchQuery]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return reminders
+      .filter(
+        (r) =>
+          r.title?.toLowerCase().includes(q) ||
+          r.description?.toLowerCase().includes(q),
+      )
+      .slice(0, 10);
+  }, [reminders, searchQuery]);
+
   const remindersByDate = useMemo(() => {
     const grouped = {};
-    reminders.forEach((r) => {
+    filteredReminders.forEach((r) => {
       const dateKey = format(parseISO(r.reminderDate), "yyyy-MM-dd");
       if (!grouped[dateKey]) grouped[dateKey] = [];
       grouped[dateKey].push(r);
     });
     return grouped;
-  }, [reminders]);
+  }, [filteredReminders]);
+
+  const handleSelectSearchResult = (r) => {
+    if (r.reminderDate) {
+      const d = parseISO(r.reminderDate);
+      setSelectedDate(d);
+      setSelectedReminder(r);
+    }
+    setIsSearchOpen(false);
+  };
 
   const monthData = useMemo(() => {
     const monthStart = startOfMonth(selectedDate);
@@ -537,8 +558,8 @@ const ReminderCalendar = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Controls Toolbar - Slim card with separated views and actions */}
-      <div className="flex items-center justify-between gap-3 bg-white px-5 py-2.5 rounded-[12px] border border-[#E5E5EA]">
+      {/* Top Controls Toolbar - Slim card with views, search across calendar, and actions */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white px-5 py-2.5 rounded-[12px] border border-[#E5E5EA]">
         {/* Left: View Mode Toggle (month, week, day) */}
         <div className="flex bg-[#FAFAFA] p-1 rounded-[8px] border border-[#E5E5EA]">
           {[
@@ -563,6 +584,67 @@ const ReminderCalendar = () => {
               <span>{label}</span>
             </button>
           ))}
+        </div>
+
+        {/* Center: Search input across the entire calendar */}
+        <div className="relative flex-1 max-w-sm min-w-[200px]">
+          <div className="relative">
+            <Search
+              size={14}
+              strokeWidth={1.5}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6E6E73]"
+            />
+            <input
+              type="text"
+              placeholder="Search reminders in calendar..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsSearchOpen(true);
+              }}
+              onFocus={() => setIsSearchOpen(true)}
+              className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-8 pr-8 outline-none focus:border-[#171717] focus:bg-white text-[12px] text-[#1C1C1E] transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setIsSearchOpen(false);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
+              >
+                <X size={13} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+
+          {/* Search quick results dropdown */}
+          {isSearchOpen && searchQuery.trim() && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-[#E5E5EA] rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.1)] z-40 max-h-60 overflow-y-auto divide-y divide-[#E5E5EA]">
+              {searchResults.length > 0 ? (
+                searchResults.map((r) => (
+                  <div
+                    key={`search-res-${r.idReminder}`}
+                    onClick={() => handleSelectSearchResult(r)}
+                    className="p-2.5 hover:bg-[#FAFAFA] cursor-pointer transition-colors text-left"
+                  >
+                    <p className="text-[12.5px] font-medium text-[#1C1C1E] truncate">
+                      {r.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#8E8E93]">
+                      <span>{r.reminderDate ? format(parseISO(r.reminderDate), "MMM d, yyyy") : ""}</span>
+                      {r.reminderTime && <span>• {r.reminderTime}</span>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 text-center text-[12px] text-[#AEAEB2]">
+                  No reminders found matching &quot;{searchQuery}&quot;
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right: Today & New Reminder */}

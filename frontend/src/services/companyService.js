@@ -85,4 +85,11 @@ export const companyService = {
     );
     return data;
   },
+
+  updateColor: async (companyId, colorCode) => {
+    const { data } = await api.patch(`/companies/${companyId}/color`, {
+      colorCode,
+    });
+    return data;
+  },
 };

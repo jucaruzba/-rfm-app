@@ -239,7 +239,7 @@ const CompanyExplorer = () => {
                       : "text-[#6E6E73]"
                   }`}
                 >
-                  {item.name}
+                  {idx === 0 ? "Files" : item.name}
                 </button>
                 {idx < pathStack.length - 1 && (
                   <ChevronRight size={13} strokeWidth={1.5} className="text-[#AEAEB2] mx-1" />
@@ -296,7 +296,7 @@ const CompanyExplorer = () => {
         {loading ? (
           <div className="h-64 flex flex-col items-center justify-center gap-2">
             <Loader2 className="text-[#171717] animate-spin" size={22} strokeWidth={1.5} />
-            <p className="text-[12px] text-[#AEAEB2]">Loading explorer...</p>
+            <p className="text-[12px] text-[#AEAEB2]">Loading files...</p>
           </div>
         ) : filteredNodes.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">

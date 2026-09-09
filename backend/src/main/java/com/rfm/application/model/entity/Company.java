@@ -50,4 +50,7 @@ public class Company {
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private CompanyStatus status;
+
+    @Column(name = "color_code", length = 20)
+    private String colorCode;
 }

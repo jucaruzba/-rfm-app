@@ -1,6 +1,7 @@
 package com.rfm.application.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -112,6 +114,21 @@ public class CompanyController {
         log.info("Updating type and status for company ID: {} - Type: {}, Status: {}", 
                  id, params.getType(), params.getStatus());
         return ResponseEntity.ok(companyService.updateTypeAndStatus(id, params.getType(), params.getStatus()));
+    }
+
+    // --- UPDATE COMPANY ---
+    @PutMapping("/{id}")
+    public ResponseEntity<CompanyDTO> update(@PathVariable Long id, @RequestBody CompanyRequest request) {
+        log.info("Updating company ID: {}", id);
+        return ResponseEntity.ok(companyService.update(id, request));
+    }
+
+    // --- UPDATE COLOR ---
+    @PatchMapping("/{id}/color")
+    public ResponseEntity<CompanyDTO> updateColor(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String colorCode = body.get("colorCode");
+        log.info("Updating color for company ID: {} - Color: {}", id, colorCode);
+        return ResponseEntity.ok(companyService.updateColor(id, colorCode));
     }
 
     // --- CHECK IF COMPANY HAS DATA ---

@@ -44,6 +44,7 @@ import TaskDetailView from "./TaskDetailView";
 import MonthYearPicker from "../../../../components/MonthYearPicker";
 import TaskDeleteDialog from "../../../../components/TaskDeleteDialog";
 import { formatUsDate, formatDateToBackend } from "../../../../utils/dateUtils";
+import { getCompanyColor, hexToRgba } from "../../../../utils/companyColors";
 
 const TasksPage = () => {
   const { companyId } = useParams();
@@ -392,32 +393,32 @@ const TasksPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Control panel: View mode, New task, Status filters & Search in one unified card */}
-      <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-5 shadow-xs space-y-4">
+      {/* Control panel: View mode, New task, Status filters & Search in one compact card */}
+      <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-3.5 shadow-xs space-y-2.5">
         {/* Top row: View mode switch & New task button */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
+            <div className="flex items-center bg-[#FAFAFA] p-0.5 rounded-[9px] border border-[#E5E5EA]">
               <button
                 onClick={() => setViewMode("list")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[12px] font-medium transition-colors cursor-pointer ${
                   viewMode === "list"
                     ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
                     : "text-[#6E6E73] hover:text-[#1C1C1E]"
                 }`}
               >
-                <ListIcon size={14} strokeWidth={1.5} />
+                <ListIcon size={13} strokeWidth={1.5} />
                 <span>List</span>
               </button>
               <button
                 onClick={() => setViewMode("calendar")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[7px] text-[12px] font-medium transition-colors cursor-pointer ${
                   viewMode === "calendar"
                     ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
                     : "text-[#6E6E73] hover:text-[#1C1C1E]"
                 }`}
               >
-                <CalendarDays size={14} strokeWidth={1.5} />
+                <CalendarDays size={13} strokeWidth={1.5} />
                 <span>Calendar</span>
               </button>
             </div>
@@ -425,19 +426,16 @@ const TasksPage = () => {
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] active:bg-black text-white px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] active:bg-black text-white px-3.5 py-1.5 rounded-[9px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
           >
-            <Plus size={15} strokeWidth={1.5} />
+            <Plus size={14} strokeWidth={1.5} />
             <span>New task</span>
           </button>
         </div>
 
-        {/* Bottom row: Status filters & Search bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3.5 border-t border-[#E5E5EA]">
+        {/* Bottom row: Status filters (without 'status:' label) & Search bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2.5 border-t border-[#E5E5EA]">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-medium lowercase text-[#6E6E73] mr-1">
-              status:
-            </span>
             {[
               { label: "Pending", value: "PENDING" },
               { label: "In Progress", value: "IN_PROGRESS" },
@@ -450,7 +448,7 @@ const TasksPage = () => {
                 <button
                   key={`status-${option.value}`}
                   onClick={() => setStatusTab(option.value)}
-                  className={`px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-colors cursor-pointer ${
                     isSelected
                       ? "bg-[#171717] text-white shadow-xs"
                       : "bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-white"
@@ -462,18 +460,18 @@ const TasksPage = () => {
             })}
           </div>
 
-          <div className="relative min-w-[220px]">
+          <div className="relative min-w-[200px]">
             <Search
-              size={15}
+              size={14}
               strokeWidth={1.5}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6E6E73]"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6E6E73]"
             />
             <input
               type="text"
               placeholder="Search tasks..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] py-2 pl-9 pr-3 outline-none focus:border-[#171717] focus:bg-white text-[13px] text-[#1C1C1E] transition-all"
+              className="w-full bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] py-1.5 pl-8 pr-2.5 outline-none focus:border-[#171717] focus:bg-white text-[12px] text-[#1C1C1E] transition-all"
             />
           </div>
         </div>
@@ -496,7 +494,11 @@ const TasksPage = () => {
                   <div
                     key={`task-card-${task.idTask}`}
                     onClick={() => handleOpenTaskDetail(task.idTask)}
-                    className="bg-white border border-[#E5E5EA] rounded-[12px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#171717]/30 transition-colors cursor-pointer shadow-xs"
+                    className={`bg-white rounded-[12px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors cursor-pointer shadow-xs ${
+                      task.priority === "HIGH"
+                        ? "border-2 border-[#EF4444] hover:border-[#DC2626]"
+                        : "border border-[#E5E5EA] hover:border-[#171717]/30"
+                    }`}
                   >
                     <div className="space-y-2.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -767,10 +769,12 @@ const TasksPage = () => {
                     </button>
                   </div>
 
-                  {/* Task chips */}
+                  {/* Task chips with company color */}
                   <div className="space-y-1 my-1 flex-1 overflow-y-auto max-h-20">
                     {dayTasks.map((t) => {
-                      const statusCfg = getStatusConfig(t.status);
+                      const taskCompany = companies.find((c) => c.idCompany === t.idCompany);
+                      const compColor = getCompanyColor(taskCompany || t.idCompany || t.nameCompany);
+                      const companyName = taskCompany?.name || t.nameCompany;
                       return (
                         <div
                           key={`cal-task-${t.idTask}`}
@@ -778,11 +782,21 @@ const TasksPage = () => {
                             e.stopPropagation();
                             handleOpenTaskDetail(t.idTask);
                           }}
-                          className={`px-1.5 py-0.5 rounded-[6px] border text-[10px] font-medium flex items-center gap-1 transition-colors truncate cursor-pointer ${statusCfg.pillBg}`}
-                          title={`${t.title} (${t.status})`}
+                          style={{
+                            backgroundColor: hexToRgba(compColor, 0.12),
+                            borderColor: hexToRgba(compColor, 0.38),
+                          }}
+                          className="px-1.5 py-0.5 rounded-[6px] border text-[10px] font-medium flex items-center gap-1 transition-all truncate cursor-pointer hover:opacity-90"
+                          title={`${t.title}${companyName ? ` (${companyName})` : ""} - ${t.status}`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dotBg}`} />
-                          <span className="truncate flex-1">{t.title}</span>
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: compColor }}
+                          />
+                          <span className="truncate flex-1 text-[#1C1C1E]">{t.title}</span>
+                          {t.priority === "HIGH" && (
+                            <Flame size={10} strokeWidth={2} className="text-[#EF4444] shrink-0" />
+                          )}
                         </div>
                       );
                     })}

@@ -117,11 +117,19 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
   // 2. Cargar detalles de la tarea, comentarios, pendientes y nodos
   useEffect(() => {
     if (isOpen && taskId) {
+      setIsEditing(false);
       fetchTaskDetails();
       fetchComments();
       fetchPendingItems();
+    } else if (!isOpen) {
+      setIsEditing(false);
     }
   }, [isOpen, taskId]);
+
+  const handleClose = () => {
+    setIsEditing(false);
+    if (onClose) onClose();
+  };
 
   const fetchTaskDetails = async () => {
     setLoading(true);
@@ -476,16 +484,22 @@ const handleConfirmDeletePending = async (id) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-        <div className="bg-[#FAFAFA] h-full max-h-screen w-full max-w-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border-l border-[#E5E5EA] flex flex-col overflow-hidden animate-in slide-in-from-right duration-200">
+      <div 
+        onClick={handleClose}
+        className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-in fade-in duration-150 cursor-pointer"
+      >
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="bg-[#FAFAFA] h-full max-h-screen w-full max-w-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border-l border-[#E5E5EA] flex flex-col overflow-hidden animate-in slide-in-from-right duration-200 cursor-default"
+        >
           {/* Header */}
           <div className="px-6 py-4 border-b border-[#E5E5EA] flex justify-between items-center bg-white shrink-0 z-20">
             <h1 className="text-[17px] font-semibold text-[#1C1C1E]">
               Task details
             </h1>
             <button
-              onClick={onClose}
-              className="text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors"
+              onClick={handleClose}
+              className="text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors cursor-pointer"
             >
               <X size={18} strokeWidth={1.5} />
             </button>
@@ -673,6 +687,19 @@ const handleConfirmDeletePending = async (id) => {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 mr-3">
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false);
+                        fetchTaskDetails();
+                      }}
+                      className="p-2 rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] hover:text-[#1C1C1E] transition-colors cursor-pointer"
+                      title="Cancel edit"
+                    >
+                      <X size={16} strokeWidth={1.5} />
+                    </button>
+                  )}
                   <button
                     onClick={isEditing ? handleUpdate : () => setIsEditing(true)}
                     className={`p-2 rounded-[8px] transition-colors cursor-pointer ${

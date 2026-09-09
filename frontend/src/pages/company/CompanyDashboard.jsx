@@ -194,9 +194,6 @@ const CompanyDashboard = () => {
               <h1 className="text-[20px] font-semibold text-[#1C1C1E]">
                 {company?.name}
               </h1>
-              <p className="text-[12px] text-[#AEAEB2] mt-0.5">
-                ID: #{company?.idCompany}
-              </p>
             </div>
 
             <button
@@ -302,7 +299,7 @@ const CompanyDashboard = () => {
             <FolderTree size={18} strokeWidth={1.5} />
           </div>
           <h3 className="text-[15px] font-semibold text-[#1C1C1E] mb-1">
-            Object explorer
+            Files
           </h3>
           <p className="text-[12.5px] text-[#6E6E73]">
             Access folder structure, files, and stored company documents.

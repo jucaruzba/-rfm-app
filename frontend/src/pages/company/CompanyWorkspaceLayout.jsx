@@ -65,7 +65,7 @@ const CompanyWorkspaceLayout = () => {
     },
     {
       icon: <FolderTree size={15} strokeWidth={1.5} />,
-      label: "Explorer",
+      label: "Files",
       path: `/companies/${companyId}/files`,
     },
   ];

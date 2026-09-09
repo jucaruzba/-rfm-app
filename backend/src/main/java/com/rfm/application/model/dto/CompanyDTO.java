@@ -20,4 +20,5 @@ public class CompanyDTO {
     private String nasRootFolder;
     private CompanyType type;
     private CompanyStatus status;
+    private String colorCode;
 }
