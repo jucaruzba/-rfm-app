@@ -1,29 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../../../context/AuthContext";
 import {
-  Eye,
-  Activity,
   X,
   AlertCircle,
-  ListTodo,
   User,
-  FileText,
-  CheckCircle2,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   Plus,
   Loader2,
   Users,
   ClipboardList,
-  ChevronDown,
   Pencil,
   Save,
   Trash2,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { pendingItemService } from "../../../../services/pendingItemService";
 import { userService } from "../../../../services/userService";
+import { formatUsDate } from "../../../../utils/dateUtils";
 
 // ==========================================
 // STATUS COLOR CONFIG
@@ -98,10 +92,14 @@ const PendingItem = () => {
 
   const [pendingItems, setPendingItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const pageSize = 15;
   const [totalElements, setTotalElements] = useState(0);
-  const [pageSize] = useState(10);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef(null);
+  const isFetchingRef = useRef(false);
+  const pageRef = useRef(0);
+  const hasMoreRef = useRef(true);
 
   const [filters, setFilters] = useState({
     status: "",
@@ -164,12 +162,17 @@ const PendingItem = () => {
     }
   };
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async (reset = true) => {
     if (!user) return;
-    setLoading(true);
+    if (reset) {
+      pageRef.current = 0;
+    }
+    isFetchingRef.current = true;
+    await Promise.resolve();
+    if (reset) setLoading(true);
     try {
       const currentUserId = user.idUser || user.id;
-      const queryFilters = {};
+      const queryFilters = { sort: ["createdAt,desc", "idPending,desc"] };
       if (filters.status) queryFilters.status = filters.status;
       if (filters.referenceType) queryFilters.referenceType = filters.referenceType;
 
@@ -177,62 +180,115 @@ const PendingItem = () => {
       if (filters.viewType === "assigned") {
         data = await pendingItemService.getByAssignedTo(
           currentUserId,
-          page,
+          0,
           pageSize,
           queryFilters,
         );
       } else {
         data = await pendingItemService.getByCreatedBy(
           currentUserId,
-          page,
+          0,
           pageSize,
           queryFilters,
         );
       }
 
-      setPendingItems(data?.content || []);
-      setTotalPages(data?.totalPages || 0);
+      const items = data?.content || [];
+      setPendingItems(items);
+      pageRef.current = 0;
       setTotalElements(data?.totalElements || 0);
+      const more = (data?.totalPages || 0) > 1;
+      setHasMore(more);
+      hasMoreRef.current = more;
     } catch (err) {
       console.error("Error loading pending items", err);
       toast.error("Failed to load pending items");
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false);
+      isFetchingRef.current = false;
     }
-  };
+  }, [user, filters.viewType, filters.status, filters.referenceType]);
+
+  const loadNextPage = useCallback(async () => {
+    if (!user || isFetchingRef.current || !hasMoreRef.current) return;
+
+    const nextPage = pageRef.current + 1;
+    isFetchingRef.current = true;
+    setLoadingMore(true);
+
+    try {
+      const currentUserId = user.idUser || user.id;
+      const queryFilters = { sort: ["createdAt,desc", "idPending,desc"] };
+      if (filters.status) queryFilters.status = filters.status;
+      if (filters.referenceType) queryFilters.referenceType = filters.referenceType;
+
+      let data;
+      if (filters.viewType === "assigned") {
+        data = await pendingItemService.getByAssignedTo(
+          currentUserId,
+          nextPage,
+          pageSize,
+          queryFilters,
+        );
+      } else {
+        data = await pendingItemService.getByCreatedBy(
+          currentUserId,
+          nextPage,
+          pageSize,
+          queryFilters,
+        );
+      }
+
+      const nextItems = data?.content || [];
+      setPendingItems((prev) => {
+        const existingIds = new Set(prev.map((i) => i.idPending));
+        const filtered = nextItems.filter((i) => !existingIds.has(i.idPending));
+        return [...prev, ...filtered];
+      });
+      pageRef.current = nextPage;
+      setTotalElements(data?.totalElements || 0);
+      const more = nextPage + 1 < (data?.totalPages || 0);
+      setHasMore(more);
+      hasMoreRef.current = more;
+    } catch (err) {
+      console.error("Error loading next page", err);
+    } finally {
+      setLoadingMore(false);
+      isFetchingRef.current = false;
+    }
+  }, [user, filters.viewType, filters.status, filters.referenceType]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
   }, []);
 
   useEffect(() => {
-    fetchItems();
-  }, [user, page, filters.viewType, filters.status, filters.referenceType]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchItems(true);
+  }, [fetchItems]);
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-    setPage(0);
-  };
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingRef.current && hasMoreRef.current) {
+          loadNextPage();
+        }
+      },
+      { root: null, rootMargin: "250px", threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+    };
+  }, [loadNextPage]);
 
   const handleViewTypeChange = (viewType) => {
     setFilters((prev) => ({ ...prev, viewType }));
-    setPage(0);
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      status: "",
-      referenceType: "",
-      viewType: "assigned",
-    });
-    setPage(0);
-  };
-
-  const handlePageChange = (newPage) => {
-    if (newPage >= 0 && newPage < totalPages) {
-      setPage(newPage);
-    }
   };
 
   const getUserNameById = (userId) => {
@@ -389,7 +445,7 @@ const PendingItem = () => {
         assignedTo: "",
       });
       setIsCreateModalOpen(false);
-      fetchItems();
+      fetchItems(true);
     } catch (err) {
       console.error("Error creating pending item", err);
       toast.error("Failed to create pending item");
@@ -481,7 +537,6 @@ const PendingItem = () => {
                   key={`pending-status-${option.value || "all"}`}
                   onClick={() => {
                     setFilters((prev) => ({ ...prev, status: option.value }));
-                    setPage(0);
                   }}
                   className={`px-2.5 py-1 rounded-[7px] text-[11.5px] font-medium transition-colors cursor-pointer ${
                     isSelected
@@ -498,7 +553,7 @@ const PendingItem = () => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={fetchItems}
+            onClick={() => fetchItems(true)}
             className="p-1.5 bg-[#FAFAFA] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[8px] transition-colors cursor-pointer"
             title="Refresh"
           >
@@ -514,166 +569,127 @@ const PendingItem = () => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-[12px] border border-[#E5E5EA] overflow-hidden shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#FAFAFA] text-[#6E6E73] text-[11px] font-medium lowercase border-b border-[#E5E5EA]">
-                <th className="p-3.5">title</th>
-                <th className="p-3.5">status</th>
-                {filters.viewType === "created" ? (
-                  <th className="p-3.5">assigned to</th>
-                ) : (
-                  <th className="p-3.5">by</th>
-                )}
-                <th className="p-3.5">date</th>
-                <th className="p-3.5 text-center">actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E5EA]">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-[#AEAEB2]">
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 size={18} strokeWidth={1.5} className="animate-spin text-[#171717]" />
-                      <span className="text-[13px]">Loading items...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : pendingItems.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-[#AEAEB2]">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <AlertCircle size={22} strokeWidth={1.5} className="text-[#AEAEB2]" />
-                      <p className="text-[13px]">No pending items found</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                pendingItems.map((item) => (
-                  <tr
-                    key={item.idPending}
-                    className="hover:bg-[#FAFAFA] transition-colors"
-                  >
-                    <td className="p-3.5">
-                      <p className="text-[13.5px] font-medium text-[#1C1C1E]">
-                        {item.title}
-                      </p>
-                      {item.description && (
-                        <p className="text-[12px] text-[#6E6E73] mt-0.5 line-clamp-1">
-                          {item.description}
-                        </p>
-                      )}
-                    </td>
-                    <td className="p-3.5">
-                      {filters.viewType === "assigned" ? (
-                        <select
-                          value={item.status}
-                          onChange={(e) =>
-                            handleUpdateStatus(item.idPending, e.target.value)
-                          }
-                          disabled={updatingStatusId === item.idPending}
-                          className={`text-[11px] font-medium lowercase px-2.5 py-1 rounded-full border cursor-pointer ${getStatusColor(item.status)} outline-none`}
-                        >
-                          {STATUS_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center text-[11px] font-medium lowercase px-2.5 py-0.5 rounded-full border ${getStatusColor(item.status)}`}
-                        >
-                          <StatusDot status={item.status} />
-                          {formatStatusForUI(item.status)}
-                        </span>
-                      )}
-                      {updatingStatusId === item.idPending && (
-                        <Loader2
-                          size={12}
-                          className="inline ml-2 animate-spin text-[#AEAEB2]"
-                        />
-                      )}
-                    </td>
-                    {filters.viewType === "created" ? (
-                      <td className="p-3.5 text-[12px] text-[#6E6E73]">
-                        <div className="flex items-center gap-1.5">
-                          <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
-                          <span>{getUserNameById(item.assignedTo)}</span>
-                        </div>
-                      </td>
-                    ) : (
-                      <td className="p-3.5 text-[12px] text-[#6E6E73]">
-                        <div className="flex items-center gap-1.5">
-                          <User size={13} strokeWidth={1.5} className="text-[#AEAEB2]" />
-                          <span>{getUserNameById(item.createdBy)}</span>
-                        </div>
-                      </td>
-                    )}
-                    <td className="p-3.5 text-[12px] text-[#6E6E73]">
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleDateString()
-                        : "N/A"}
-                    </td>
-                    <td className="p-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => handleViewItem(item)}
-                          className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors cursor-pointer"
-                          title="View details"
-                        >
-                          <Eye size={15} strokeWidth={1.5} />
-                        </button>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDeleteClick(item)}
-                            disabled={deletingId === item.idPending}
-                            className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors disabled:opacity-50 cursor-pointer"
-                            title="Delete"
-                          >
-                            {deletingId === item.idPending ? (
-                              <Loader2 size={15} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={15} strokeWidth={1.5} />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Cards List with Infinite Scroll */}
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="animate-spin text-[#171717]" size={28} strokeWidth={1.5} />
         </div>
-
-        {/* Pagination */}
-        {totalPages > 0 && (
-          <div className="flex justify-between items-center px-4 py-3 border-t border-[#E5E5EA] bg-[#FAFAFA]">
-            <div className="text-[12px] text-[#6E6E73] lowercase">
-              page {page + 1} of {totalPages}
-            </div>
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => handlePageChange(page - 1)}
-                disabled={page === 0}
-                className="p-1.5 text-[#6E6E73] hover:bg-white rounded-[6px] transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                <ChevronLeft size={16} strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={() => handlePageChange(page + 1)}
-                disabled={page >= totalPages - 1}
-                className="p-1.5 text-[#6E6E73] hover:bg-white rounded-[6px] transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                <ChevronRight size={16} strokeWidth={1.5} />
-              </button>
-            </div>
+      ) : pendingItems.length === 0 ? (
+        <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-12 text-center text-[#AEAEB2]">
+          <div className="flex flex-col items-center gap-2">
+            <AlertCircle size={24} strokeWidth={1.5} className="text-[#AEAEB2]" />
+            <p className="text-[13px]">No pending items found</p>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {pendingItems.map((item) => (
+            <div
+              key={`pending-card-${item.idPending}`}
+              onClick={() => handleViewItem(item)}
+              className="bg-white rounded-[12px] p-3.5 sm:p-4 border border-[#E5E5EA] hover:border-[#171717]/30 hover:shadow-sm transition-all cursor-pointer shadow-xs"
+            >
+              {/* Primer Renglón: TITULO */}
+              <div className="mb-2">
+                <h3 className="text-[14px] sm:text-[15px] font-semibold text-[#1C1C1E] tracking-tight leading-snug truncate">
+                  {item.title}
+                </h3>
+              </div>
+
+              {/* Segundo Renglón: Usuario (izq.) | Estatus, Fecha & Trash (der.) */}
+              <div className="flex items-center justify-between gap-3 text-[12px] text-[#6E6E73] flex-wrap sm:flex-nowrap">
+                {/* Izquierda: Usuario (asignado o creador) */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-1.5 text-[#6E6E73] truncate">
+                    <User size={13} strokeWidth={1.5} className="text-[#8E8E93] shrink-0" />
+                    <span className="truncate max-w-[180px] sm:max-w-[260px]">
+                      {filters.viewType === "created" ? (
+                        <>
+                          <span className="text-[#8E8E93]">to: </span>
+                          <span className="font-medium text-[#2C2C2E]">
+                            {getUserNameById(item.assignedTo)}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-[#8E8E93]">by: </span>
+                          <span className="font-medium text-[#2C2C2E]">
+                            {getUserNameById(item.createdBy)}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Derecha (al otro extremo): Estatus, Fecha, Trash */}
+                <div
+                  className="flex items-center gap-2.5 sm:gap-3 shrink-0 ml-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* 1. Estatus */}
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={item.status?.toLowerCase().replace("-", "_") || "pending"}
+                      onChange={(e) =>
+                        handleUpdateStatus(item.idPending, e.target.value)
+                      }
+                      disabled={updatingStatusId === item.idPending}
+                      className={`text-[11px] font-medium lowercase rounded-[6px] px-2 py-0.5 border outline-none cursor-pointer transition-colors shadow-2xs ${getStatusColor(item.status)}`}
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value} className="bg-white text-[#1C1C1E]">
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {updatingStatusId === item.idPending && (
+                      <Loader2 size={12} className="animate-spin text-[#AEAEB2]" />
+                    )}
+                  </div>
+
+                  {/* 2. Fecha */}
+                  <div className="flex items-center gap-1.5 text-[#6E6E73] text-[12px] whitespace-nowrap">
+                    <CalendarIcon size={13} strokeWidth={1.5} className="text-[#8E8E93]" />
+                    <span>{formatUsDate(item.createdAt)}</span>
+                  </div>
+
+                  {/* 3. Trash */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDeleteClick(item)}
+                      disabled={deletingId === item.idPending}
+                      className="p-1 text-[#AEAEB2] hover:text-[#EF4444] rounded-[6px] hover:bg-[#EF4444]/10 transition-colors disabled:opacity-50 cursor-pointer"
+                      title="Delete"
+                    >
+                      {deletingId === item.idPending ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={15} strokeWidth={1.5} />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Centinela de Scroll Infinito & Indicador de Carga / Fin de Lista */}
+          <div ref={sentinelRef} className="py-4 flex justify-center items-center">
+            {loadingMore && (
+              <div className="flex items-center gap-2 text-[#6E6E73] text-[12px]">
+                <Loader2 className="animate-spin text-[#171717]" size={16} strokeWidth={1.5} />
+                <span>Loading more items...</span>
+              </div>
+            )}
+            {!hasMore && pendingItems.length > 0 && (
+              <div className="text-center text-[12px] text-[#AEAEB2] py-2">
+                All pending items loaded ({totalElements} {totalElements === 1 ? "item" : "items"})
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal Details / Edit */}
       {isViewModalOpen && selectedItem && (

@@ -45,6 +45,13 @@ export const pendingItemService = {
     // Parámetros de paginación
     params.append("page", page);
     params.append("size", size);
+    if (filters.sort) {
+      if (Array.isArray(filters.sort)) {
+        filters.sort.forEach((s) => params.append("sort", s));
+      } else {
+        params.append("sort", filters.sort);
+      }
+    }
 
     const { data } = await api.get(
       `/pending-items/filters?${params.toString()}`,

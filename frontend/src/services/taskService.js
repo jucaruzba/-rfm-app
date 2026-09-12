@@ -25,6 +25,13 @@ export const taskService = {
     // NUEVO: Parámetros de paginación leídos por Spring Data Jpa a través de Pageable
     if (filters.page !== undefined) params.append("page", filters.page);
     if (filters.size !== undefined) params.append("size", filters.size);
+    if (filters.sort) {
+      if (Array.isArray(filters.sort)) {
+        filters.sort.forEach((s) => params.append("sort", s));
+      } else {
+        params.append("sort", filters.sort);
+      }
+    }
 
     const { data } = await api.get(`/tasks/filters?${params.toString()}`);
     return data; // Ahora retorna el objeto 'Page' con el nodo .content interno

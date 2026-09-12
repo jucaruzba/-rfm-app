@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
-  ClipboardList,
   Plus,
   Search,
   Calendar as CalendarIcon,
@@ -9,14 +8,11 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  Building2,
-  Briefcase,
   Loader2,
   CheckCircle2,
   AlertCircle,
   Clock,
   X,
-  Repeat,
   CalendarDays,
   Flame,
   Trash2,
@@ -31,9 +27,7 @@ import {
   endOfWeek,
   eachDayOfInterval,
   isSameMonth,
-  isSameDay,
   isToday,
-  parseISO,
 } from "date-fns";
 import { taskService } from "../../../../services/taskService";
 import { companyService } from "../../../../services/companyService";
@@ -65,17 +59,21 @@ const TasksPage = () => {
 
   // --- FILTROS PARA EL BACKEND ---
   const [statusTab, setStatusTab] = useState("PENDING");
-  const [filterUser, setFilterUser] = useState("");
+  const filterUser = "";
   const [filterCompany, setFilterCompany] = useState(companyId || "");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const startDate = "";
+  const endDate = "";
   const [searchQuery, setSearchQuery] = useState("");
 
-  // --- NUEVOS ESTADOS DE PAGINACIÓN ---
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(5);
-  const [totalPages, setTotalPages] = useState(0);
+  // --- ESTADOS DE PAGINACIÓN & SCROLL INFINITO ---
+  const pageSize = 15;
   const [totalElements, setTotalElements] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef(null);
+  const isFetchingRef = useRef(false);
+  const pageRef = useRef(0);
+  const hasMoreRef = useRef(true);
 
   // --- ESTADOS DEL MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -123,14 +121,21 @@ const TasksPage = () => {
 
   useEffect(() => {
     if (companyId) {
-      setFilterCompany(companyId);
-      setFormData((prev) => ({ ...prev, idCompany: companyId }));
+      Promise.resolve().then(() => {
+        setFilterCompany(companyId);
+        setFormData((prev) => ({ ...prev, idCompany: companyId }));
+      });
     }
   }, [companyId]);
 
-  // Consulta paginada para la vista Lista
-  const fetchTasks = useCallback(async () => {
-    setLoading(true);
+  // Consulta paginada para la vista Lista (recarga o reinicio con filtros)
+  const fetchTasks = useCallback(async (reset = true) => {
+    if (reset) {
+      pageRef.current = 0;
+    }
+    isFetchingRef.current = true;
+    await Promise.resolve();
+    if (reset) setLoading(true);
     try {
       const response = await taskService.getTasks({
         idCompany: filterCompany || null,
@@ -139,17 +144,23 @@ const TasksPage = () => {
         title: searchQuery || null,
         start: startDate || null,
         end: endDate || null,
-        page: page,
+        page: 0,
         size: pageSize,
+        sort: ["startDate,desc", "idTask,desc"],
       });
 
-      setTasks(response.content || []);
-      setTotalPages(response.totalPages || 0);
+      const items = response.content || [];
+      setTasks(items);
+      pageRef.current = 0;
       setTotalElements(response.totalElements || 0);
-    } catch (err) {
+      const moreAvailable = (response.totalPages || 0) > 1;
+      setHasMore(moreAvailable);
+      hasMoreRef.current = moreAvailable;
+    } catch {
       toast.error("Error syncing task flow");
     } finally {
-      setLoading(false);
+      if (reset) setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [
     filterCompany,
@@ -158,13 +169,82 @@ const TasksPage = () => {
     searchQuery,
     startDate,
     endDate,
-    page,
     pageSize,
   ]);
+
+  // Carga de página siguiente para scroll infinito
+  const loadNextPage = useCallback(async () => {
+    if (isFetchingRef.current || !hasMoreRef.current) return;
+
+    const nextPage = pageRef.current + 1;
+    isFetchingRef.current = true;
+    setLoadingMore(true);
+    try {
+      const response = await taskService.getTasks({
+        idCompany: filterCompany || null,
+        status: statusTab,
+        idUserAssigned: filterUser ? Number(filterUser) : null,
+        title: searchQuery || null,
+        start: startDate || null,
+        end: endDate || null,
+        page: nextPage,
+        size: pageSize,
+        sort: ["startDate,desc", "idTask,desc"],
+      });
+
+      const nextItems = response.content || [];
+      setTasks((prev) => {
+        const existingIds = new Set(prev.map((t) => t.idTask));
+        const filtered = nextItems.filter((t) => !existingIds.has(t.idTask));
+        return [...prev, ...filtered];
+      });
+      pageRef.current = nextPage;
+      setTotalElements(response.totalElements || 0);
+      const moreAvailable = nextPage + 1 < (response.totalPages || 0);
+      setHasMore(moreAvailable);
+      hasMoreRef.current = moreAvailable;
+    } catch (err) {
+      console.error("Error loading next page", err);
+    } finally {
+      setLoadingMore(false);
+      isFetchingRef.current = false;
+    }
+  }, [
+    filterCompany,
+    statusTab,
+    filterUser,
+    searchQuery,
+    startDate,
+    endDate,
+    pageSize,
+  ]);
+
+  // IntersectionObserver para detectar el final de la lista y activar scroll infinito
+  useEffect(() => {
+    if (viewMode !== "list") return;
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isFetchingRef.current && hasMoreRef.current) {
+          loadNextPage();
+        }
+      },
+      { root: null, rootMargin: "250px", threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => {
+      observer.disconnect();
+    };
+  }, [viewMode, loadNextPage]);
 
   // Consulta completa para la vista Calendario (mes completo sin cortes de paginación)
   // Cambiado a inicio de semana en Domingo (weekStartsOn: 0)
   const fetchCalendarTasks = useCallback(async () => {
+    await Promise.resolve();
     setCalendarLoading(true);
     try {
       const startMonthDate = format(startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 0 }), "yyyy-MM-dd");
@@ -189,24 +269,30 @@ const TasksPage = () => {
 
   useEffect(() => {
     if (viewMode === "list") {
-      fetchTasks();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchTasks(true);
     } else {
       fetchCalendarTasks();
     }
   }, [viewMode, fetchTasks, fetchCalendarTasks]);
 
-  // Si cambia un filtro crítico de búsqueda, volvemos a la página 0 en modo lista
-  useEffect(() => {
-    setPage(0);
-  }, [filterCompany, statusTab, filterUser, searchQuery, startDate, endDate]);
-
   const handleStatusChange = async (idTask, newStatus) => {
     try {
       await taskService.updateStatus(idTask, newStatus);
       toast.success("Operational status updated");
-      if (viewMode === "list") fetchTasks();
-      else fetchCalendarTasks();
-    } catch (err) {
+      if (viewMode === "list") {
+        setTasks((prev) => {
+          if (statusTab !== "ALL" && newStatus !== statusTab) {
+            return prev.filter((t) => t.idTask !== idTask);
+          }
+          return prev.map((t) =>
+            t.idTask === idTask ? { ...t, status: newStatus } : t
+          );
+        });
+      } else {
+        fetchCalendarTasks();
+      }
+    } catch {
       toast.error("Could not process status change");
     }
   };
@@ -230,7 +316,6 @@ const TasksPage = () => {
     setTaskToDelete(task);
     setIsDeleteModalOpen(true);
   };
-  const handleRequestDelete = handleDeleteClick;
 
   const handleConfirmDelete = async (task, deleteFuture) => {
     if (!task) return;
@@ -244,8 +329,12 @@ const TasksPage = () => {
         setIsDetailViewOpen(false);
         setSelectedTaskId(null);
       }
-      if (viewMode === "list") fetchTasks();
-      else fetchCalendarTasks();
+      if (viewMode === "list") {
+        setTasks((prev) => prev.filter((t) => t.idTask !== task.idTask));
+        setTotalElements((prev) => Math.max(0, prev - 1));
+      } else {
+        fetchCalendarTasks();
+      }
     } catch (error) {
       console.error("Delete task error:", error);
       toast.error("Failed to delete task");
@@ -304,10 +393,9 @@ const TasksPage = () => {
         repeatEndDate: "",
         priority: "NORMAL",
       });
-      setPage(0);
       if (viewMode === "list") fetchTasks();
       else fetchCalendarTasks();
-    } catch (err) {
+    } catch {
       toast.error("Error registering the task in the backend");
     } finally {
       setSubmitting(false);
@@ -487,179 +575,120 @@ const TasksPage = () => {
               <Loader2 className="animate-spin text-[#171717]" size={28} strokeWidth={1.5} />
             </div>
           ) : tasks.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {tasks.map((task) => {
                 const currentStatus = getStatusConfig(task.status);
+                const isHighPriority = task.priority === "HIGH";
+                const companyObj = companies.find((c) => c.idCompany === task.idCompany);
+                const companyColor = getCompanyColor(companyObj || { idCompany: task.idCompany, name: task.nameCompany });
+                const companyName = task.nameCompany || (companyObj ? companyObj.name : null) || task.externalReferenceName || "Sin empresa";
+
                 return (
                   <div
                     key={`task-card-${task.idTask}`}
                     onClick={() => handleOpenTaskDetail(task.idTask)}
-                    className={`bg-white rounded-[12px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors cursor-pointer shadow-xs ${
-                      task.priority === "HIGH"
-                        ? "border-2 border-[#EF4444] hover:border-[#DC2626]"
-                        : "border border-[#E5E5EA] hover:border-[#171717]/30"
+                    className={`rounded-[12px] p-3.5 sm:p-4 transition-all cursor-pointer shadow-xs ${
+                      isHighPriority
+                        ? "bg-gradient-to-r from-red-500/[0.08] via-red-500/[0.02] to-transparent border border-[#E5E5EA] border-l-[5px] border-l-[#EF4444] hover:border-l-[#DC2626] hover:shadow-sm"
+                        : "bg-white border border-[#E5E5EA] hover:border-[#171717]/30 hover:shadow-sm"
                     }`}
                   >
-                    <div className="space-y-2.5 flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* Status badge: lowercase */}
-                        <span
-                          className={`border px-2.5 py-0.5 rounded-full text-[11px] font-medium lowercase flex items-center gap-1.5 ${currentStatus.bg}`}
-                        >
-                          {currentStatus.icon}
-                          <span>{task.status?.toLowerCase().replace("_", " ")}</span>
-                        </span>
-
-                        {task.repeatType && task.repeatType !== "NONE" && (
-                          <span className="bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] px-2.5 py-0.5 rounded-full text-[11px] font-medium lowercase flex items-center gap-1">
-                            <Repeat size={11} strokeWidth={1.5} />
-                            <span>{task.repeatType.toLowerCase()}</span>
-                          </span>
-                        )}
-
-                        {/* Priority: flame icon + #EF4444 text only, never a full badge */}
-                        {task.priority === "HIGH" ? (
-                          <span className="flex items-center gap-1 text-[#EF4444] text-[11px] font-medium lowercase">
-                            <Flame size={14} strokeWidth={1.5} className="text-[#EF4444]" />
-                            <span>high priority</span>
-                          </span>
-                        ) : null}
-
-                        {task.nameCompany ? (
-                          <span className="bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] px-2.5 py-0.5 rounded-full text-[11px] font-medium lowercase flex items-center gap-1">
-                            <Building2 size={11} strokeWidth={1.5} />
-                            <span>{task.nameCompany}</span>
-                          </span>
-                        ) : task.externalReferenceName ? (
-                          <span className="bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] px-2.5 py-0.5 rounded-full text-[11px] font-medium lowercase flex items-center gap-1">
-                            <Briefcase size={11} strokeWidth={1.5} />
-                            <span>client: {task.externalReferenceName}</span>
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <div>
-                        <h3 className="text-[15px] font-semibold text-[#1C1C1E]">
-                          {task.title}
-                        </h3>
-                        {task.description && (
-                          <p className="text-[13px] text-[#6E6E73] mt-0.5 line-clamp-2">
-                            {task.description}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[#8E8E93] text-[12px]">
-                        <span className="flex items-center gap-1.5">
-                          <User size={13} strokeWidth={1.5} />
-                          <span className="text-[#6E6E73]">{task.nameUser || "Unassigned"}</span>
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <CalendarIcon size={13} strokeWidth={1.5} />
-                          <span className="text-[#6E6E73]">{displayDate(task.startDate)}</span>
-                        </span>
-                      </div>
+                    {/* Primer Renglón: TITULO */}
+                    <div className="mb-2">
+                      <h3 className="text-[14px] sm:text-[15px] font-semibold text-[#1C1C1E] tracking-tight leading-snug">
+                        {task.title}
+                      </h3>
                     </div>
 
-                    <div
-                      className="shrink-0 flex items-center gap-5 border-t md:border-t-0 pt-3 md:pt-0 border-[#E5E5EA]"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <select
-                        value={task.status}
-                        onChange={(e) =>
-                          handleStatusChange(task.idTask, e.target.value)
-                        }
-                        className="bg-[#FAFAFA] border border-[#E5E5EA] text-[12px] font-medium lowercase text-[#1C1C1E] rounded-[8px] px-2.5 py-1.5 outline-none cursor-pointer focus:border-[#171717]"
-                      >
-                        <option value="PENDING">pending</option>
-                        <option value="IN_PROGRESS">in progress</option>
-                        <option value="BLOCK">blocked</option>
-                        <option value="COMPLETED">completed</option>
-                      </select>
-
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleDeleteClick(task)}
-                          className="p-2 text-[#AEAEB2] hover:text-[#EF4444] rounded-[8px] hover:bg-[#EF4444]/10 transition-colors cursor-pointer ml-1"
-                          title="Delete task"
+                    {/* Segundo Renglón: Empresa & Asignado (izq.) | Estatus, Fecha & Trash (der.) */}
+                    <div className="flex items-center justify-between gap-3 text-[12px] text-[#6E6E73] flex-wrap sm:flex-nowrap">
+                      {/* Izquierda: Empresa con puntito de color + Persona Asignada */}
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
+                        {/* Empresa con puntito a la izquierda según color de la empresa */}
+                        <div
+                          className="flex items-center gap-1.5 shrink-0"
+                          title={`Empresa: ${companyName}`}
                         >
-                          <Trash2 size={15} strokeWidth={1.5} />
-                        </button>
-                      )}
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-black/5"
+                            style={{ backgroundColor: companyColor }}
+                          />
+                          <span className="font-medium text-[#2C2C2E] truncate max-w-[150px] sm:max-w-[220px]">
+                            {companyName}
+                          </span>
+                        </div>
+
+                        <span className="text-[#D1D1D6] shrink-0">•</span>
+
+                        {/* Persona asignada */}
+                        <div
+                          className="flex items-center gap-1.5 text-[#6E6E73] truncate"
+                          title={`Asignado a: ${task.nameUser || "Sin asignar"}`}
+                        >
+                          <User size={13} strokeWidth={1.5} className="text-[#8E8E93] shrink-0" />
+                          <span className="truncate max-w-[130px] sm:max-w-[190px]">
+                            {task.nameUser || "Sin asignar"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Derecha (al otro extremo): Estatus, Fecha, Trash */}
+                      <div
+                        className="flex items-center gap-2.5 sm:gap-3 shrink-0 ml-auto"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* 1. Estatus (primero el estatus) */}
+                        <select
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task.idTask, e.target.value)}
+                          className={`text-[11px] font-medium lowercase rounded-[6px] px-2 py-0.5 border outline-none cursor-pointer transition-colors shadow-2xs ${currentStatus.bg}`}
+                        >
+                          <option value="PENDING" className="bg-white text-[#1C1C1E]">pending</option>
+                          <option value="IN_PROGRESS" className="bg-white text-[#1C1C1E]">in progress</option>
+                          <option value="BLOCK" className="bg-white text-[#1C1C1E]">blocked</option>
+                          <option value="COMPLETED" className="bg-white text-[#1C1C1E]">completed</option>
+                        </select>
+
+                        {/* 2. Fecha (después la fecha) */}
+                        <div className="flex items-center gap-1.5 text-[#6E6E73] text-[12px] whitespace-nowrap">
+                          <CalendarIcon size={13} strokeWidth={1.5} className="text-[#8E8E93]" />
+                          <span>{displayDate(task.startDate)}</span>
+                        </div>
+
+                        {/* 3. Trash para borrar (después el trash) */}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteClick(task)}
+                            className="p-1 text-[#AEAEB2] hover:text-[#EF4444] rounded-[6px] hover:bg-[#EF4444]/10 transition-colors cursor-pointer"
+                            title="Delete task"
+                          >
+                            <Trash2 size={15} strokeWidth={1.5} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
+
+              {/* Centinela de Scroll Infinito & Indicador de Carga / Fin de Lista */}
+              <div ref={sentinelRef} className="py-4 flex justify-center items-center">
+                {loadingMore && (
+                  <div className="flex items-center gap-2 text-[#6E6E73] text-[12px]">
+                    <Loader2 className="animate-spin text-[#171717]" size={16} strokeWidth={1.5} />
+                    <span>Loading more tasks...</span>
+                  </div>
+                )}
+                {!hasMore && tasks.length > 0 && (
+                  <div className="text-center text-[12px] text-[#AEAEB2] py-2">
+                    All tasks loaded ({totalElements} {totalElements === 1 ? "task" : "tasks"})
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-12 text-center text-[#AEAEB2]">
               <p className="text-[13px]">No tasks found matching your filters</p>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white border border-[#E5E5EA] rounded-[10px] p-3.5 mt-4">
-              <div className="text-[12px] text-[#6E6E73]">
-                Page <span className="font-semibold text-[#1C1C1E]">{page + 1}</span> of{" "}
-                <span className="font-semibold text-[#1C1C1E]">{totalPages}</span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
-                  disabled={page === 0}
-                  className="px-3 py-1.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] text-[12px] font-medium text-[#1C1C1E] hover:bg-[#F2F2F7] disabled:opacity-40 transition-colors cursor-pointer"
-                >
-                  Previous
-                </button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, index) => {
-                    if (
-                      index === 0 ||
-                      index === totalPages - 1 ||
-                      (index >= page - 1 && index <= page + 1)
-                    ) {
-                      return (
-                        <button
-                          key={`page-${index}`}
-                          onClick={() => setPage(index)}
-                          className={`w-7 h-7 rounded-[6px] text-[12px] font-medium transition-colors cursor-pointer ${
-                            page === index
-                              ? "bg-[#171717] text-white"
-                              : "text-[#6E6E73] hover:bg-[#FAFAFA] hover:text-[#1C1C1E]"
-                          }`}
-                        >
-                          {index + 1}
-                        </button>
-                      );
-                    }
-                    if (index === 1 || index === totalPages - 2) {
-                      return (
-                        <span
-                          key={`dots-${index}`}
-                          className="text-[#AEAEB2] text-xs px-1"
-                        >
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-
-                <button
-                  onClick={() =>
-                    setPage((prev) => Math.min(prev + 1, totalPages - 1))
-                  }
-                  disabled={page === totalPages - 1}
-                  className="px-3 py-1.5 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[8px] text-[12px] font-medium text-[#1C1C1E] hover:bg-[#F2F2F7] disabled:opacity-40 transition-colors cursor-pointer"
-                >
-                  Next
-                </button>
-              </div>
             </div>
           )}
         </>
