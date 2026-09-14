@@ -102,7 +102,7 @@ const PendingItem = () => {
   const hasMoreRef = useRef(true);
 
   const [filters, setFilters] = useState({
-    status: "",
+    status: "pending",
     referenceType: "",
     viewType: "assigned",
   });
@@ -526,10 +526,10 @@ const PendingItem = () => {
           {/* Status filter buttons */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { label: "All", value: "" },
               { label: "Pending", value: "pending" },
               { label: "In Progress", value: "in_progress" },
               { label: "Completed", value: "completed" },
+              { label: "All", value: "" },
             ].map((option) => {
               const isSelected = filters.status === option.value;
               return (
