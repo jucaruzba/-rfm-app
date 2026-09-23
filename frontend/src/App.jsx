@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import CompaniesPage from "./pages/admin/components/company/CompaniesPage";
+import PipelinePage from "./pages/admin/components/pipeline/PipelinePage";
 import ProjectsPage from "./pages/admin/components/projects/ProjectsPage";
 
 // Assistant Pages
@@ -109,6 +110,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["ADMIN"]}>
                   <CompaniesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pipeline"
+              element={
+                <ProtectedRoute allowedRoles={["ADMIN"]}>
+                  <PipelinePage />
                 </ProtectedRoute>
               }
             />

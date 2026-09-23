@@ -49,6 +49,9 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 	 @Query("SELECT COUNT(t) FROM Task t WHERE t.idCompany = :companyId")
 	    long countByIdCompany(@Param("companyId") Long companyId);
 
+	List<Task> findByExternalReferenceNameAndIdCompany(String externalReferenceName, Long idCompany);
+
+
 	List<Task> findByParentTaskId(Long parentTaskId);
 
 	List<Task> findByParentTaskIdOrderByStartDateDesc(Long parentTaskId);

@@ -41,4 +41,6 @@ public interface CompanyRepository extends JpaRepository<Company, Long>{
     // Opcional: verificar si existe empresa activa con ese nombre
     boolean existsByNameAndStatusNot(String name, CompanyStatus status);
 
+    java.util.Optional<Company> findByNameIgnoreCase(String name);
 }
+

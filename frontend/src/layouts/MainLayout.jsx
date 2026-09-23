@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Star,
   ChevronRight,
+  GitCommitHorizontal,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import NotificationDropdown from "../layouts/NotificationDropdown";
@@ -53,6 +54,13 @@ const MainLayout = () => {
       path: "/companies",
       roles: ["ADMIN"],
       description: "manage companies",
+    },
+    {
+      icon: <GitCommitHorizontal size={16} strokeWidth={1.5} />,
+      label: "Pipeline",
+      path: "/pipeline",
+      roles: ["ADMIN"],
+      description: "sales funnel & leads",
     },
     {
       icon: <FolderTree size={16} strokeWidth={1.5} />,

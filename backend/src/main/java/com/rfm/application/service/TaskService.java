@@ -270,6 +270,7 @@ public class TaskService {
 		// Rolling recurrence check on status update to COMPLETED
 		if ("COMPLETED".equalsIgnoreCase(savedTask.getStatus()) && !"COMPLETED".equalsIgnoreCase(oldStatus)) {
 			handleRollingRecurrenceOnComplete(savedTask);
+			checkAndAutoFlipOnboardingCompany(savedTask.getIdCompany());
 		}
 
 		if (userAssignmentChanged && request.idUserAssigned() != null) {
@@ -469,9 +470,28 @@ public class TaskService {
 
 		if ("COMPLETED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(oldStatus)) {
 			handleRollingRecurrenceOnComplete(saved);
+			checkAndAutoFlipOnboardingCompany(saved.getIdCompany());
 		}
 
 		return mapToDTO(saved);
+	}
+
+	private void checkAndAutoFlipOnboardingCompany(Long companyId) {
+		if (companyId == null) return;
+		try {
+			companyRepository.findById(companyId).ifPresent(company -> {
+				if (company.getStatus() == com.rfm.application.enums.CompanyStatus.IN_PROGRESS) {
+					List<Task> onboardingTasks = taskRepository.findByExternalReferenceNameAndIdCompany("ONBOARDING", companyId);
+					if (!onboardingTasks.isEmpty() && onboardingTasks.stream().allMatch(t -> "COMPLETED".equalsIgnoreCase(t.getStatus()))) {
+						company.setStatus(com.rfm.application.enums.CompanyStatus.ACTIVE);
+						companyRepository.save(company);
+						log.info("All onboarding tasks completed! Company {} status auto-flipped to ACTIVE", company.getName());
+					}
+				}
+			});
+		} catch (Exception e) {
+			log.error("Error checking auto-flip for company {}: {}", companyId, e.getMessage());
+		}
 	}
 
 	@Transactional
