@@ -47,6 +47,12 @@ public class Lead {
     @Column(name = "phone_or_email")
     private String phoneOrEmail;
 
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "email")
+    private String email;
+
     @Column(name = "deal_value", precision = 12, scale = 2)
     private BigDecimal value;
 

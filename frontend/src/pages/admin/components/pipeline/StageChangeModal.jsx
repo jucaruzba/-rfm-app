@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { X, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 const STAGE_LABELS = {
@@ -44,14 +43,6 @@ const StageChangeModal = ({ isOpen, onClose, lead, targetStage, onConfirm }) => 
   return (
     <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 relative">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-5 right-5 text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors cursor-pointer"
-        >
-          <X size={16} strokeWidth={1.5} />
-        </button>
-
         <div className="mb-4 pb-3 border-b border-[#E5E5EA]">
           <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
             Log stage change

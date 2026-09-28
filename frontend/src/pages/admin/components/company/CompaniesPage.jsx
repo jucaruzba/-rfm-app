@@ -62,6 +62,7 @@ const CompaniesPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [showInProgress, setShowInProgress] = useState(false);
   const [viewMode, setViewMode] = useState("icons"); // "icons" or "list"
 
   // --- CREATE MODAL STATES ---
@@ -201,9 +202,12 @@ const CompaniesPage = () => {
     });
   };
 
-  const filteredCompanies = companies.filter((company) =>
-    company.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredCompanies = companies.filter((company) => {
+    const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    if (showInProgress && company.status !== "IN_PROGRESS") return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -256,6 +260,17 @@ const CompaniesPage = () => {
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
           <button
+            onClick={() => setShowInProgress(!showInProgress)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors border border-[#E5E5EA] cursor-pointer ${
+              showInProgress
+                ? "bg-[#FAFAFA] text-[#1C1C1E]"
+                : "bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA]"
+            }`}
+          >
+            <Clock size={13} strokeWidth={1.5} />
+            <span>{showInProgress ? "Showing in progress" : "Show in progress"}</span>
+          </button>
+          <button
             onClick={() => setShowArchived(!showArchived)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors border border-[#E5E5EA] cursor-pointer ${
               showArchived
@@ -297,11 +312,11 @@ const CompaniesPage = () => {
         </div>
       ) : filteredCompanies.length > 0 ? (
         viewMode === "icons" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
             {filteredCompanies.map((company) => (
               <div
                 key={company.idCompany}
-                className={`bg-white rounded-[10px] border p-3.5 flex flex-col justify-between transition-colors ${
+                className={`bg-white rounded-[10px] border p-2.5 flex flex-col justify-between transition-colors ${
                   company.status === "ARCHIVED"
                     ? "border-[#E5E5EA] opacity-60"
                     : "border-[#E5E5EA] hover:border-[#171717]/30"
@@ -311,7 +326,7 @@ const CompaniesPage = () => {
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className="w-9 h-9 bg-[#FAFAFA] rounded-[8px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden cursor-pointer"
+                        className="w-8 h-8 bg-[#FAFAFA] rounded-[8px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden cursor-pointer"
                         onClick={() => navigate(`/companies/${company.idCompany}`)}
                       >
                         {company.logoPath ? (
@@ -367,7 +382,7 @@ const CompaniesPage = () => {
                   )}
                 </div>
 
-                <div className="mt-2.5 pt-2 border-t border-[#E5E5EA] flex items-center justify-between">
+                <div className="mt-2 pt-1.5 border-t border-[#E5E5EA] flex items-center justify-between">
                   <button
                     onClick={() => navigate(`/companies/${company.idCompany}`)}
                     className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors cursor-pointer"

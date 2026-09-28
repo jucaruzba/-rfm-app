@@ -11,8 +11,8 @@ export const formatUsDate = (dateVal, options = {}) => {
   try {
     let dateObj;
     if (Array.isArray(dateVal)) {
-      const [year, month, day] = dateVal;
-      dateObj = new Date(year, month - 1, day);
+      const [year, month, day, hour = 0, minute = 0, second = 0] = dateVal;
+      dateObj = new Date(year, month - 1, day, hour, minute, second);
     } else if (typeof dateVal === "string") {
       dateObj = dateVal.includes("T")
         ? parseISO(dateVal)
@@ -42,7 +42,11 @@ export const formatUsDate = (dateVal, options = {}) => {
 export const formatUsTime = (dateOrTimeVal) => {
   if (!dateOrTimeVal) return "";
   try {
-    if (
+    let dateObj;
+    if (Array.isArray(dateOrTimeVal)) {
+      const [year, month, day, hour = 0, minute = 0, second = 0] = dateOrTimeVal;
+      dateObj = new Date(year, month - 1, day, hour, minute, second);
+    } else if (
       typeof dateOrTimeVal === "string" &&
       dateOrTimeVal.length === 5 &&
       dateOrTimeVal.includes(":")
@@ -51,13 +55,12 @@ export const formatUsTime = (dateOrTimeVal) => {
       const d = new Date();
       d.setHours(hours, minutes, 0, 0);
       return format(d, "h:mm a", { locale: enUS });
+    } else if (typeof dateOrTimeVal === "string") {
+      dateObj = parseISO(dateOrTimeVal);
+    } else if (dateOrTimeVal instanceof Date) {
+      dateObj = dateOrTimeVal;
     }
-
-    let dateObj =
-      typeof dateOrTimeVal === "string"
-        ? parseISO(dateOrTimeVal)
-        : dateOrTimeVal;
-    if (isValid(dateObj)) {
+    if (dateObj && isValid(dateObj)) {
       return format(dateObj, "h:mm a", { locale: enUS });
     }
     return String(dateOrTimeVal);

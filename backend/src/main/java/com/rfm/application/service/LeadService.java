@@ -1,5 +1,6 @@
 package com.rfm.application.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,6 +23,7 @@ import com.rfm.application.model.entity.Lead;
 import com.rfm.application.model.entity.LeadActivityLog;
 import com.rfm.application.repository.CompanyRepository;
 import com.rfm.application.repository.LeadActivityLogRepository;
+import com.rfm.application.repository.LeadCommentRepository;
 import com.rfm.application.repository.LeadRepository;
 
 import jakarta.transaction.Transactional;
@@ -35,6 +37,7 @@ public class LeadService {
 
     private final LeadRepository leadRepository;
     private final LeadActivityLogRepository logRepository;
+    private final LeadCommentRepository commentRepository;
     private final CompanyRepository companyRepository;
     private final CompanyService companyService;
     private final TaskService taskService;
@@ -66,11 +69,21 @@ public class LeadService {
             throw new IllegalArgumentException("Next follow-up date is required");
         }
 
+        String phone = blankToNull(request.phone());
+        String email = blankToNull(request.email());
+        if (phone == null && email == null && request.phoneOrEmail() != null) {
+            String[] derived = splitLegacyContact(request.phoneOrEmail());
+            phone = derived[0];
+            email = derived[1];
+        }
+
         Lead lead = Lead.builder()
                 .name(request.name().trim())
                 .companyName(request.companyName() != null && !request.companyName().trim().isEmpty() ? request.companyName().trim() : null)
-                .phoneOrEmail(request.phoneOrEmail())
-                .value(request.value())
+                .phone(phone)
+                .email(email)
+                .phoneOrEmail(combineContact(phone, email))
+                .value(request.value() != null ? request.value() : BigDecimal.ZERO)
                 .source(request.source())
                 .sourceOther(request.sourceOther())
                 .notes(request.notes())
@@ -80,8 +93,11 @@ public class LeadService {
 
         Lead savedLead = leadRepository.save(lead);
 
-        // Create initial log
-        createLog(savedLead.getIdLead(), null, savedLead.getStatus(), "Lead created", savedLead.getNextFollowUp());
+        createLog(savedLead.getIdLead(), null, savedLead.getStatus(),
+                (request.notes() != null && !request.notes().trim().isEmpty())
+                        ? "Lead created: " + request.notes().trim()
+                        : "Lead created",
+                savedLead.getNextFollowUp());
 
         log.info("Lead created successfully with ID: {} and status: {}", savedLead.getIdLead(), savedLead.getStatus());
         return mapToDTO(savedLead);
@@ -96,8 +112,18 @@ public class LeadService {
             lead.setName(request.name().trim());
         }
         lead.setCompanyName(request.companyName());
-        lead.setPhoneOrEmail(request.phoneOrEmail());
-        lead.setValue(request.value());
+
+        String phone = request.phone() != null ? blankToNull(request.phone()) : lead.getPhone();
+        String email = request.email() != null ? blankToNull(request.email()) : lead.getEmail();
+        if (request.phone() == null && request.email() == null && request.phoneOrEmail() != null) {
+            String[] derived = splitLegacyContact(request.phoneOrEmail());
+            phone = derived[0];
+            email = derived[1];
+        }
+        lead.setPhone(phone);
+        lead.setEmail(email);
+        lead.setPhoneOrEmail(combineContact(phone, email));
+        lead.setValue(request.value() != null ? request.value() : BigDecimal.ZERO);
         lead.setSource(request.source());
         lead.setSourceOther(request.sourceOther());
         lead.setNotes(request.notes());
@@ -107,7 +133,7 @@ public class LeadService {
         if (request.status() != null && request.status() != lead.getStatus()) {
             LeadStatus oldStatus = lead.getStatus();
             lead.setStatus(request.status());
-            createLog(lead.getIdLead(), oldStatus, lead.getStatus(), "Status updated directly", lead.getNextFollowUp());
+            createLog(lead.getIdLead(), oldStatus, lead.getStatus(), "Status updated", lead.getNextFollowUp());
         }
 
         Lead updated = leadRepository.save(lead);
@@ -120,18 +146,16 @@ public class LeadService {
         Lead lead = leadRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lead not found with ID: " + id));
 
-        if (request.nextFollowUp() == null) {
-            throw new IllegalArgumentException("Next follow-up date is required when changing stage");
-        }
-
         LeadStatus oldStatus = lead.getStatus();
         lead.setStatus(request.newStatus());
-        lead.setNextFollowUp(request.nextFollowUp());
+        if (request.nextFollowUp() != null) {
+            lead.setNextFollowUp(request.nextFollowUp());
+        }
 
         Lead savedLead = leadRepository.save(lead);
 
         String note = (request.note() != null && !request.note().trim().isEmpty()) ? request.note().trim() : "Stage changed to " + request.newStatus().getDisplayName();
-        createLog(savedLead.getIdLead(), oldStatus, request.newStatus(), note, request.nextFollowUp());
+        createLog(savedLead.getIdLead(), oldStatus, request.newStatus(), note, savedLead.getNextFollowUp());
 
         log.info("Lead {} changed stage from {} to {}", id, oldStatus, request.newStatus());
         return mapToDTO(savedLead);
@@ -145,16 +169,13 @@ public class LeadService {
         LeadStatus oldStatus = lead.getStatus();
         lead.setStatus(LeadStatus.WON);
 
-        // Determine company name: either the companyName field or the lead name itself
         String effectiveCompanyName = (lead.getCompanyName() != null && !lead.getCompanyName().trim().isEmpty())
                 ? lead.getCompanyName().trim()
                 : lead.getName().trim() + " Company";
 
-        // Check if company already exists
         Company company = companyRepository.findByNameIgnoreCase(effectiveCompanyName).orElse(null);
 
         if (company == null) {
-            // Create new Company
             CompanyRequest companyRequest = new CompanyRequest(
                     effectiveCompanyName,
                     "Client created from Pipeline lead: " + lead.getName(),
@@ -166,7 +187,6 @@ public class LeadService {
             company = companyRepository.findById(createdCompany.getIdCompany())
                     .orElseThrow(() -> new RuntimeException("Failed to load newly created company"));
         } else {
-            // Update existing company to CLIENT and IN_PROGRESS if not already
             company.setType(CompanyType.CLIENT);
             company.setStatus(CompanyStatus.IN_PROGRESS);
             company = companyRepository.save(company);
@@ -175,10 +195,8 @@ public class LeadService {
         lead.setIdCompany(company.getIdCompany());
         Lead savedLead = leadRepository.save(lead);
 
-        // Create log
         createLog(savedLead.getIdLead(), oldStatus, LeadStatus.WON, "Marked as Won. Converted to Client company: " + company.getName(), lead.getNextFollowUp());
 
-        // Attach Onboarding 5-step Checklist
         attachOnboardingChecklist(company.getIdCompany(), company.getName());
 
         log.info("Lead {} marked as WON. Converted to Company ID {} with onboarding checklist", id, company.getIdCompany());
@@ -204,6 +222,7 @@ public class LeadService {
 
     @Transactional
     public void deleteLead(Long id) {
+        commentRepository.deleteByIdLead(id);
         logRepository.deleteByIdLead(id);
         leadRepository.deleteById(id);
         log.info("Lead {} deleted permanently", id);
@@ -228,7 +247,7 @@ public class LeadService {
                     today.plusDays(i),
                     today.plusDays(i + 1),
                     companyId,
-                    "ONBOARDING", // Marker used to recognize onboarding tasks
+                    "ONBOARDING",
                     null,
                     "PENDING",
                     null,
@@ -279,13 +298,18 @@ public class LeadService {
                         .build())
                 .toList();
 
+        String phone = lead.getPhone() != null ? lead.getPhone() : derivePhone(lead.getPhoneOrEmail());
+        String email = lead.getEmail() != null ? lead.getEmail() : deriveEmail(lead.getPhoneOrEmail());
+
         return LeadDTO.builder()
                 .idLead(lead.getIdLead())
                 .name(lead.getName())
                 .companyName(lead.getCompanyName())
                 .idCompany(lead.getIdCompany())
                 .phoneOrEmail(lead.getPhoneOrEmail())
-                .value(lead.getValue())
+                .phone(phone)
+                .email(email)
+                .value(lead.getValue() != null ? lead.getValue() : BigDecimal.ZERO)
                 .source(lead.getSource())
                 .sourceOther(lead.getSourceOther())
                 .notes(lead.getNotes())
@@ -295,5 +319,45 @@ public class LeadService {
                 .updatedAt(lead.getUpdatedAt())
                 .activityLogs(logs)
                 .build();
+    }
+
+    private String blankToNull(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private String[] splitLegacyContact(String phoneOrEmail) {
+        String value = blankToNull(phoneOrEmail);
+        if (value == null) {
+            return new String[] { null, null };
+        }
+        if (value.contains(" / ")) {
+            String[] parts = value.split(" / ", 2);
+            return new String[] { blankToNull(parts[0]), blankToNull(parts.length > 1 ? parts[1] : null) };
+        }
+        if (value.contains("@")) {
+            return new String[] { null, value };
+        }
+        return new String[] { value, null };
+    }
+
+    private String derivePhone(String phoneOrEmail) {
+        return splitLegacyContact(phoneOrEmail)[0];
+    }
+
+    private String deriveEmail(String phoneOrEmail) {
+        return splitLegacyContact(phoneOrEmail)[1];
+    }
+
+    private String combineContact(String phone, String email) {
+        if (phone != null && email != null) {
+            return phone + " / " + email;
+        }
+        if (phone != null) {
+            return phone;
+        }
+        return email;
     }
 }

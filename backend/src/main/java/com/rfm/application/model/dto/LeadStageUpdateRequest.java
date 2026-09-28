@@ -11,3 +11,4 @@ public record LeadStageUpdateRequest(
     @JsonFormat(pattern = "yyyy-MM-dd")
     LocalDate nextFollowUp
 ) {}
+

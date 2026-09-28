@@ -11,6 +11,8 @@ public record LeadRequest(
     String name,
     String companyName,
     String phoneOrEmail,
+    String phone,
+    String email,
     BigDecimal value,
     LeadSource source,
     String sourceOther,

@@ -1,6 +1,17 @@
-import { useState, useRef } from "react";
-import { X, Calendar } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+
+const EMPTY_FORM = {
+  name: "",
+  companyName: "",
+  phone: "",
+  email: "",
+  value: "",
+  source: "",
+  sourceOther: "",
+  notes: "",
+  nextFollowUp: "",
+};
 
 const SOURCES = [
   { value: "REFERRAL", label: "Referral" },
@@ -11,18 +22,19 @@ const SOURCES = [
 ];
 
 const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    companyName: "",
-    phoneOrEmail: "",
-    value: "",
-    source: "",
-    sourceOther: "",
-    notes: "",
-    nextFollowUp: "",
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const notesRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(EMPTY_FORM);
+      setSubmitting(false);
+      if (notesRef.current) {
+        notesRef.current.style.height = "auto";
+      }
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -44,8 +56,9 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
       const payload = {
         name: formData.name.trim(),
         companyName: formData.companyName.trim() || null,
-        phoneOrEmail: formData.phoneOrEmail.trim() || null,
-        value: formData.value ? parseFloat(formData.value) : null,
+        phone: formData.phone.trim() || null,
+        email: formData.email.trim() || null,
+        value: formData.value ? parseFloat(formData.value) : 0,
         source: formData.source || null,
         sourceOther: formData.source === "OTHER" ? (formData.sourceOther.trim() || null) : null,
         notes: formData.notes.trim() || null,
@@ -54,6 +67,7 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
 
       await onLeadCreated(payload);
       toast.success("Lead created successfully");
+      setFormData(EMPTY_FORM);
       onClose();
     } catch (err) {
       toast.error(err.response?.data?.message || "Error creating lead");
@@ -65,25 +79,16 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
   return (
     <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white rounded-[16px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 relative max-h-[92vh] overflow-y-auto">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-5 right-5 text-[#AEAEB2] hover:text-[#1C1C1E] transition-colors cursor-pointer"
-        >
-          <X size={16} strokeWidth={1.5} />
-        </button>
-
         <div className="mb-4 pb-3 border-b border-[#E5E5EA]">
           <h2 className="text-[18px] font-semibold text-[#1C1C1E]">
             New lead
           </h2>
           <p className="text-[12.5px] text-[#6E6E73] mt-0.5">
-            Only 4 fields — that's all a lead needs to start.
+            Capture contact details and a next follow-up date.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
-          {/* Name */}
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
               name <span className="text-[#EF4444]">*required</span>
@@ -98,7 +103,6 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
             />
           </div>
 
-          {/* Company */}
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
               company <span className="text-[#AEAEB2]">(optional — links to Companies)</span>
@@ -112,36 +116,47 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
             />
           </div>
 
-          {/* Phone or Email */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              phone or email <span className="text-[#AEAEB2]">(optional, but you'll want it to follow up)</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. (210) 555-0142"
-              value={formData.phoneOrEmail}
-              onChange={(e) => setFormData({ ...formData, phoneOrEmail: e.target.value })}
-              className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                phone
+              </label>
+              <input
+                type="tel"
+                placeholder="e.g. (210) 555-0142"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                email
+              </label>
+              <input
+                type="email"
+                placeholder="e.g. name@company.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
+              />
+            </div>
           </div>
 
-          {/* Value */}
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              value ($) <span className="text-[#AEAEB2]">(optional)</span>
+              value ($) <span className="text-[#AEAEB2]">(optional, defaults to 0)</span>
             </label>
             <input
               type="number"
               step="any"
-              placeholder="e.g. 1200"
+              placeholder="0"
               value={formData.value}
               onChange={(e) => setFormData({ ...formData, value: e.target.value })}
               className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
             />
           </div>
 
-          {/* Source */}
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
               source <span className="text-[#AEAEB2]">(optional — where they came from)</span>
@@ -160,7 +175,6 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
             </select>
           </div>
 
-          {/* Source Other Conditional */}
           {formData.source === "OTHER" && (
             <div className="space-y-1 animate-in fade-in duration-100">
               <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
@@ -176,15 +190,14 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
             </div>
           )}
 
-          {/* Notes */}
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              notes — what are they interested in <span className="text-[#AEAEB2]">(optional, fill in when you know)</span>
+              notes — what are they interested in <span className="text-[#AEAEB2]">(optional)</span>
             </label>
             <textarea
               ref={notesRef}
               rows={2}
-              placeholder="e.g. wants wholesale pricing on 3 spice blends, also asked about a subscription box option..."
+              placeholder="e.g. wants wholesale pricing on 3 spice blends..."
               value={formData.notes}
               onChange={(e) => {
                 setFormData({ ...formData, notes: e.target.value });
@@ -197,7 +210,6 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
             />
           </div>
 
-          {/* Next follow up (required) */}
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#EF4444] block">
               next follow-up *required
@@ -211,7 +223,6 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
             />
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
             <button
               type="button"

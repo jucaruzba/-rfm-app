@@ -53,4 +53,21 @@ export const leadService = {
   deleteLead: async (id) => {
     await api.delete(`/leads/${id}`);
   },
+
+  getLeadComments: async (idLead) => {
+    const { data } = await api.get(`/comments/lead/${idLead}`);
+    return data;
+  },
+
+  createLeadComment: async (commentRequest) => {
+    const { data } = await api.post("/comments/lead", commentRequest);
+    return data;
+  },
+
+  deleteLeadComment: async (idComment, idUser) => {
+    const { data } = await api.delete(`/comments/lead/${idComment}`, {
+      params: { idUser },
+    });
+    return data;
+  },
 };
