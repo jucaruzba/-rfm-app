@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 const STAGE_LABELS = {
@@ -11,17 +11,22 @@ const STAGE_LABELS = {
 
 const StageChangeModal = ({ isOpen, onClose, lead, targetStage, onConfirm }) => {
   const [note, setNote] = useState("");
-  const [nextFollowUp, setNextFollowUp] = useState(
-    lead?.nextFollowUp || new Date().toISOString().split("T")[0]
-  );
+  const [nextFollowUp, setNextFollowUp] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && lead) {
+      setNextFollowUp(lead.nextFollowUp || new Date().toISOString().split("T")[0]);
+      setNote("");
+    }
+  }, [isOpen, lead, targetStage]);
 
   if (!isOpen || !lead || !targetStage) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!nextFollowUp) {
-      toast.error("Next follow-up date is required");
+      toast.error("Next follow-up / contact date is required");
       return;
     }
 
@@ -41,7 +46,7 @@ const StageChangeModal = ({ isOpen, onClose, lead, targetStage, onConfirm }) => 
   };
 
   return (
-    <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 w-screen h-screen z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] p-6 relative">
         <div className="mb-4 pb-3 border-b border-[#E5E5EA]">
           <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
@@ -77,7 +82,7 @@ const StageChangeModal = ({ isOpen, onClose, lead, targetStage, onConfirm }) => 
 
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#EF4444] flex items-center gap-1">
-              <span>next follow-up *required</span>
+              <span>fecha de contacto / next follow-up *required</span>
             </label>
             <div className="relative">
               <input

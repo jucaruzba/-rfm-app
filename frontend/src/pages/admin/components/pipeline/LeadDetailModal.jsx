@@ -54,6 +54,7 @@ const LeadDetailModal = ({
   onMarkAsLost,
   onDeleteLead,
   onUpdateLead,
+  onOpenStageChange,
 }) => {
   const { user: authUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -63,6 +64,12 @@ const LeadDetailModal = ({
   const [newComment, setNewComment] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState(null);
+  const [stageModalData, setStageModalData] = useState({
+    isOpen: false,
+    targetStage: null,
+    note: "",
+    nextFollowUp: "",
+  });
 
   const buildForm = (current) => ({
     name: current?.name || "",
@@ -75,12 +82,14 @@ const LeadDetailModal = ({
     source: current?.source || "",
     sourceOther: current?.sourceOther || "",
     status: current?.status || "NEW",
+    stageNote: "",
   });
 
   useEffect(() => {
     if (lead) {
       setFormData(buildForm(lead));
       setIsEditing(false);
+      setStageModalData({ isOpen: false, targetStage: null, note: "", nextFollowUp: "" });
       fetchComments(lead.idLead);
     }
   }, [lead?.idLead]);
@@ -97,10 +106,41 @@ const LeadDetailModal = ({
     }
   };
 
+  const handleStatusChange = (newStatus) => {
+    if (newStatus !== lead.status) {
+      setStageModalData({
+        isOpen: true,
+        targetStage: newStatus,
+        note: formData.stageNote || "",
+        nextFollowUp: formData.nextFollowUp || new Date().toISOString().split("T")[0],
+      });
+    } else {
+      setFormData({
+        ...formData,
+        status: newStatus,
+        stageNote: "",
+      });
+    }
+  };
+
   if (!isOpen || !lead) return null;
 
   const handleSaveEdit = async (e) => {
     e.preventDefault();
+
+    if (formData.status !== lead.status) {
+      if (!formData.nextFollowUp || formData.nextFollowUp === lead.nextFollowUp) {
+        toast.error(`Debes ingresar la nueva fecha de contacto para el estado ${formData.status.toLowerCase()}`);
+        setStageModalData({
+          isOpen: true,
+          targetStage: formData.status,
+          note: formData.stageNote || "",
+          nextFollowUp: "",
+        });
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       await onUpdateLead(lead.idLead, {
@@ -114,6 +154,7 @@ const LeadDetailModal = ({
         source: formData.source || null,
         sourceOther: formData.source === "OTHER" ? (formData.sourceOther.trim() || null) : null,
         status: formData.status,
+        stageNote: formData.stageNote || null,
       });
       setIsEditing(false);
       toast.success("Lead updated successfully");
@@ -188,10 +229,30 @@ const LeadDetailModal = ({
         <div className="flex-1 overflow-y-auto py-4 space-y-4">
           {lead.status !== "WON" && (
             <div className="p-3 bg-[#FAFAFA] rounded-[12px] border border-[#E5E5EA] flex flex-wrap items-center gap-2.5">
+              {lead.status === "NEW" && onOpenStageChange && (
+                <button
+                  type="button"
+                  onClick={() => onOpenStageChange(lead, "CONTACTED")}
+                  className="bg-[#5B5FEF] hover:bg-[#4B4FE0] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Calendar size={14} strokeWidth={1.5} />
+                  <span>Move to Contacted</span>
+                </button>
+              )}
+              {lead.status === "CONTACTED" && onOpenStageChange && (
+                <button
+                  type="button"
+                  onClick={() => onOpenStageChange(lead, "QUOTED")}
+                  className="bg-[#5B5FEF] hover:bg-[#4B4FE0] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Calendar size={14} strokeWidth={1.5} />
+                  <span>Move to Quoted</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => onMarkAsWon(lead)}
-                className="bg-[#5B5FEF] hover:bg-[#4B4FE0] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="bg-[#10B981] hover:bg-[#059669] text-white px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <CheckCircle2 size={14} strokeWidth={1.5} />
                 <span>Mark as Won</span>
@@ -309,7 +370,7 @@ const LeadDetailModal = ({
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Status</label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    onChange={(e) => handleStatusChange(e.target.value)}
                     className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] cursor-pointer"
                   >
                     {STATUSES.map((s) => (
@@ -335,16 +396,46 @@ const LeadDetailModal = ({
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] text-[#6E6E73] block mb-1">Next follow-up</label>
+                  <label className="text-[11px] text-[#6E6E73] block mb-1 flex items-center justify-between">
+                    <span>Next follow-up / fecha contacto</span>
+                    {formData.status !== lead.status && (
+                      <span className="text-[#EF4444] font-medium">*requerida</span>
+                    )}
+                  </label>
                   <input
                     type="date"
                     value={formData.nextFollowUp}
                     onChange={(e) => setFormData({ ...formData, nextFollowUp: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px]"
+                    className={`w-full bg-white border rounded-[8px] py-1.5 px-3 text-[13px] ${
+                      formData.status !== lead.status && (!formData.nextFollowUp || formData.nextFollowUp === lead.nextFollowUp)
+                        ? "border-[#EF4444] focus:border-[#EF4444]"
+                        : "border-[#E5E5EA]"
+                    }`}
                     required
                   />
                 </div>
               </div>
+              {formData.status !== lead.status && (
+                <div className="bg-[#5B5FEF]/10 border border-[#5B5FEF]/20 p-2.5 rounded-[8px] flex items-center justify-between text-[12px] text-[#5B5FEF]">
+                  <span>
+                    Cambiando estado a <strong>{formData.status.toLowerCase()}</strong> (Fecha contacto: <strong>{formData.nextFollowUp || "Pendiente"}</strong>)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStageModalData({
+                        isOpen: true,
+                        targetStage: formData.status,
+                        note: formData.stageNote || "",
+                        nextFollowUp: formData.nextFollowUp || "",
+                      })
+                    }
+                    className="underline font-medium hover:text-[#4B4FE0] cursor-pointer"
+                  >
+                    Cambiar fecha
+                  </button>
+                </div>
+              )}
               {formData.source === "OTHER" && (
                 <div>
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Tell us where</label>
@@ -549,6 +640,87 @@ const LeadDetailModal = ({
           </div>
         </div>
       </div>
+
+      {stageModalData.isOpen && (
+        <div className="fixed inset-0 w-screen h-screen z-[10001] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-sm bg-white rounded-[14px] border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.15)] p-5 relative">
+            <h3 className="text-[16px] font-semibold text-[#1C1C1E] mb-1">
+              Fecha de contacto requerida
+            </h3>
+            <p className="text-[12.5px] text-[#6E6E73] mb-3">
+              Al cambiar el estado a <strong className="text-[#5B5FEF]">{stageModalData.targetStage?.toLowerCase()}</strong>, debes ingresar la fecha del contacto o siguiente seguimiento.
+            </p>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#EF4444] block">
+                  fecha de contacto / seguimiento *requerida
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={stageModalData.nextFollowUp}
+                  onChange={(e) =>
+                    setStageModalData({ ...stageModalData, nextFollowUp: e.target.value })
+                  }
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] text-[#1C1C1E] outline-none focus:border-[#171717]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  nota del cambio (opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Detalle o resumen del contacto..."
+                  value={stageModalData.note}
+                  onChange={(e) =>
+                    setStageModalData({ ...stageModalData, note: e.target.value })
+                  }
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] text-[#1C1C1E] outline-none focus:border-[#171717] resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E5EA]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prevStatus = lead.status;
+                    setStageModalData({ isOpen: false, targetStage: null, note: "", nextFollowUp: "" });
+                    if (!formData.nextFollowUp || formData.status === stageModalData.targetStage) {
+                      setFormData({ ...formData, status: prevStatus });
+                    }
+                  }}
+                  className="px-3 py-1.5 text-[12px] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[8px] bg-white cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!stageModalData.nextFollowUp) {
+                      toast.error("Por favor selecciona la fecha de contacto");
+                      return;
+                    }
+                    setFormData({
+                      ...formData,
+                      status: stageModalData.targetStage,
+                      nextFollowUp: stageModalData.nextFollowUp,
+                      stageNote: stageModalData.note,
+                    });
+                    setStageModalData({ isOpen: false, targetStage: null, note: "", nextFollowUp: "" });
+                    toast.success("Fecha de contacto actualizada");
+                  }}
+                  className="px-3.5 py-1.5 text-[12px] font-medium text-white bg-[#5B5FEF] hover:bg-[#4B4FE0] rounded-[8px] shadow-xs cursor-pointer"
+                >
+                  Confirmar fecha
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

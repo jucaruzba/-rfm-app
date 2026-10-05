@@ -27,11 +27,27 @@ const PipelinePage = () => {
   });
   const [dragOverColumn, setDragOverColumn] = useState(null);
   const draggingRef = useRef(false);
+  const dragJustEndedRef = useRef(false);
 
   const todayStr = new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     fetchLeads();
+
+    const handleGlobalDragEnd = () => {
+      draggingRef.current = false;
+      setDragOverColumn(null);
+      setTimeout(() => {
+        dragJustEndedRef.current = false;
+      }, 150);
+    };
+
+    window.addEventListener("dragend", handleGlobalDragEnd);
+    window.addEventListener("mouseup", handleGlobalDragEnd);
+    return () => {
+      window.removeEventListener("dragend", handleGlobalDragEnd);
+      window.removeEventListener("mouseup", handleGlobalDragEnd);
+    };
   }, []);
 
   const fetchLeads = async () => {
@@ -112,6 +128,7 @@ const PipelinePage = () => {
         nextFollowUp,
       });
       toast.success("Stage updated and logged");
+      setStageChangeData({ isOpen: false, lead: null, targetStage: null });
       fetchLeads();
       if (selectedLead && selectedLead.idLead === stageChangeData.lead.idLead) {
         const refreshed = await leadService.getLeadById(selectedLead.idLead);
@@ -123,33 +140,26 @@ const PipelinePage = () => {
     }
   };
 
-  const handleDropOnColumn = async (columnId, event) => {
+  const handleDropOnColumn = (columnId, event) => {
     event.preventDefault();
     setDragOverColumn(null);
+    draggingRef.current = false;
+    dragJustEndedRef.current = true;
+    setTimeout(() => {
+      dragJustEndedRef.current = false;
+    }, 150);
+
     const leadId = Number(event.dataTransfer.getData("text/plain"));
     if (!leadId) return;
     const lead = leads.find((l) => l.idLead === leadId);
     if (!lead || lead.status === columnId) return;
 
-    const previous = leads;
-    setLeads((current) =>
-      current.map((item) =>
-        item.idLead === leadId ? { ...item, status: columnId } : item
-      )
-    );
-
-    try {
-      await leadService.changeStage(leadId, {
-        newStatus: columnId,
-        note: `Moved on board to ${columnId.toLowerCase()}`,
-        nextFollowUp: lead.nextFollowUp,
-      });
-      toast.success("Status updated");
-      fetchLeads();
-    } catch (err) {
-      setLeads(previous);
-      toast.error(err.response?.data?.message || "Could not change status");
-    }
+    // Open StageChangeModal to ask for contact date and note
+    setStageChangeData({
+      isOpen: true,
+      lead: lead,
+      targetStage: columnId,
+    });
   };
 
   const handleMarkAsWon = async (lead) => {
@@ -200,16 +210,20 @@ const PipelinePage = () => {
       draggable
       onDragStart={(e) => {
         draggingRef.current = true;
+        dragJustEndedRef.current = false;
         e.dataTransfer.setData("text/plain", String(lead.idLead));
         e.dataTransfer.effectAllowed = "move";
       }}
       onDragEnd={() => {
+        draggingRef.current = false;
+        dragJustEndedRef.current = true;
+        setDragOverColumn(null);
         setTimeout(() => {
-          draggingRef.current = false;
-        }, 50);
+          dragJustEndedRef.current = false;
+        }, 150);
       }}
       onClick={() => {
-        if (draggingRef.current) return;
+        if (draggingRef.current || dragJustEndedRef.current) return;
         setSelectedLead(lead);
       }}
       className={`bg-white rounded-[10px] border border-[#E5E5EA] px-3 py-2.5 hover:border-[#171717]/30 transition-all cursor-grab active:cursor-grabbing shadow-[0_1px_2px_rgba(0,0,0,0.03)] group ${

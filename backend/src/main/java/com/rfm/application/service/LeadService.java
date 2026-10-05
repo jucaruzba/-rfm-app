@@ -133,7 +133,10 @@ public class LeadService {
         if (request.status() != null && request.status() != lead.getStatus()) {
             LeadStatus oldStatus = lead.getStatus();
             lead.setStatus(request.status());
-            createLog(lead.getIdLead(), oldStatus, lead.getStatus(), "Status updated", lead.getNextFollowUp());
+            String logNote = (request.stageNote() != null && !request.stageNote().trim().isEmpty())
+                    ? request.stageNote().trim()
+                    : "Status updated to " + request.status().getDisplayName();
+            createLog(lead.getIdLead(), oldStatus, lead.getStatus(), logNote, lead.getNextFollowUp());
         }
 
         Lead updated = leadRepository.save(lead);

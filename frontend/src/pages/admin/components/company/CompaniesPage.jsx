@@ -209,6 +209,8 @@ const CompaniesPage = () => {
     return true;
   });
 
+  const inProgressCount = companies.filter((c) => c.status === "IN_PROGRESS").length;
+
   return (
     <div className="space-y-6">
       {/* Action bar & Search */}
@@ -260,22 +262,24 @@ const CompaniesPage = () => {
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
           <button
+            type="button"
             onClick={() => setShowInProgress(!showInProgress)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors border border-[#E5E5EA] cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors border cursor-pointer ${
               showInProgress
-                ? "bg-[#FAFAFA] text-[#1C1C1E]"
-                : "bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA]"
+                ? "bg-[#F59E0B] text-white border-[#F59E0B] shadow-xs"
+                : "bg-white text-[#6E6E73] hover:text-[#1C1C1E] border-[#E5E5EA] hover:bg-[#FAFAFA]"
             }`}
           >
             <Clock size={13} strokeWidth={1.5} />
-            <span>{showInProgress ? "Showing in progress" : "Show in progress"}</span>
+            <span>in progress · {inProgressCount}</span>
           </button>
           <button
+            type="button"
             onClick={() => setShowArchived(!showArchived)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors border border-[#E5E5EA] cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors border cursor-pointer ${
               showArchived
-                ? "bg-[#FAFAFA] text-[#1C1C1E]"
-                : "bg-white text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA]"
+                ? "bg-[#171717] text-white border-[#171717] shadow-xs"
+                : "bg-white text-[#6E6E73] hover:text-[#1C1C1E] border-[#E5E5EA] hover:bg-[#FAFAFA]"
             }`}
           >
             {showArchived ? (
@@ -291,6 +295,7 @@ const CompaniesPage = () => {
             )}
           </button>
           <button
+            type="button"
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white px-3 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors shadow-xs cursor-pointer"
           >
@@ -306,27 +311,27 @@ const CompaniesPage = () => {
           {[1, 2, 3].map((n) => (
             <div
               key={n}
-              className="h-28 bg-white border border-[#E5E5EA] animate-pulse rounded-[10px]"
+              className="h-24 bg-white border border-[#E5E5EA] animate-pulse rounded-[10px]"
             />
           ))}
         </div>
       ) : filteredCompanies.length > 0 ? (
         viewMode === "icons" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
             {filteredCompanies.map((company) => (
               <div
                 key={company.idCompany}
-                className={`bg-white rounded-[10px] border p-2.5 flex flex-col justify-between transition-colors ${
+                className={`bg-white rounded-[10px] border p-2 flex flex-col justify-between transition-colors ${
                   company.status === "ARCHIVED"
                     ? "border-[#E5E5EA] opacity-60"
                     : "border-[#E5E5EA] hover:border-[#171717]/30"
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
                       <div
-                        className="w-8 h-8 bg-[#FAFAFA] rounded-[8px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden cursor-pointer"
+                        className="w-7 h-7 bg-[#FAFAFA] rounded-[6px] flex items-center justify-center border border-[#E5E5EA] shrink-0 overflow-hidden cursor-pointer"
                         onClick={() => navigate(`/companies/${company.idCompany}`)}
                       >
                         {company.logoPath ? (
@@ -336,7 +341,7 @@ const CompaniesPage = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <Building2 size={16} strokeWidth={1.5} className="text-[#AEAEB2]" />
+                          <Building2 size={14} strokeWidth={1.5} className="text-[#AEAEB2]" />
                         )}
                       </div>
 
@@ -345,10 +350,10 @@ const CompaniesPage = () => {
                         onClick={() => navigate(`/companies/${company.idCompany}`)}
                       >
                         <span 
-                          className="w-2.5 h-2.5 rounded-full shrink-0" 
+                          className="w-2 h-2 rounded-full shrink-0" 
                           style={{ backgroundColor: getCompanyColor(company) }}
                         />
-                        <h2 className="text-[13.5px] font-semibold text-[#1C1C1E] hover:text-[#171717] transition-colors truncate">
+                        <h2 className="text-[12.5px] font-semibold text-[#1C1C1E] hover:text-[#171717] transition-colors truncate">
                           {company.name}
                         </h2>
                       </div>
@@ -357,14 +362,14 @@ const CompaniesPage = () => {
                     <div className="flex items-center gap-1 shrink-0">
                       {company.status && (
                         <span
-                          className={`inline-flex items-center text-[10px] font-medium lowercase px-2 py-0.5 rounded-full border ${getStatusColor(company.status)}`}
+                          className={`inline-flex items-center text-[9.5px] font-medium lowercase px-1.5 py-0.2 rounded-full border ${getStatusColor(company.status)}`}
                         >
                           {COMPANY_STATUSES.find((s) => s.value === company.status)
                             ?.label || company.status.toLowerCase()}
                         </span>
                       )}
                       {company.type && (
-                        <span className="px-2 py-0.5 bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] rounded-full text-[10px] font-medium lowercase">
+                        <span className="px-1.5 py-0.2 bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] rounded-full text-[9.5px] font-medium lowercase">
                           {COMPANY_TYPES.find((t) => t.value === company.type)
                             ?.label || company.type.toLowerCase()}
                         </span>
@@ -374,34 +379,35 @@ const CompaniesPage = () => {
 
                   {company.description && (
                     <p
-                      className="text-[11.5px] text-[#6E6E73] line-clamp-1 cursor-pointer mb-1"
+                      className="text-[11px] text-[#6E6E73] line-clamp-1 cursor-pointer mb-1 leading-snug"
                       onClick={() => navigate(`/companies/${company.idCompany}`)}
+                      title={company.description}
                     >
                       {company.description}
                     </p>
                   )}
                 </div>
 
-                <div className="mt-2 pt-1.5 border-t border-[#E5E5EA] flex items-center justify-between">
+                <div className="mt-1.5 pt-1 border-t border-[#E5E5EA]/70 flex items-center justify-between">
                   <button
                     onClick={() => navigate(`/companies/${company.idCompany}`)}
-                    className="p-1.5 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors cursor-pointer"
+                    className="p-1 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[6px] transition-colors cursor-pointer"
                     title="View workspace"
                   >
-                    <Eye size={15} strokeWidth={1.5} />
+                    <Eye size={13} strokeWidth={1.5} />
                   </button>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     {company.status === "ARCHIVED" ? (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRestore(company.idCompany, company.name);
                         }}
-                        className="p-1.5 text-[#10B981] hover:bg-[#10B981]/10 rounded-[6px] transition-colors cursor-pointer"
+                        className="p-1 text-[#10B981] hover:bg-[#10B981]/10 rounded-[6px] transition-colors cursor-pointer"
                         title="Restore company"
                       >
-                        <RotateCcw size={14} strokeWidth={1.5} />
+                        <RotateCcw size={13} strokeWidth={1.5} />
                       </button>
                     ) : (
                       <button
@@ -409,10 +415,10 @@ const CompaniesPage = () => {
                           e.stopPropagation();
                           handleDelete(company.idCompany, company.name);
                         }}
-                        className="p-1.5 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors cursor-pointer"
+                        className="p-1 text-[#AEAEB2] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-[6px] transition-colors cursor-pointer"
                         title="Delete company"
                       >
-                        <Trash2 size={14} strokeWidth={1.5} />
+                        <Trash2 size={13} strokeWidth={1.5} />
                       </button>
                     )}
                   </div>

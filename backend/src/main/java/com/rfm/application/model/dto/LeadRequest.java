@@ -19,5 +19,7 @@ public record LeadRequest(
     String notes,
     @JsonFormat(pattern = "yyyy-MM-dd")
     LocalDate nextFollowUp,
-    LeadStatus status
+    LeadStatus status,
+    String stageNote
 ) {}
+
