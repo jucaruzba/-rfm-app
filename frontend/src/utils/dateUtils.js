@@ -2,8 +2,8 @@ import { format, parseISO, isValid } from "date-fns";
 import { enUS } from "date-fns/locale";
 
 /**
- * Standardized US Date Formatter
- * Formats dates into US format: e.g. "Aug 27, 2026" or "MM/dd/yyyy"
+ * Standardized Date Formatter
+ * Formats dates into: "MM/dd/yyyy" (MES/DIA/AÑO)
  */
 export const formatUsDate = (dateVal, options = {}) => {
   if (!dateVal) return options.fallback || "--/--/----";
@@ -14,9 +14,12 @@ export const formatUsDate = (dateVal, options = {}) => {
       const [year, month, day, hour = 0, minute = 0, second = 0] = dateVal;
       dateObj = new Date(year, month - 1, day, hour, minute, second);
     } else if (typeof dateVal === "string") {
-      dateObj = dateVal.includes("T")
-        ? parseISO(dateVal)
-        : parseISO(`${dateVal}T00:00:00`);
+      const cleanStr = dateVal.includes(" ") && !dateVal.includes("T")
+        ? dateVal.replace(" ", "T")
+        : dateVal;
+      dateObj = cleanStr.includes("T")
+        ? parseISO(cleanStr)
+        : parseISO(`${cleanStr}T00:00:00`);
     } else if (dateVal instanceof Date) {
       dateObj = dateVal;
     }
@@ -25,25 +28,23 @@ export const formatUsDate = (dateVal, options = {}) => {
       return String(dateVal);
     }
 
-    if (options.compact) {
-      return format(dateObj, "MM/dd/yyyy", { locale: enUS });
-    }
-
-    // Default US date format: e.g. "Aug 27, 2026"
-    return format(dateObj, "MMM d, yyyy", { locale: enUS });
+    // Default: MES/DIA/AÑO -> MM/dd/yyyy
+    return format(dateObj, "MM/dd/yyyy", { locale: enUS });
   } catch {
     return String(dateVal);
   }
 };
 
 /**
- * Formats time in 12-hour format with AM/PM (e.g. "10:00 PM")
+ * Formats time in 12-hour format with AM/PM (e.g. "1:30 PM", "10:00 PM")
+ * Never displays 24-hour military time (13, 14, 18, etc.)
  */
 export const formatUsTime = (dateOrTimeVal) => {
   if (!dateOrTimeVal) return "";
   try {
     let dateObj;
     if (Array.isArray(dateOrTimeVal)) {
+      if (dateOrTimeVal.length < 4) return "";
       const [year, month, day, hour = 0, minute = 0, second = 0] = dateOrTimeVal;
       dateObj = new Date(year, month - 1, day, hour, minute, second);
     } else if (
@@ -56,7 +57,13 @@ export const formatUsTime = (dateOrTimeVal) => {
       d.setHours(hours, minutes, 0, 0);
       return format(d, "h:mm a", { locale: enUS });
     } else if (typeof dateOrTimeVal === "string") {
-      dateObj = parseISO(dateOrTimeVal);
+      if (!dateOrTimeVal.includes("T") && !dateOrTimeVal.includes(":") && !dateOrTimeVal.includes(" ")) {
+        return "";
+      }
+      const cleanStr = dateOrTimeVal.includes(" ") && !dateOrTimeVal.includes("T")
+        ? dateOrTimeVal.replace(" ", "T")
+        : dateOrTimeVal;
+      dateObj = parseISO(cleanStr);
     } else if (dateOrTimeVal instanceof Date) {
       dateObj = dateOrTimeVal;
     }
@@ -70,11 +77,15 @@ export const formatUsTime = (dateOrTimeVal) => {
 };
 
 /**
- * Formats date and time: e.g. "Aug 27, 2026, 10:00 PM"
+ * Formats date and time: e.g. "MM/dd/yyyy: h:mm a" (e.g. "10/07/2026: 2:30 PM")
+ * Formato requerido: MES/DIA/AÑO: HORA (en formato 12 horas, ej. 1:00 PM, 2:30 PM, no 14, 13, 18)
  */
 export const formatUsDateTime = (dateVal) => {
   if (!dateVal) return "--/--/----";
-  return `${formatUsDate(dateVal)} at ${formatUsTime(dateVal)}`;
+  const dateStr = formatUsDate(dateVal);
+  const timeStr = formatUsTime(dateVal);
+  if (!timeStr) return dateStr;
+  return `${dateStr}: ${timeStr}`;
 };
 
 /**

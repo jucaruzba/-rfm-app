@@ -1132,10 +1132,7 @@ const handleConfirmDeletePending = async (id) => {
                             </span>
                             <span className="text-[10px] text-[#AEAEB2]">
                               {comment.createdAt &&
-                                format(
-                                  parseISO(comment.createdAt),
-                                  "dd/MM/yyyy HH:mm",
-                                )}
+                                formatUsDateTime(comment.createdAt)}
                             </span>
                           </div>
                           <p className="text-[12px] text-[#6E6E73] mt-1 break-words">

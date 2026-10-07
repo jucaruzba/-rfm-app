@@ -311,7 +311,7 @@ const LeadDetailModal = ({
                 <span className="text-[11px] text-[#8E8E93] uppercase tracking-wide block mb-0.5">
                   created
                 </span>
-                <p className="text-[#6E6E73]">{formatUsDate(lead.createdAt)}</p>
+                <p className="text-[#6E6E73]">{formatUsDateTime(lead.createdAt)}</p>
               </div>
               {lead.notes && (
                 <div className="col-span-2 bg-[#FAFAFA] p-3 rounded-[8px] border border-[#E5E5EA]">
