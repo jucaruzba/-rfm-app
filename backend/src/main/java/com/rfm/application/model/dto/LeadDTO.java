@@ -16,6 +16,7 @@ public record LeadDTO(
     String name,
     String companyName,
     Long idCompany,
+    String interestedIn,
     String phoneOrEmail,
     String phone,
     String email,

@@ -74,6 +74,7 @@ const LeadDetailModal = ({
   const buildForm = (current) => ({
     name: current?.name || "",
     companyName: current?.companyName || "",
+    interestedIn: current?.interestedIn || "",
     phone: current?.phone || "",
     email: current?.email || "",
     value: current?.value ?? 0,
@@ -146,6 +147,7 @@ const LeadDetailModal = ({
       await onUpdateLead(lead.idLead, {
         name: formData.name.trim(),
         companyName: formData.companyName.trim() || null,
+        interestedIn: formData.interestedIn.trim() || null,
         phone: formData.phone.trim() || null,
         email: formData.email.trim() || null,
         value: formData.value === "" || formData.value == null ? 0 : parseFloat(formData.value),
@@ -286,6 +288,12 @@ const LeadDetailModal = ({
               </div>
               <div>
                 <span className="text-[11px] text-[#8E8E93] uppercase tracking-wide block mb-0.5">
+                  interested in
+                </span>
+                <p className="text-[#1C1C1E] font-medium">{lead.interestedIn || "—"}</p>
+              </div>
+              <div>
+                <span className="text-[11px] text-[#8E8E93] uppercase tracking-wide block mb-0.5">
                   deal value
                 </span>
                 <p className="text-[#1C1C1E] font-medium">{formatLeadValue(lead.value)}</p>
@@ -319,59 +327,75 @@ const LeadDetailModal = ({
           ) : (
             <form onSubmit={handleSaveEdit} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="space-y-1">
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Name</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px]"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] outline-none focus:border-[#5B5FEF]"
                     required
                   />
                 </div>
-                <div>
+                <div className="space-y-1">
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Company</label>
                   <input
                     type="text"
                     value={formData.companyName}
                     onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px]"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] outline-none focus:border-[#5B5FEF]"
                   />
                 </div>
-                <div>
-                  <label className="text-[11px] text-[#6E6E73] block mb-1">Phone</label>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1">
+                  <label className="text-[11px] text-[#6E6E73] block mb-1">Interested in</label>
                   <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px]"
+                    type="text"
+                    placeholder="e.g. Web design, consulting..."
+                    value={formData.interestedIn}
+                    onChange={(e) => setFormData({ ...formData, interestedIn: e.target.value })}
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] outline-none focus:border-[#5B5FEF]"
                   />
                 </div>
-                <div>
-                  <label className="text-[11px] text-[#6E6E73] block mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px]"
-                  />
-                </div>
-                <div>
+                <div className="col-span-1 space-y-1">
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Value ($)</label>
                   <input
                     type="number"
                     step="any"
                     value={formData.value}
                     onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px]"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] outline-none focus:border-[#5B5FEF]"
                   />
                 </div>
-                <div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#6E6E73] block mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] outline-none focus:border-[#5B5FEF]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#6E6E73] block mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] outline-none focus:border-[#5B5FEF]"
+                  />
+                </div>
+                <div className="space-y-1">
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Status</label>
                   <select
                     value={formData.status}
                     onChange={(e) => handleStatusChange(e.target.value)}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] cursor-pointer"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] cursor-pointer outline-none focus:border-[#5B5FEF]"
                   >
                     {STATUSES.map((s) => (
                       <option key={s.value} value={s.value}>
@@ -380,12 +404,12 @@ const LeadDetailModal = ({
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="space-y-1">
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Source</label>
                   <select
                     value={formData.source}
                     onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] cursor-pointer"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] cursor-pointer outline-none focus:border-[#5B5FEF]"
                   >
                     <option value="">— select —</option>
                     {SOURCES.map((s) => (
@@ -395,7 +419,7 @@ const LeadDetailModal = ({
                     ))}
                   </select>
                 </div>
-                <div>
+                <div className="col-span-2 space-y-1">
                   <label className="text-[11px] text-[#6E6E73] block mb-1 flex items-center justify-between">
                     <span>Next follow-up / fecha contacto</span>
                     {formData.status !== lead.status && (
@@ -406,10 +430,10 @@ const LeadDetailModal = ({
                     type="date"
                     value={formData.nextFollowUp}
                     onChange={(e) => setFormData({ ...formData, nextFollowUp: e.target.value })}
-                    className={`w-full bg-white border rounded-[8px] py-1.5 px-3 text-[13px] ${
+                    className={`w-full bg-white border rounded-[8px] py-1.5 px-3 text-[13px] outline-none ${
                       formData.status !== lead.status && (!formData.nextFollowUp || formData.nextFollowUp === lead.nextFollowUp)
                         ? "border-[#EF4444] focus:border-[#EF4444]"
-                        : "border-[#E5E5EA]"
+                        : "border-[#E5E5EA] focus:border-[#5B5FEF]"
                     }`}
                     required
                   />
@@ -437,23 +461,23 @@ const LeadDetailModal = ({
                 </div>
               )}
               {formData.source === "OTHER" && (
-                <div>
+                <div className="space-y-1">
                   <label className="text-[11px] text-[#6E6E73] block mb-1">Tell us where</label>
                   <input
                     type="text"
                     value={formData.sourceOther}
                     onChange={(e) => setFormData({ ...formData, sourceOther: e.target.value })}
-                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px]"
+                    className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] outline-none focus:border-[#5B5FEF]"
                   />
                 </div>
               )}
-              <div>
+              <div className="space-y-1">
                 <label className="text-[11px] text-[#6E6E73] block mb-1">Notes</label>
                 <textarea
                   rows={2}
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] resize-none"
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-1.5 px-3 text-[13px] resize-none outline-none focus:border-[#5B5FEF]"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">

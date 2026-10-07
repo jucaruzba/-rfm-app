@@ -4,6 +4,7 @@ import { toast } from "sonner";
 const EMPTY_FORM = {
   name: "",
   companyName: "",
+  interestedIn: "",
   phone: "",
   email: "",
   value: "",
@@ -56,6 +57,7 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
       const payload = {
         name: formData.name.trim(),
         companyName: formData.companyName.trim() || null,
+        interestedIn: formData.interestedIn.trim() || null,
         phone: formData.phone.trim() || null,
         email: formData.email.trim() || null,
         value: formData.value ? parseFloat(formData.value) : 0,
@@ -116,6 +118,34 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
             />
           </div>
 
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2 space-y-1">
+              <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                interested in <span className="text-[#AEAEB2]">(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Web design, consulting..."
+                value={formData.interestedIn}
+                onChange={(e) => setFormData({ ...formData, interestedIn: e.target.value })}
+                className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
+              />
+            </div>
+            <div className="col-span-1 space-y-1">
+              <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                value ($) <span className="text-[#AEAEB2]">(optional)</span>
+              </label>
+              <input
+                type="number"
+                step="any"
+                placeholder="0"
+                value={formData.value}
+                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
@@ -141,20 +171,6 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
                 className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
               />
             </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              value ($) <span className="text-[#AEAEB2]">(optional, defaults to 0)</span>
-            </label>
-            <input
-              type="number"
-              step="any"
-              placeholder="0"
-              value={formData.value}
-              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-              className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#5B5FEF] text-[13px] text-[#1C1C1E] transition-all"
-            />
           </div>
 
           <div className="space-y-1">
@@ -192,7 +208,7 @@ const NewLeadModal = ({ isOpen, onClose, onLeadCreated }) => {
 
           <div className="space-y-1">
             <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
-              notes — what are they interested in <span className="text-[#AEAEB2]">(optional)</span>
+              notes <span className="text-[#AEAEB2]">(optional)</span>
             </label>
             <textarea
               ref={notesRef}

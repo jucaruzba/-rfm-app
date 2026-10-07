@@ -41,6 +41,9 @@ public class Lead {
     @Column(name = "company_name")
     private String companyName;
 
+    @Column(name = "interested_in")
+    private String interestedIn;
+
     @Column(name = "id_company")
     private Long idCompany;
 

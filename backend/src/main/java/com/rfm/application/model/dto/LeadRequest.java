@@ -10,6 +10,7 @@ import com.rfm.application.enums.LeadStatus;
 public record LeadRequest(
     String name,
     String companyName,
+    String interestedIn,
     String phoneOrEmail,
     String phone,
     String email,

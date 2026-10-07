@@ -237,6 +237,11 @@ const PipelinePage = () => {
         <p className="text-[12px] text-[#6E6E73] truncate">
           {lead.companyName || "—"}
         </p>
+        {lead.interestedIn && (
+          <p className="text-[11.5px] text-[#8E8E93] truncate">
+            {lead.interestedIn}
+          </p>
+        )}
       </div>
       <div className="mt-2 pt-2 border-t border-[#E5E5EA]/60 flex items-center justify-between gap-2">
         <span className="text-[12.5px] font-semibold text-[#1C1C1E]">

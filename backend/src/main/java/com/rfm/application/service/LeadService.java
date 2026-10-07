@@ -80,6 +80,7 @@ public class LeadService {
         Lead lead = Lead.builder()
                 .name(request.name().trim())
                 .companyName(request.companyName() != null && !request.companyName().trim().isEmpty() ? request.companyName().trim() : null)
+                .interestedIn(blankToNull(request.interestedIn()))
                 .phone(phone)
                 .email(email)
                 .phoneOrEmail(combineContact(phone, email))
@@ -112,6 +113,7 @@ public class LeadService {
             lead.setName(request.name().trim());
         }
         lead.setCompanyName(request.companyName());
+        lead.setInterestedIn(blankToNull(request.interestedIn()));
 
         String phone = request.phone() != null ? blankToNull(request.phone()) : lead.getPhone();
         String email = request.email() != null ? blankToNull(request.email()) : lead.getEmail();
@@ -309,6 +311,7 @@ public class LeadService {
                 .name(lead.getName())
                 .companyName(lead.getCompanyName())
                 .idCompany(lead.getIdCompany())
+                .interestedIn(lead.getInterestedIn())
                 .phoneOrEmail(lead.getPhoneOrEmail())
                 .phone(phone)
                 .email(email)
