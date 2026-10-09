@@ -36,6 +36,14 @@ const ProjectDashboard = () => {
     description: "",
   });
 
+  // Estado para editar objeto
+  const [editingObject, setEditingObject] = useState(null);
+  const [editObjectForm, setEditObjectForm] = useState({
+    title: "",
+    description: "",
+  });
+  const [updatingObject, setUpdatingObject] = useState(false);
+
   useEffect(() => {
     fetchProjectData();
   }, [projectId]);
@@ -80,6 +88,47 @@ const ProjectDashboard = () => {
       toast.error("Error updating project");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleOpenEditObject = (obj, e) => {
+    if (e) e.stopPropagation();
+    setEditingObject(obj);
+    setEditObjectForm({
+      title: obj.title || "",
+      description: obj.description || "",
+    });
+  };
+
+  const handleUpdateObject = async (e) => {
+    e.preventDefault();
+    if (!editingObject || !editObjectForm.title.trim()) {
+      toast.error("Object title is required");
+      return;
+    }
+
+    setUpdatingObject(true);
+    try {
+      const updated = await projectObjectService.updateObject(
+        projectId,
+        editingObject.idObject,
+        {
+          title: editObjectForm.title.trim(),
+          description: editObjectForm.description.trim(),
+        }
+      );
+
+      setObjects((prev) =>
+        prev.map((o) =>
+          o.idObject === editingObject.idObject ? { ...o, ...updated } : o
+        )
+      );
+      setEditingObject(null);
+      toast.success("Object updated successfully");
+    } catch (err) {
+      toast.error("Error updating object");
+    } finally {
+      setUpdatingObject(false);
     }
   };
 
@@ -293,7 +342,17 @@ const ProjectDashboard = () => {
                     )}
                   </div>
                 </div>
-                <ChevronRight size={14} strokeWidth={1.5} className="text-[#AEAEB2] group-hover:text-[#1C1C1E] shrink-0 transition-colors ml-2" />
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenEditObject(obj, e)}
+                    className="p-1 text-[#AEAEB2] hover:text-[#1C1C1E] hover:bg-black/5 rounded-[6px] transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                    title="Edit object description"
+                  >
+                    <Edit3 size={13} strokeWidth={1.5} />
+                  </button>
+                  <ChevronRight size={14} strokeWidth={1.5} className="text-[#AEAEB2] group-hover:text-[#1C1C1E] transition-colors" />
+                </div>
               </div>
             ))}
           </div>
@@ -382,6 +441,77 @@ const ProjectDashboard = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Object Modal */}
+      {editingObject && (
+        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-[14px] p-6 max-w-md w-full border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)] relative">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
+              <h2 className="text-[17px] font-semibold text-[#1C1C1E]">
+                Edit object
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEditingObject(null)}
+                className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
+              >
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateObject} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  object title *
+                </label>
+                <input
+                  type="text"
+                  value={editObjectForm.title}
+                  onChange={(e) =>
+                    setEditObjectForm({ ...editObjectForm, title: e.target.value })
+                  }
+                  placeholder="enter object title..."
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
+                </label>
+                <textarea
+                  rows="3"
+                  value={editObjectForm.description}
+                  onChange={(e) =>
+                    setEditObjectForm({ ...editObjectForm, description: e.target.value })
+                  }
+                  placeholder="enter object description..."
+                  className="w-full bg-white border border-[#E5E5EA] rounded-[8px] py-2 px-3 outline-none focus:border-[#171717] text-[13px] text-[#1C1C1E] resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
+                <button
+                  type="button"
+                  onClick={() => setEditingObject(null)}
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingObject}
+                  className="bg-[#171717] hover:bg-[#2C2C2E] text-white px-4 py-1.5 rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  {updatingObject && <Loader2 size={13} className="animate-spin" />}
+                  <span>Save changes</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

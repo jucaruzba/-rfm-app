@@ -147,10 +147,10 @@ public class ProjectObjectService {
                 .orElseThrow(() -> new RuntimeException("ProjectObject not found with id: " + id));
 
         if (request.title() != null) {
-            projectObject.setTitle(request.title());
+            projectObject.setTitle(request.title().trim());
         }
         if (request.description() != null) {
-            projectObject.setDescription(request.description());
+            projectObject.setDescription(request.description().trim().isEmpty() ? null : request.description().trim());
         }
         projectObject.setUpdatedAt(LocalDateTime.now());
 

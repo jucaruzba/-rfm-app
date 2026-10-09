@@ -334,8 +334,9 @@ public class TaskService {
 		List<Task> tasks = taskRepository.findFilters(idCompany, status, idUser, titlePattern, start, end);
 		List<TaskDTO> resultList = new ArrayList<>(tasks.stream().map(this::mapToDTO).toList());
 
-		// Proyección de ocurrencias virtuales de tareas recurrentes para rango de calendario
-		if (start != null && end != null) {
+		// Proyección de ocurrencias virtuales de tareas recurrentes para rango de calendario (solo si no se filtra por un estado diferente a PENDING)
+		boolean canHaveVirtualOccurrences = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status) || "PENDING".equalsIgnoreCase(status));
+		if (start != null && end != null && canHaveVirtualOccurrences) {
 			List<Task> rootRecurring = taskRepository.findRootRecurringTasks(idCompany, idUser);
 			for (Task root : rootRecurring) {
 				if (root.getStartDate() == null || root.getRepeatType() == null || root.getRepeatType() == RepeatType.NONE) {
@@ -402,7 +403,15 @@ public class TaskService {
 
 		// Filtrar por status si se especificó y no es ALL
 		if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
-			resultList = resultList.stream().filter(t -> status.equalsIgnoreCase(t.status())).collect(Collectors.toList());
+			final String targetStatus = status.trim();
+			resultList = resultList.stream().filter(t -> {
+				if (t.status() == null) return false;
+				String s = t.status().trim();
+				if (targetStatus.equalsIgnoreCase(s)) return true;
+				if ("IN_PROGRESS".equalsIgnoreCase(targetStatus) && "PROGRESS".equalsIgnoreCase(s)) return true;
+				if ("PROGRESS".equalsIgnoreCase(targetStatus) && "IN_PROGRESS".equalsIgnoreCase(s)) return true;
+				return false;
+			}).collect(Collectors.toList());
 		}
 
 		// Ordenar por fecha de inicio

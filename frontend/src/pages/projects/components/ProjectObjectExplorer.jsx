@@ -22,6 +22,7 @@ import {
   Repeat,
   Tag,
   Home,
+  Edit3,
 } from "lucide-react";
 import { projectObjectService } from "../../../services/projectObjectService";
 import { nodeService } from "../../../services/nodeService";
@@ -72,6 +73,15 @@ const ProjectObjectExplorer = () => {
     description: "",
   });
   const [creatingObject, setCreatingObject] = useState(false);
+
+  // Modal para editar objeto
+  const [showEditObject, setShowEditObject] = useState(false);
+  const [editingObject, setEditingObject] = useState(null);
+  const [editObjectForm, setEditObjectForm] = useState({
+    title: "",
+    description: "",
+  });
+  const [updatingObject, setUpdatingObject] = useState(false);
 
   // Modal para crear recordatorio
   const [showCreateReminder, setShowCreateReminder] = useState(false);
@@ -247,6 +257,61 @@ const ProjectObjectExplorer = () => {
       console.error("Object creation error:", err);
     } finally {
       setCreatingObject(false);
+    }
+  };
+
+  const handleOpenEditObject = (obj, e) => {
+    if (e) e.stopPropagation();
+    setEditingObject(obj);
+    setEditObjectForm({
+      title: obj.title || "",
+      description: obj.description || "",
+    });
+    setShowEditObject(true);
+  };
+
+  const handleUpdateObject = async (e) => {
+    e.preventDefault();
+    if (!editingObject || !editObjectForm.title.trim()) {
+      toast.error("Object title is required");
+      return;
+    }
+
+    try {
+      setUpdatingObject(true);
+      const updated = await projectObjectService.updateObject(
+        projectId,
+        editingObject.idObject,
+        {
+          title: editObjectForm.title.trim(),
+          description: editObjectForm.description.trim(),
+        }
+      );
+
+      // Actualizar en la lista local de objetos
+      setObjects((prev) =>
+        prev.map((o) =>
+          o.idObject === editingObject.idObject ? { ...o, ...updated } : o
+        )
+      );
+
+      // Si el objeto editado está en el pathStack, actualizarlo para reflejar título y descripción
+      setPathStack((prev) =>
+        prev.map((p) =>
+          p.idObject === editingObject.idObject
+            ? { ...p, title: updated.title, description: updated.description }
+            : p
+        )
+      );
+
+      setShowEditObject(false);
+      setEditingObject(null);
+      toast.success("Object updated successfully");
+    } catch (err) {
+      toast.error("Error updating object");
+      console.error("Object update error:", err);
+    } finally {
+      setUpdatingObject(false);
     }
   };
 
@@ -555,12 +620,31 @@ const ProjectObjectExplorer = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left column: Sub-objects & Files */}
             <div className="space-y-6">
-              {/* Current Object Description */}
-              {pathStack.length > 0 && pathStack[pathStack.length - 1]?.description && (
-                <div className="p-4 bg-[#FAFAFA] rounded-[10px] border border-[#E5E5EA]">
-                  <p className="text-[12.5px] text-[#6E6E73]">
-                    {pathStack[pathStack.length - 1]?.description}
-                  </p>
+              {/* Current Object Description & Actions */}
+              {pathStack.length > 1 && (
+                <div className="p-4 bg-[#FAFAFA] rounded-[10px] border border-[#E5E5EA] flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-medium text-[#AEAEB2] uppercase tracking-wider block mb-0.5">
+                      Description
+                    </span>
+                    <p className="text-[12.5px] text-[#3C3C43] leading-relaxed whitespace-pre-line">
+                      {pathStack[pathStack.length - 1]?.description || (
+                        <span className="italic text-[#AEAEB2]">No description provided</span>
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const currentObj = pathStack[pathStack.length - 1];
+                      handleOpenEditObject(currentObj, e);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11.5px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white hover:bg-[#F2F2F7] rounded-[7px] border border-[#E5E5EA] transition-colors cursor-pointer shrink-0 shadow-2xs"
+                    title="Edit object description"
+                  >
+                    <Edit3 size={13} strokeWidth={1.5} />
+                    <span>Edit</span>
+                  </button>
                 </div>
               )}
 
@@ -574,9 +658,19 @@ const ProjectObjectExplorer = () => {
                     {filteredObjects.map((obj) => (
                       <div
                         key={obj.idObject}
-                        className="group flex flex-col items-center gap-2 p-3 rounded-[10px] border border-[#E5E5EA] hover:border-[#171717]/30 hover:bg-[#FAFAFA] transition-colors cursor-pointer"
+                        className="group flex flex-col items-center gap-2 p-3 rounded-[10px] border border-[#E5E5EA] hover:border-[#171717]/30 hover:bg-[#FAFAFA] transition-colors cursor-pointer relative"
                         onClick={() => handleObjectClick(obj)}
                       >
+                        {/* Edit Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleOpenEditObject(obj, e)}
+                          className="absolute top-2 right-2 p-1 text-[#AEAEB2] hover:text-[#1C1C1E] hover:bg-black/5 rounded-[6px] transition-colors opacity-0 group-hover:opacity-100 cursor-pointer z-10"
+                          title="Edit object description"
+                        >
+                          <Edit3 size={13} strokeWidth={1.5} />
+                        </button>
+
                         <div className="w-12 h-12 flex items-center justify-center rounded-[8px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#1C1C1E]">
                           <Folder size={24} strokeWidth={1.5} />
                         </div>
@@ -832,6 +926,85 @@ const ProjectObjectExplorer = () => {
                 >
                   {creatingObject && <Loader2 size={13} className="animate-spin" />}
                   <span>Save object</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Object */}
+      {showEditObject && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-[14px] p-6 max-w-sm w-full border border-[#E5E5EA] shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E5EA]">
+              <h3 className="text-[16px] font-semibold text-[#1C1C1E]">
+                Edit object
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditObject(false);
+                  setEditingObject(null);
+                }}
+                className="text-[#AEAEB2] hover:text-[#1C1C1E] cursor-pointer"
+              >
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateObject} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  title *
+                </label>
+                <input
+                  type="text"
+                  placeholder="object title..."
+                  value={editObjectForm.title}
+                  onChange={(e) =>
+                    setEditObjectForm({ ...editObjectForm, title: e.target.value })
+                  }
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
+                  description
+                </label>
+                <textarea
+                  placeholder="enter object description..."
+                  value={editObjectForm.description}
+                  onChange={(e) =>
+                    setEditObjectForm({
+                      ...editObjectForm,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-1.5 bg-white border border-[#E5E5EA] rounded-[8px] focus:border-[#171717] outline-none text-[13px] text-[#1C1C1E] resize-none h-24"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E5E5EA]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditObject(false);
+                    setEditingObject(null);
+                  }}
+                  className="px-3.5 py-1.5 rounded-[8px] text-[12px] font-medium text-[#6E6E73] hover:text-[#1C1C1E] bg-white border border-[#E5E5EA] hover:bg-[#FAFAFA] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingObject}
+                  className="px-4 py-1.5 bg-[#171717] hover:bg-[#2C2C2E] text-white rounded-[8px] text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  {updatingObject && <Loader2 size={13} className="animate-spin" />}
+                  <span>Save changes</span>
                 </button>
               </div>
             </form>

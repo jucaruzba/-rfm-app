@@ -16,7 +16,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     
 	@Query("SELECT t FROM Task t WHERE " +
 		       "(CAST(:idCompany AS long) IS NULL OR t.idCompany = :idCompany) AND " +
-		       "(CAST(:status AS string) IS NULL OR t.status = :status) AND " +
+		       "(CAST(:status AS string) IS NULL OR t.status = :status OR (LOWER(CAST(:status AS string)) = 'in_progress' AND LOWER(t.status) = 'progress') OR (LOWER(CAST(:status AS string)) = 'progress' AND LOWER(t.status) = 'in_progress')) AND " +
 		       "(CAST(:idUser AS long) IS NULL OR t.idUserAssigned = :idUser) AND " +
 		       "(CAST(:title AS string) IS NULL OR LOWER(t.title) LIKE LOWER(CAST(:title AS string))) AND " +
 		       "(CAST(:start AS localdate) IS NULL OR t.startDate >= :start) AND " +
@@ -32,18 +32,20 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 	
 	@Query(value = "SELECT * FROM tasks WHERE " +
 		       "(CAST(:idCompany AS BIGINT) IS NULL OR id_company = CAST(:idCompany AS BIGINT)) AND " +
-		       "(CAST(:status AS VARCHAR) IS NULL OR status = CAST(:status AS VARCHAR)) AND " +
+		       "(CAST(:status AS VARCHAR) IS NULL OR status = CAST(:status AS VARCHAR) OR " +
+		       " (LOWER(CAST(:status AS VARCHAR)) = 'in_progress' AND LOWER(status) = 'progress') OR " +
+		       " (LOWER(CAST(:status AS VARCHAR)) = 'progress' AND LOWER(status) = 'in_progress')) AND " +
 		       "(CAST(:idUser AS BIGINT) IS NULL OR id_user_assigned = CAST(:idUser AS BIGINT)) AND " +
 		       "(CAST(:title AS VARCHAR) IS NULL OR LOWER(title) LIKE LOWER(CAST(:title AS VARCHAR))) AND " +
 		       "(CAST(:start AS DATE) IS NULL OR CAST(:end AS DATE) IS NULL OR " +
-		       "   (start_date <= CAST(:end AS DATE) AND end_date >= CAST(:start AS DATE)))", 
+		       "   (start_date <= CAST(:end AS DATE) AND COALESCE(end_date, start_date) >= CAST(:start AS DATE)))", 
 		       nativeQuery = true)
 		List<Task> findFilters(
 		        @Param("idCompany") Long idCompany, 
 		        @Param("status") String status, 
 		        @Param("idUser") Long idUser, 
 		        @Param("title") String title, 
-		        @Param("start") LocalDate start,
+		        @Param("start") LocalDate start, 
 		        @Param("end") LocalDate end);
 	
 	 @Query("SELECT COUNT(t) FROM Task t WHERE t.idCompany = :companyId")

@@ -450,6 +450,39 @@ const TasksPage = () => {
     return formatUsDate(date);
   };
 
+  // Ordenar tareas en modo lista: de fecha más reciente a la más antigua (descendente)
+  const sortedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => {
+      const getTaskTime = (t) => {
+        if (!t?.startDate) return -Infinity;
+        if (Array.isArray(t.startDate)) {
+          const [y, m, d] = t.startDate;
+          return new Date(y, m - 1, d).getTime();
+        }
+        if (typeof t.startDate === "string") {
+          const cleanStr = t.startDate.includes("T") ? t.startDate.split("T")[0] : t.startDate;
+          if (cleanStr.includes("-")) {
+            const [y, m, d] = cleanStr.split("-").map(Number);
+            return new Date(y, m - 1, d).getTime();
+          }
+          if (cleanStr.includes("/")) {
+            const [d, m, y] = cleanStr.split("/").map(Number);
+            return new Date(y, m - 1, d).getTime();
+          }
+        }
+        return 0;
+      };
+
+      const timeA = getTaskTime(a);
+      const timeB = getTaskTime(b);
+
+      if (timeB !== timeA) {
+        return timeB - timeA; // Más reciente a más antigua
+      }
+      return (b.idTask || 0) - (a.idTask || 0);
+    });
+  }, [tasks]);
+
   // Generación de días del mes para el calendario (inicia en Domingo)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
@@ -459,16 +492,50 @@ const TasksPage = () => {
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentMonth]);
 
-  // Agrupar tareas del calendario por fecha (YYYY-MM-DD)
+  // Agrupar tareas del calendario por fecha (YYYY-MM-DD), respetando filtros
   const calendarTasksByDate = useMemo(() => {
     const map = {};
-    calendarTasks.forEach((t) => {
+    const filtered = calendarTasks.filter((t) => {
+      // 1. Filtro por status
+      if (statusTab && statusTab !== "ALL") {
+        const tStatus = (t.status || "").toUpperCase();
+        const expected = statusTab.toUpperCase();
+        const match =
+          tStatus === expected ||
+          (expected === "IN_PROGRESS" && tStatus === "PROGRESS") ||
+          (expected === "PROGRESS" && tStatus === "IN_PROGRESS");
+        if (!match) return false;
+      }
+
+      // 2. Filtro por búsqueda
+      if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const titleMatch = t.title && t.title.toLowerCase().includes(q);
+        const descMatch = t.description && t.description.toLowerCase().includes(q);
+        const compMatch = t.nameCompany && t.nameCompany.toLowerCase().includes(q);
+        const userMatch = t.nameUser && t.nameUser.toLowerCase().includes(q);
+        if (!titleMatch && !descMatch && !compMatch && !userMatch) return false;
+      }
+
+      // 3. Filtro por empresa
+      if (filterCompany) {
+        if (String(t.idCompany) !== String(filterCompany)) return false;
+      }
+
+      return true;
+    });
+
+    filtered.forEach((t) => {
       let dateKey = null;
       if (Array.isArray(t.startDate)) {
         const [y, m, d] = t.startDate;
         dateKey = `${y}-${m.toString().padStart(2, "0")}-${d.toString().padStart(2, "0")}`;
       } else if (typeof t.startDate === "string") {
         dateKey = t.startDate.includes("T") ? t.startDate.split("T")[0] : t.startDate;
+        if (dateKey.includes("/")) {
+          const [d, m, y] = dateKey.split("/");
+          dateKey = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        }
       }
 
       if (dateKey) {
@@ -477,7 +544,7 @@ const TasksPage = () => {
       }
     });
     return map;
-  }, [calendarTasks]);
+  }, [calendarTasks, statusTab, searchQuery, filterCompany]);
 
   return (
     <div className="space-y-6">
@@ -574,9 +641,9 @@ const TasksPage = () => {
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="animate-spin text-[#171717]" size={28} strokeWidth={1.5} />
             </div>
-          ) : tasks.length > 0 ? (
+          ) : sortedTasks.length > 0 ? (
             <div className="space-y-2.5">
-              {tasks.map((task) => {
+              {sortedTasks.map((task) => {
                 const currentStatus = getStatusConfig(task.status);
                 const isHighPriority = task.priority === "HIGH";
                 const companyObj = companies.find((c) => c.idCompany === task.idCompany);
@@ -679,7 +746,7 @@ const TasksPage = () => {
                     <span>Loading more tasks...</span>
                   </div>
                 )}
-                {!hasMore && tasks.length > 0 && (
+                {!hasMore && sortedTasks.length > 0 && (
                   <div className="text-center text-[12px] text-[#AEAEB2] py-2">
                     All tasks loaded ({totalElements} {totalElements === 1 ? "task" : "tasks"})
                   </div>

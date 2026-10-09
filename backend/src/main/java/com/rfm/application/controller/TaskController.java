@@ -52,7 +52,7 @@ public class TaskController {
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate end,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate from,
 			@RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate to,
-			@PageableDefault(page = 0, size = 10, sort = "idTask", direction = Sort.Direction.DESC) Pageable pageable) {
+			@PageableDefault(page = 0, size = 10, sort = {"startDate", "idTask"}, direction = Sort.Direction.DESC) Pageable pageable) {
 		LocalDate effectiveStart = start != null ? start : from;
 		LocalDate effectiveEnd = end != null ? end : to;
 		Page<TaskDTO> tasksPage = taskService.findWithFilters(idCompany, status, idUserAssigned, title, effectiveStart, effectiveEnd, pageable);
