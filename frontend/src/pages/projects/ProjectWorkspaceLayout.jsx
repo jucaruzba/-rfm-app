@@ -53,80 +53,82 @@ const ProjectWorkspaceLayout = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
+    <div className="min-h-[100dvh] bg-[#FAFAFA] flex flex-col">
       {/* Top Navbar */}
-      <nav className="h-16 bg-white border-b border-[#E5E5EA] px-6 lg:px-8 flex items-center justify-between sticky top-0 z-50">
-        {/* Left: Exit & Project Info */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/projects")}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FAFAFA] hover:bg-[#F2F2F7] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[8px] transition-colors text-[13px] font-medium"
-          >
-            <ArrowLeft size={15} strokeWidth={1.5} />
-            <span>Projects</span>
-          </button>
+      <nav className="bg-white border-b border-[#E5E5EA] sticky top-0 z-50 safe-top">
+        <div className="h-14 sm:h-16 px-3.5 sm:px-6 lg:px-8 flex items-center justify-between gap-2">
+          {/* Left: Exit & Project Info */}
+          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+            <button
+              onClick={() => navigate("/projects")}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#FAFAFA] hover:bg-[#F2F2F7] text-[#6E6E73] hover:text-[#1C1C1E] border border-[#E5E5EA] rounded-[8px] transition-colors text-[12.5px] sm:text-[13px] font-medium shrink-0"
+            >
+              <ArrowLeft size={15} strokeWidth={1.5} />
+              <span className="hidden xs:inline sm:inline">Projects</span>
+            </button>
 
-          <div className="h-5 w-[1px] bg-[#E5E5EA] hidden sm:block"></div>
+            <div className="h-5 w-[1px] bg-[#E5E5EA] hidden sm:block shrink-0"></div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-[7px] bg-[#FAFAFA] border border-[#E5E5EA] flex items-center justify-center text-[#1C1C1E]">
-              <Briefcase size={15} strokeWidth={1.5} />
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-[7px] bg-[#FAFAFA] border border-[#E5E5EA] flex items-center justify-center text-[#1C1C1E] shrink-0">
+                <Briefcase size={15} strokeWidth={1.5} />
+              </div>
+              <h2 className="text-[15px] sm:text-[17px] font-semibold text-[#1C1C1E] tracking-tight max-w-[140px] sm:max-w-[220px] md:max-w-[320px] truncate">
+                {project?.title || "Loading..."}
+              </h2>
             </div>
-            <h2 className="text-[17px] font-semibold text-[#1C1C1E] tracking-tight max-w-[200px] md:max-w-[320px] truncate">
-              {project?.title || "Loading..."}
-            </h2>
-          </div>
-        </div>
-
-        {/* Center: Workspace Navigation */}
-        <div className="hidden md:flex items-center gap-1 bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-[8px] transition-colors text-[13px] font-medium ${
-                  isActive
-                    ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
-                    : "text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-white/50"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Right: Date + Bell (Mandatory on every single page) */}
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] text-[13px]">
-            <Calendar size={15} strokeWidth={1.5} className="text-[#6E6E73]" />
-            <span className="font-medium text-[#1C1C1E]">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </span>
           </div>
 
-          <NotificationDropdown user={user} />
+          {/* Center: Workspace Navigation */}
+          <div className="hidden md:flex items-center gap-1 bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-[8px] transition-colors text-[13px] font-medium ${
+                    isActive
+                      ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                      : "text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-white/50"
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
 
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[8px] border border-[#E5E5EA]"
-          >
-            {isMobileMenuOpen ? <X size={16} strokeWidth={1.5} /> : <Menu size={16} strokeWidth={1.5} />}
-          </button>
+          {/* Right: Date + Bell (Mandatory on every single page) */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] text-[13px]">
+              <Calendar size={15} strokeWidth={1.5} className="text-[#6E6E73]" />
+              <span className="font-medium text-[#1C1C1E]">
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+
+            <NotificationDropdown user={user} />
+
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[8px] border border-[#E5E5EA]"
+            >
+              {isMobileMenuOpen ? <X size={16} strokeWidth={1.5} /> : <Menu size={16} strokeWidth={1.5} />}
+            </button>
+          </div>
         </div>
       </nav>
 
       {/* Mobile drawer */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-[#E5E5EA] p-4 space-y-1">
+        <div className="md:hidden bg-white border-b border-[#E5E5EA] p-3.5 space-y-1">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -149,7 +151,7 @@ const ProjectWorkspaceLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 p-6 lg:p-8 max-w-[1600px] mx-auto w-full">
+      <main className="flex-1 p-3.5 sm:p-6 lg:p-8 safe-pb max-w-[1600px] mx-auto w-full">
         <Outlet />
       </main>
     </div>
@@ -157,4 +159,3 @@ const ProjectWorkspaceLayout = () => {
 };
 
 export default ProjectWorkspaceLayout;
-

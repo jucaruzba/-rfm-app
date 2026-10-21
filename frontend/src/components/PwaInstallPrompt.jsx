@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import {
   Download,
-  Smartphone,
   Share,
   PlusSquare,
   MoreVertical,
@@ -93,7 +92,6 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
   if (isStandalone) return null;
 
   const handleInstallClick = async () => {
-    // If accessed over plain HTTP IP, redirect automatically to the valid HTTPS domain so Android enables native 1-click install
     if (
       typeof window !== "undefined" &&
       window.location.protocol === "http:" &&
@@ -121,7 +119,6 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
       }
     }
 
-    // Open step-by-step guide modal (required on iPhone Safari or if browser already installed/blocked prompt)
     if (variant === "banner") {
       setShowModal(true);
     } else {
@@ -160,14 +157,13 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
     );
   }
 
-  // Default: "banner" + global modal
   const isMobile = platform === "ios" || platform === "android";
   const shouldShowFloatingBanner = !bannerDismissed && (isMobile || !!deferredPrompt);
 
   return (
     <>
       {shouldShowFloatingBanner && (
-        <div className="fixed bottom-4 left-4 right-4 z-50 sm:left-auto sm:right-6 sm:max-w-[360px] bg-[#171717] text-white border border-[#2C2C2E] rounded-[14px] p-3.5 shadow-[0_12px_32px_rgba(0,0,0,0.35)] flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))] left-3.5 right-3.5 z-50 sm:left-auto sm:right-6 sm:max-w-[360px] bg-[#171717] text-white border border-[#2C2C2E] rounded-[14px] p-3.5 shadow-[0_12px_32px_rgba(0,0,0,0.35)] flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <img
             src="/apple-touch-icon.png"
             alt="RFM App"
@@ -205,7 +201,7 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
 
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white border border-[#E5E5EA] rounded-[14px] max-w-[400px] w-full p-6 shadow-2xl relative text-[#1C1C1E]">
+          <div className="bg-white border border-[#E5E5EA] rounded-[14px] max-w-[400px] w-full p-5 sm:p-6 shadow-2xl relative text-[#1C1C1E]">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -215,7 +211,7 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                   className="w-11 h-11 rounded-[10px] border border-[#E5E5EA] shadow-xs"
                 />
                 <div>
-                  <h3 className="text-[18px] font-semibold text-[#1C1C1E] leading-tight">
+                  <h3 className="text-[17px] sm:text-[18px] font-semibold text-[#1C1C1E] leading-tight">
                     Instalar aplicación RFM
                   </h3>
                   <span className="text-[12px] text-[#6E6E73]">

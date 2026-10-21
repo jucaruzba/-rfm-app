@@ -490,10 +490,10 @@ const handleConfirmDeletePending = async (id) => {
       >
         <div 
           onClick={(e) => e.stopPropagation()}
-          className="bg-[#FAFAFA] h-full max-h-screen w-full max-w-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border-l border-[#E5E5EA] flex flex-col overflow-hidden animate-in slide-in-from-right duration-200 cursor-default"
+          className="bg-[#FAFAFA] h-[100dvh] max-h-[100dvh] w-full max-w-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border-l border-[#E5E5EA] flex flex-col overflow-hidden animate-in slide-in-from-right duration-200 cursor-default"
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-[#E5E5EA] flex justify-between items-center bg-white shrink-0 z-20">
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#E5E5EA] flex justify-between items-center bg-white shrink-0 z-20 safe-top">
             <h1 className="text-[17px] font-semibold text-[#1C1C1E]">
               Task details
             </h1>
@@ -505,7 +505,7 @@ const handleConfirmDeletePending = async (id) => {
             </button>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-4 p-6">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-4 p-3.5 sm:p-6 safe-pb">
             {/* Main Info Card */}
             <div className="bg-white rounded-[12px] p-5 border border-[#E5E5EA] space-y-5">
               <div className="flex justify-between items-start gap-4">
@@ -788,7 +788,7 @@ const handleConfirmDeletePending = async (id) => {
                 <label className="text-[11px] font-medium lowercase text-[#6E6E73] block">
                   status
                 </label>
-                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     {
                       value: "PENDING",

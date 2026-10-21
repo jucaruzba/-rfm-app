@@ -551,7 +551,7 @@ const TasksPage = () => {
       {/* Control panel: View mode, New task, Status filters & Search in one compact card */}
       <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-3.5 shadow-xs space-y-2.5">
         {/* Top row: View mode switch & New task button */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="flex items-center bg-[#FAFAFA] p-0.5 rounded-[9px] border border-[#E5E5EA]">
               <button
@@ -590,7 +590,7 @@ const TasksPage = () => {
 
         {/* Bottom row: Status filters (without 'status:' label) & Search bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2.5 border-t border-[#E5E5EA]">
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 sm:pb-0 sm:flex-wrap">
             {[
               { label: "Pending", value: "PENDING" },
               { label: "In Progress", value: "IN_PROGRESS" },
@@ -603,7 +603,7 @@ const TasksPage = () => {
                 <button
                   key={`status-${option.value}`}
                   onClick={() => setStatusTab(option.value)}
-                  className={`px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-[7px] text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                     isSelected
                       ? "bg-[#171717] text-white shadow-xs"
                       : "bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-white"
@@ -668,7 +668,7 @@ const TasksPage = () => {
                     </div>
 
                     {/* Segundo Renglón: Empresa & Asignado (izq.) | Estatus, Fecha & Trash (der.) */}
-                    <div className="flex items-center justify-between gap-3 text-[12px] text-[#6E6E73] flex-wrap sm:flex-nowrap">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-[12px] text-[#6E6E73]">
                       {/* Izquierda: Empresa con puntito de color + Persona Asignada */}
                       <div className="flex items-center gap-2 min-w-0 flex-wrap sm:flex-nowrap">
                         {/* Empresa con puntito a la izquierda según color de la empresa */}
@@ -701,7 +701,7 @@ const TasksPage = () => {
 
                       {/* Derecha (al otro extremo): Estatus, Fecha, Trash */}
                       <div
-                        className="flex items-center gap-2.5 sm:gap-3 shrink-0 ml-auto"
+                        className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t border-[#F2F2F7] sm:border-t-0 sm:ml-auto"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {/* 1. Estatus (primero el estatus) */}
@@ -765,7 +765,7 @@ const TasksPage = () => {
       {/* VIEW 2: CALENDAR VIEW */}
       {/* ========================================================================= */}
       {viewMode === "calendar" && (
-        <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-6 shadow-none space-y-4">
+        <div className="bg-white border border-[#E5E5EA] rounded-[12px] p-3 sm:p-6 shadow-none space-y-4">
           {/* Calendar Header Navigation */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-[#E5E5EA]">
             <div className="flex items-center gap-2">
@@ -832,7 +832,7 @@ const TasksPage = () => {
                 <div
                   key={`cal-day-${dateKey}`}
                   onClick={() => handleDateCellClick(day)}
-                  className={`min-h-[100px] sm:min-h-[110px] p-2 rounded-[10px] border transition-colors flex flex-col justify-between group cursor-pointer ${
+                  className={`min-h-[74px] sm:min-h-[110px] p-1.5 sm:p-2 rounded-[8px] sm:rounded-[10px] border transition-colors flex flex-col justify-between group cursor-pointer ${
                     !isCurrMonth
                       ? "bg-[#FAFAFA]/50 border-[#E5E5EA]/60 opacity-40"
                       : isTodayDate
@@ -912,7 +912,7 @@ const TasksPage = () => {
       {/* POPUP: NEW TASK MODAL */}
       {/* ========================================================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="fixed inset-0 w-screen h-[100dvh] z-[9999] flex items-center justify-center p-3.5 sm:p-4 safe-top safe-bottom bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
           <div className="w-full max-w-lg bg-white rounded-[14px] p-6 relative shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E5EA] max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setIsModalOpen(false)}

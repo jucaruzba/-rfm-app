@@ -34,6 +34,30 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro", "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-x: none;
+}
+
+/* iOS Safe Area utilities for iPhone Notch / Dynamic Island & Home Indicator */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-pb {
+  padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem));
+}
+
+/* Hide scrollbars on horizontal pill strips on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Custom scrollbars */
@@ -50,6 +74,11 @@ html, body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #AEAEB2;
+}
+
+/* Offset Sonner toasts below iPhone Dynamic Island / Status Bar */
+[data-sonner-toaster][data-y-position="top"] {
+  top: max(16px, calc(env(safe-area-inset-top, 0px) + 8px)) !important;
 }
 
 /* Toaster custom overrides */
@@ -80,4 +109,3 @@ html, body {
   padding: 4px !important;
   border: none !important;
 }
-

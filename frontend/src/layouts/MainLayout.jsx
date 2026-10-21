@@ -92,12 +92,14 @@ const MainLayout = () => {
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-  const currentRouteTitle = menuItems.find((item) => item.path === location.pathname)?.label || "Workspace";
+  const currentRouteTitle =
+    menuItems.find((item) => item.path === location.pathname)?.label ||
+    "Workspace";
 
   const NavContent = () => (
     <>
       {/* Brand Header */}
-      <div className="h-16 px-5 flex items-center justify-between border-b border-[#2C2C2E]/50">
+      <div className="h-14 sm:h-16 px-5 flex items-center justify-between border-b border-[#2C2C2E]/50 shrink-0">
         <div className="flex items-center gap-3">
           <img
             src={clientLogo}
@@ -122,14 +124,18 @@ const MainLayout = () => {
               key={item.path}
               to={item.path}
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`group flex items-center px-3 py-2.5 rounded-[10px] transition-all text-[13.5px] ${isActive
+              className={`group flex items-center px-3 py-2.5 rounded-[10px] transition-all text-[13.5px] ${
+                isActive
                   ? "bg-[#2C2C2E] text-white font-medium shadow-sm"
                   : "text-[#AEAEB2] hover:bg-[#2C2C2E]/50 hover:text-white"
-                }`}
+              }`}
             >
               <span
-                className={`mr-3 transition-colors ${isActive ? "text-white" : "text-[#8E8E93] group-hover:text-white"
-                  }`}
+                className={`mr-3 transition-colors ${
+                  isActive
+                    ? "text-white"
+                    : "text-[#8E8E93] group-hover:text-white"
+                }`}
               >
                 {item.icon}
               </span>
@@ -144,8 +150,11 @@ const MainLayout = () => {
               <ChevronRight
                 size={14}
                 strokeWidth={1.5}
-                className={`transition-opacity ${isActive ? "opacity-60 text-white" : "opacity-0 group-hover:opacity-40"
-                  }`}
+                className={`transition-opacity ${
+                  isActive
+                    ? "opacity-60 text-white"
+                    : "opacity-0 group-hover:opacity-40"
+                }`}
               />
             </Link>
           );
@@ -156,6 +165,7 @@ const MainLayout = () => {
       <div className="p-3 border-t border-[#2C2C2E]/50 bg-[#171717] space-y-2 shrink-0">
         <Link
           to={user?.role === "ASSISTANT" ? "/assistant/profile" : "#"}
+          onClick={() => setIsMobileMenuOpen(false)}
           className="flex items-center p-2.5 rounded-[10px] bg-[#2C2C2E]/30 hover:bg-[#2C2C2E]/60 transition-colors cursor-pointer group"
         >
           <div
@@ -195,7 +205,7 @@ const MainLayout = () => {
   );
 
   return (
-    <div className="flex h-screen bg-[#FAFAFA] overflow-hidden">
+    <div className="flex h-[100dvh] bg-[#FAFAFA] overflow-hidden">
       {/* SIDEBAR DESKTOP */}
       <aside className="hidden lg:flex w-64 bg-[#171717] flex-col z-30 shrink-0">
         <NavContent />
@@ -203,16 +213,18 @@ const MainLayout = () => {
 
       {/* SIDEBAR MOBILE */}
       <div
-        className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${isMobileMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
-          }`}
+        className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${
+          isMobileMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
+        }`}
       >
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={toggleMobileMenu}
         />
         <aside
-          className={`absolute left-0 top-0 bottom-0 w-64 bg-[#171717] flex flex-col shadow-2xl transition-transform duration-300 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
+          className={`absolute left-0 top-0 bottom-0 w-72 max-w-[82vw] bg-[#171717] flex flex-col shadow-2xl transition-transform duration-300 safe-top safe-bottom ${
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
         >
           <NavContent />
         </aside>
@@ -220,36 +232,42 @@ const MainLayout = () => {
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* HEADER: DATE + BELL ICON TOP-RIGHT ON EVERY SINGLE PAGE */}
-        <header className="h-16 bg-white border-b border-[#E5E5EA] flex items-center justify-between px-6 lg:px-8 shrink-0 relative z-40">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={toggleMobileMenu}
-              className="lg:hidden p-2 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[8px] border border-[#E5E5EA]"
-            >
-              <Menu size={16} strokeWidth={1.5} />
-            </button>
-            <h1 className="text-[20px] font-semibold text-[#1C1C1E] tracking-tight">
-              {currentRouteTitle}
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Standard Header Date Component */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] text-[13px]">
-              <Calendar size={15} strokeWidth={1.5} className="text-[#6E6E73]" />
-              <span className="font-medium text-[#1C1C1E]">
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
+        {/* HEADER: DATE + BELL ICON TOP-RIGHT ON EVERY SINGLE PAGE (WITH SAFE-TOP FOR IPHONE 16) */}
+        <header className="bg-white border-b border-[#E5E5EA] shrink-0 relative z-40 safe-top">
+          <div className="h-14 sm:h-16 flex items-center justify-between px-3.5 sm:px-6 lg:px-8 gap-2">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <button
+                onClick={toggleMobileMenu}
+                className="lg:hidden p-2 text-[#6E6E73] hover:text-[#1C1C1E] hover:bg-[#FAFAFA] rounded-[8px] border border-[#E5E5EA] shrink-0"
+              >
+                <Menu size={16} strokeWidth={1.5} />
+              </button>
+              <h1 className="text-[17px] sm:text-[20px] font-semibold text-[#1C1C1E] tracking-tight truncate">
+                {currentRouteTitle}
+              </h1>
             </div>
 
-            {/* Standard Header Bell Component */}
-            <NotificationDropdown user={user} />
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+              {/* Standard Header Date Component */}
+              <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-[10px] bg-[#FAFAFA] border border-[#E5E5EA] text-[#6E6E73] text-[12px] sm:text-[13px] whitespace-nowrap">
+                <Calendar
+                  size={14}
+                  strokeWidth={1.5}
+                  className="text-[#6E6E73] shrink-0"
+                />
+                <span className="font-medium text-[#1C1C1E]">
+                  {new Date().toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+
+              {/* Standard Header Bell Component */}
+              <NotificationDropdown user={user} />
+            </div>
           </div>
         </header>
 
@@ -257,7 +275,7 @@ const MainLayout = () => {
         <CriticalAlertBanner />
 
         {/* PAGE CONTENT CONTAINER */}
-        <div className="flex-1 overflow-y-auto p-6 lg:p-8 bg-[#FAFAFA]">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 lg:p-8 safe-pb bg-[#FAFAFA]">
           <div className="max-w-[1600px] mx-auto">
             <Outlet />
           </div>

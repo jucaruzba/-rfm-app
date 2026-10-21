@@ -38,7 +38,7 @@ const FileViewer = ({ file, onClose }) => {
   return (
     <div className="fixed inset-0 z-[150] flex flex-col bg-black/75 backdrop-blur-md animate-in fade-in duration-150">
       {/* Top Bar */}
-      <div className="flex justify-between items-center px-6 py-4 border-b border-[#E5E5EA]/20 bg-[#1C1C1E]/90 shrink-0">
+      <div className="flex justify-between items-center px-4 sm:px-6 py-3.5 border-b border-[#E5E5EA]/20 bg-[#1C1C1E]/95 shrink-0 safe-top">
         <div className="min-w-0 flex-1 mr-4">
           <h2 className="text-white font-medium text-[15px] truncate">
             {file.name}
@@ -69,7 +69,7 @@ const FileViewer = ({ file, onClose }) => {
       </div>
 
       {/* Viewer Area */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8 relative overflow-hidden">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 safe-bottom relative overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center gap-2 text-center text-[#AEAEB2]">
             <Loader2 className="text-white animate-spin" size={28} strokeWidth={1.5} />
@@ -124,4 +124,3 @@ const FileViewer = ({ file, onClose }) => {
 };
 
 export default FileViewer;
-

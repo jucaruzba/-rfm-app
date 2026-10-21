@@ -72,16 +72,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#171717] p-4 sm:p-6 select-none">
-      <div className="max-w-[420px] w-full bg-[#1C1C1E] border border-[#2C2C2E] shadow-[0_12px_40px_rgba(0,0,0,0.4)] rounded-[14px] p-8 sm:p-9 relative animate-in fade-in zoom-in-95 duration-200">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[#171717] p-4 sm:p-6 safe-top safe-bottom select-none">
+      <div className="max-w-[420px] w-full bg-[#1C1C1E] border border-[#2C2C2E] shadow-[0_12px_40px_rgba(0,0,0,0.4)] rounded-[14px] p-6 sm:p-9 relative animate-in fade-in zoom-in-95 duration-200">
         
         {/* Logo Section with identical #171717 container */}
-        <div className="text-center mb-8 flex flex-col items-center">
+        <div className="text-center mb-7 sm:mb-8 flex flex-col items-center">
           <div className="w-full bg-[#171717] border border-[#2C2C2E] rounded-[12px] py-4 px-6 flex items-center justify-center mb-5">
             <img
               src={clientLogo}
               alt="RFM Logo"
-              className="max-h-16 w-auto object-contain"
+              className="max-h-14 sm:max-h-16 w-auto object-contain"
             />
           </div>
           
@@ -103,7 +103,7 @@ const Login = () => {
                 type="text"
                 required
                 disabled={isSubmitting}
-                className="w-full px-3.5 py-2.5 bg-[#171717] border border-[#333336] hover:border-[#48484A] rounded-[10px] text-[13.5px] text-white placeholder-[#636366] focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-all disabled:opacity-50"
+                className="w-full px-3.5 py-2.5 bg-[#171717] border border-[#333336] hover:border-[#48484A] rounded-[10px] text-[14px] text-white placeholder-[#636366] focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-all disabled:opacity-50"
                 placeholder="enter your username"
                 value={credentials.username}
                 onChange={(e) =>
@@ -130,7 +130,7 @@ const Login = () => {
                   type={showPassword ? "text" : "password"}
                   required
                   disabled={isSubmitting}
-                  className="w-full pr-10 px-3.5 py-2.5 bg-[#171717] border border-[#333336] hover:border-[#48484A] rounded-[10px] text-[13.5px] text-white placeholder-[#636366] focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-all disabled:opacity-50"
+                  className="w-full pr-10 px-3.5 py-2.5 bg-[#171717] border border-[#333336] hover:border-[#48484A] rounded-[10px] text-[14px] text-white placeholder-[#636366] focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-all disabled:opacity-50"
                   placeholder="enter your password"
                   value={credentials.password}
                   onChange={(e) =>
@@ -187,7 +187,7 @@ const Login = () => {
                 required
                 disabled={isSendingEmail}
                 value={forgotPasswordEmail}
-                className="w-full px-3.5 py-2.5 bg-[#171717] border border-[#333336] hover:border-[#48484A] rounded-[10px] text-[13.5px] text-white placeholder-[#636366] focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-all disabled:opacity-50"
+                className="w-full px-3.5 py-2.5 bg-[#171717] border border-[#333336] hover:border-[#48484A] rounded-[10px] text-[14px] text-white placeholder-[#636366] focus:outline-none focus:border-white focus:ring-1 focus:ring-white/30 transition-all disabled:opacity-50"
                 onChange={(e) => setForgotPasswordEmail(e.target.value)}
                 placeholder="you@example.com"
               />

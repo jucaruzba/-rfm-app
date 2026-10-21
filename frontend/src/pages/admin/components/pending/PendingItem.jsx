@@ -496,7 +496,7 @@ const PendingItem = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white px-5 py-3 rounded-[12px] border border-[#E5E5EA]">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 bg-white p-3.5 sm:px-5 sm:py-3 rounded-[12px] border border-[#E5E5EA]">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center bg-[#FAFAFA] p-1 rounded-[10px] border border-[#E5E5EA]">
             <button
@@ -597,7 +597,7 @@ const PendingItem = () => {
               </div>
 
               {/* Segundo Renglón: Usuario (izq.) | Estatus, Fecha & Trash (der.) */}
-              <div className="flex items-center justify-between gap-3 text-[12px] text-[#6E6E73] flex-wrap sm:flex-nowrap">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-[12px] text-[#6E6E73]">
                 {/* Izquierda: Usuario (asignado o creador) */}
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="flex items-center gap-1.5 text-[#6E6E73] truncate">
@@ -624,7 +624,7 @@ const PendingItem = () => {
 
                 {/* Derecha (al otro extremo): Estatus, Fecha, Trash */}
                 <div
-                  className="flex items-center gap-2.5 sm:gap-3 shrink-0 ml-auto"
+                  className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t border-[#F2F2F7] sm:border-t-0 sm:ml-auto"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* 1. Estatus */}

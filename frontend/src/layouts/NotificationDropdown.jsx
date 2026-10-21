@@ -103,7 +103,7 @@ const NotificationDropdown = ({ user }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-[12px] shadow-[0_12px_40px_rgba(0,0,0,0.14)] border border-[#E5E5EA] overflow-hidden z-[100]">
+        <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-[calc(env(safe-area-inset-top,0px)+3.75rem)] sm:top-auto sm:mt-2 sm:w-96 bg-white rounded-[12px] shadow-[0_12px_40px_rgba(0,0,0,0.14)] border border-[#E5E5EA] overflow-hidden z-[100]">
           <div className="px-4 py-3 border-b border-[#E5E5EA] flex items-center justify-between bg-white">
             <h3 className="font-semibold text-[#1C1C1E] text-[14px]">
               Notifications
@@ -118,7 +118,7 @@ const NotificationDropdown = ({ user }) => {
             )}
           </div>
 
-          <div className="max-h-[380px] overflow-y-auto">
+          <div className="max-h-[65dvh] sm:max-h-[380px] overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-[#8E8E93] text-[13px]">
                 No notifications yet.
@@ -183,4 +183,3 @@ const NotificationDropdown = ({ user }) => {
 };
 
 export default NotificationDropdown;
-
