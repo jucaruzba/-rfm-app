@@ -7,6 +7,7 @@ import { LogIn, Loader2, Eye, EyeOff, Mail, ArrowLeft } from "lucide-react";
 import api from "../services/api";
 import { toast } from "sonner";
 import clientLogo from "../assets/logo.png";
+import PwaInstallPrompt from "../components/PwaInstallPrompt";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -218,7 +219,9 @@ const Login = () => {
           </form>
         )}
 
-        <div className="mt-8 pt-6 border-t border-[#2C2C2E] text-center">
+        <PwaInstallPrompt variant="login" />
+
+        <div className="mt-6 pt-5 border-t border-[#2C2C2E] text-center">
           <p className="text-[11px] text-[#636366]">
             © 2026 RFM Industrial Solutions. All rights reserved.
           </p>
@@ -229,5 +232,3 @@ const Login = () => {
 };
 
 export default Login;
-
-

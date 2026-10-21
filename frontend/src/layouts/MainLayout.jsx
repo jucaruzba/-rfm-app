@@ -19,6 +19,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import NotificationDropdown from "../layouts/NotificationDropdown";
 import CriticalAlertBanner from "../components/CriticalAlertBanner";
+import PwaInstallPrompt from "../components/PwaInstallPrompt";
 import clientLogo from "../assets/logo.png";
 
 const MainLayout = () => {
@@ -180,6 +181,8 @@ const MainLayout = () => {
           )}
         </Link>
 
+        <PwaInstallPrompt variant="sidebar" />
+
         <button
           onClick={logout}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[rgba(255,105,97,0.12)] text-[#FF6961] hover:bg-[rgba(255,105,97,0.2)] rounded-[10px] transition-colors text-[12px] font-medium"
@@ -265,4 +268,3 @@ const MainLayout = () => {
 };
 
 export default MainLayout;
-

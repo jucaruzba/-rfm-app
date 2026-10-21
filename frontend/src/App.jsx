@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Toaster } from "sonner";
+import PwaInstallPrompt from "./components/PwaInstallPrompt";
 
 // Layouts
 import MainLayout from "./layouts/MainLayout";
@@ -74,6 +75,7 @@ function App() {
           },
         }}
       />
+      <PwaInstallPrompt variant="banner" />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
