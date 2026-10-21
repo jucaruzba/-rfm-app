@@ -1,6 +1,9 @@
 import axios from "axios";
 
-const baseURL = `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
+const baseURL =
+  window.location.port === "5173"
+    ? `${window.location.protocol}//${window.location.hostname}:8080/api/v1`
+    : `${window.location.origin}/api/v1`;
 
 const api = axios.create({
   baseURL,

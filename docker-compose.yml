@@ -60,6 +60,8 @@ services:
         VITE_API_BASE_URL: http://${BACKEND_HOST:-192.168.4.87}:8080/api/v1
     container_name: rfm-frontend
     restart: unless-stopped
+    volumes:
+      - /usr/syno/etc/certificate/system/quickconnect:/etc/nginx/certs:ro
     ports:
       - "8081:80"
     depends_on:

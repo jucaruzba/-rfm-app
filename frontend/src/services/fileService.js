@@ -1,6 +1,9 @@
 import api from "./api";
 
-const apiBase = `${window.location.protocol}//${window.location.hostname}:8080/api/v1`;
+const apiBase =
+  window.location.port === "5173"
+    ? `${window.location.protocol}//${window.location.hostname}:8080/api/v1`
+    : `${window.location.origin}/api/v1`;
 
 export const fileService = {
   getFileUrl: (filePath) => {

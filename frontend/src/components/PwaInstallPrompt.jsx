@@ -93,6 +93,19 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
   if (isStandalone) return null;
 
   const handleInstallClick = async () => {
+    // If accessed over plain HTTP IP, redirect automatically to the valid HTTPS domain so Android enables native 1-click install
+    if (
+      typeof window !== "undefined" &&
+      window.location.protocol === "http:" &&
+      window.location.hostname !== "localhost"
+    ) {
+      const targetHost = window.location.hostname.startsWith("192.168.4.87")
+        ? "192-168-4-87.pvault88.direct.quickconnect.to:8081"
+        : "pvault88.direct.quickconnect.to:8081";
+      window.location.href = `https://${targetHost}${window.location.pathname}${window.location.search}`;
+      return;
+    }
+
     const promptEvent = deferredPrompt || window.__deferredPwaPrompt;
     if (promptEvent) {
       try {
@@ -107,7 +120,8 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
         console.error("PWA install prompt error:", err);
       }
     }
-    // Open step-by-step modal for iPhone / Android
+
+    // Open step-by-step guide modal (required on iPhone Safari or if browser already installed/blocked prompt)
     if (variant === "banner") {
       setShowModal(true);
     } else {
@@ -128,7 +142,7 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
         className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#5B5FEF]/15 text-[#5B5FEF] hover:bg-[#5B5FEF]/25 border border-[#5B5FEF]/30 rounded-[10px] transition-colors text-[12px] font-medium cursor-pointer"
       >
         <Download size={14} strokeWidth={1.5} />
-        Install app
+        Descargar App
       </button>
     );
   }
@@ -138,10 +152,10 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
       <button
         type="button"
         onClick={handleInstallClick}
-        className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-[10px] text-[12.5px] font-medium text-[#AEAEB2] hover:text-white bg-[#171717] border border-[#2C2C2E] hover:border-[#48484A] transition-all cursor-pointer"
+        className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-[10px] text-[12.5px] font-medium text-white bg-[#5B5FEF] hover:bg-[#4B4FDF] transition-all shadow-sm cursor-pointer"
       >
-        <Smartphone size={15} strokeWidth={1.5} className="text-[#5B5FEF]" />
-        <span>Install app on iPhone / Android</span>
+        <Download size={15} strokeWidth={1.75} />
+        <span>Descargar App (Android / iPhone)</span>
       </button>
     );
   }
@@ -161,12 +175,14 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
           />
           <div className="flex-1 min-w-0">
             <p className="text-[13.5px] font-semibold text-white leading-tight">
-              Install RFM app
+              Instalar RFM App
             </p>
             <p className="text-[11.5px] text-[#AEAEB2] truncate mt-0.5">
-              {platform === "ios"
-                ? "Add to your iPhone home screen"
-                : "Download icon for quick access"}
+              {deferredPrompt
+                ? "Descarga directa en tu teléfono"
+                : platform === "ios"
+                  ? "Agregar a pantalla de inicio en iPhone"
+                  : "Descargar ícono en pantalla principal"}
             </p>
           </div>
           <button
@@ -174,12 +190,12 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
             onClick={handleInstallClick}
             className="px-3.5 py-1.5 bg-[#5B5FEF] hover:bg-[#4B4FDF] text-white text-[12.5px] font-medium rounded-[8px] transition-colors shrink-0 cursor-pointer"
           >
-            Install
+            Descargar
           </button>
           <button
             type="button"
             onClick={dismissBanner}
-            aria-label="Close install banner"
+            aria-label="Cerrar banner"
             className="p-1 text-[#8E8E93] hover:text-white transition-colors shrink-0 cursor-pointer"
           >
             <X size={16} strokeWidth={1.5} />
@@ -200,10 +216,10 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                 />
                 <div>
                   <h3 className="text-[18px] font-semibold text-[#1C1C1E] leading-tight">
-                    Install app
+                    Instalar aplicación RFM
                   </h3>
-                  <span className="text-[12px] text-[#6E6E73] lowercase">
-                    rfm management platform
+                  <span className="text-[12px] text-[#6E6E73]">
+                    Sigue estos pasos en tu navegador:
                   </span>
                 </div>
               </div>
@@ -220,17 +236,6 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#FAFAFA] border border-[#E5E5EA] rounded-[10px] mb-4">
               <button
                 type="button"
-                onClick={() => setActiveGuideTab("ios")}
-                className={`py-1.5 px-3 rounded-[8px] text-[12.5px] font-medium transition-all cursor-pointer ${
-                  activeGuideTab === "ios"
-                    ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
-                    : "text-[#6E6E73] hover:text-[#1C1C1E]"
-                }`}
-              >
-                iPhone / iPad
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveGuideTab("android")}
                 className={`py-1.5 px-3 rounded-[8px] text-[12.5px] font-medium transition-all cursor-pointer ${
                   activeGuideTab === "android"
@@ -238,7 +243,18 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                     : "text-[#6E6E73] hover:text-[#1C1C1E]"
                 }`}
               >
-                Android
+                Android (Chrome)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveGuideTab("ios")}
+                className={`py-1.5 px-3 rounded-[8px] text-[12.5px] font-medium transition-all cursor-pointer ${
+                  activeGuideTab === "ios"
+                    ? "bg-white text-[#1C1C1E] shadow-xs border border-[#E5E5EA]"
+                    : "text-[#6E6E73] hover:text-[#1C1C1E]"
+                }`}
+              >
+                iPhone / iPad (Safari)
               </button>
             </div>
 
@@ -250,12 +266,10 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                   </div>
                   <div>
                     <p className="font-medium text-[#1C1C1E]">
-                      1. Tap the Share button
+                      1. Toca el botón "Compartir" de Safari
                     </p>
                     <p className="text-[12px] text-[#6E6E73] mt-0.5">
-                      In Safari, tap the{" "}
-                      <span className="font-medium text-[#1C1C1E]">Share</span>{" "}
-                      icon at the bottom (or top) of your screen.
+                      En la barra inferior de Safari, toca el ícono del cuadro con flecha hacia arriba.
                     </p>
                   </div>
                 </div>
@@ -266,14 +280,14 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                   </div>
                   <div>
                     <p className="font-medium text-[#1C1C1E]">
-                      2. Tap "Add to Home Screen"
+                      2. Elige "Agregar a pantalla de inicio"
                     </p>
                     <p className="text-[12px] text-[#6E6E73] mt-0.5">
-                      Scroll down the menu and select{" "}
+                      Desliza el menú hacia abajo y selecciona{" "}
                       <span className="font-medium text-[#1C1C1E]">
-                        Add to Home Screen
+                        Agregar a pantalla de inicio
                       </span>{" "}
-                      (Agregar a pantalla de inicio).
+                      (Add to Home Screen).
                     </p>
                   </div>
                 </div>
@@ -284,10 +298,10 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                   </div>
                   <div>
                     <p className="font-medium text-[#1C1C1E]">
-                      3. Tap "Add" in the top corner
+                      3. Toca "Agregar" arriba a la derecha
                     </p>
                     <p className="text-[12px] text-[#6E6E73] mt-0.5">
-                      The RFM icon will appear on your iPhone and open in full screen.
+                      El ícono de RFM aparecerá junto a tus apps y abrirá a pantalla completa.
                     </p>
                   </div>
                 </div>
@@ -300,12 +314,11 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                   </div>
                   <div>
                     <p className="font-medium text-[#1C1C1E]">
-                      1. Open the browser menu
+                      1. Toca los 3 puntos (⋮) arriba a la derecha
                     </p>
                     <p className="text-[12px] text-[#6E6E73] mt-0.5">
-                      In Chrome, tap the{" "}
-                      <span className="font-medium text-[#1C1C1E]">⋮</span> icon
-                      in the top-right corner.
+                      En la esquina superior derecha de Chrome, abre el menú de opciones{" "}
+                      <span className="font-medium text-[#1C1C1E]">⋮</span>.
                     </p>
                   </div>
                 </div>
@@ -316,14 +329,18 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                   </div>
                   <div>
                     <p className="font-medium text-[#1C1C1E]">
-                      2. Tap "Install app" or "Add to Home screen"
+                      2. Toca "Instalar aplicación" o "Agregar a la pantalla principal"
                     </p>
                     <p className="text-[12px] text-[#6E6E73] mt-0.5">
-                      Select{" "}
+                      Selecciona{" "}
                       <span className="font-medium text-[#1C1C1E]">
-                        Add to Home screen
+                        Instalar aplicación
                       </span>{" "}
-                      (Agregar a la pantalla principal / Instalar aplicación).
+                      o{" "}
+                      <span className="font-medium text-[#1C1C1E]">
+                        Agregar a la pantalla principal
+                      </span>
+                      .
                     </p>
                   </div>
                 </div>
@@ -334,10 +351,10 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
                   </div>
                   <div>
                     <p className="font-medium text-[#1C1C1E]">
-                      3. Confirm installation
+                      3. Confirma en "Instalar"
                     </p>
                     <p className="text-[12px] text-[#6E6E73] mt-0.5">
-                      The RFM icon will be added directly to your Android home screen.
+                      Android descargará e instalará el ícono de RFM en tu teléfono.
                     </p>
                   </div>
                 </div>
@@ -347,9 +364,9 @@ export const PwaInstallPrompt = ({ variant = "banner" }) => {
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="mt-5 w-full py-2.5 px-4 bg-[#5B5FEF] hover:bg-[#4B4FDF] text-white text-[13px] font-medium rounded-[10px] transition-colors cursor-pointer"
+              className="mt-5 w-full py-2.5 px-4 bg-[#171717] hover:bg-[#2C2C2E] text-white text-[13px] font-medium rounded-[10px] transition-colors cursor-pointer"
             >
-              Got it
+              Cerrar guía
             </button>
           </div>
         </div>
