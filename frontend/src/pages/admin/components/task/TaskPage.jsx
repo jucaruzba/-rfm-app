@@ -305,10 +305,12 @@ const TasksPage = () => {
   const handleCloseTaskDetail = () => {
     setIsDetailViewOpen(false);
     setSelectedTaskId(null);
+    if (viewMode === "list") fetchTasks(true);
+    else fetchCalendarTasks();
   };
 
   const handleTaskUpdated = () => {
-    if (viewMode === "list") fetchTasks();
+    if (viewMode === "list") fetchTasks(true);
     else fetchCalendarTasks();
   };
 
@@ -430,6 +432,7 @@ const TasksPage = () => {
           icon: <Clock size={13} strokeWidth={1.5} />,
         };
       case "BLOCK":
+      case "BLOCKED":
         return {
           bg: "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20",
           pillBg: "bg-[#6B7280]/10 text-[#6B7280] border-[#6B7280]/20",
@@ -503,7 +506,9 @@ const TasksPage = () => {
         const match =
           tStatus === expected ||
           (expected === "IN_PROGRESS" && tStatus === "PROGRESS") ||
-          (expected === "PROGRESS" && tStatus === "IN_PROGRESS");
+          (expected === "PROGRESS" && tStatus === "IN_PROGRESS") ||
+          (expected === "BLOCK" && tStatus === "BLOCKED") ||
+          (expected === "BLOCKED" && tStatus === "BLOCK");
         if (!match) return false;
       }
 
@@ -520,6 +525,11 @@ const TasksPage = () => {
       // 3. Filtro por empresa
       if (filterCompany) {
         if (String(t.idCompany) !== String(filterCompany)) return false;
+      }
+
+      // 4. Filtro por usuario asignado
+      if (filterUser) {
+        if (String(t.idUserAssigned) !== String(filterUser)) return false;
       }
 
       return true;
@@ -544,7 +554,7 @@ const TasksPage = () => {
       }
     });
     return map;
-  }, [calendarTasks, statusTab, searchQuery, filterCompany]);
+  }, [calendarTasks, statusTab, searchQuery, filterCompany, filterUser]);
 
   return (
     <div className="space-y-6">
@@ -871,6 +881,7 @@ const TasksPage = () => {
                       const taskCompany = companies.find((c) => c.idCompany === t.idCompany);
                       const compColor = getCompanyColor(taskCompany || t.idCompany || t.nameCompany);
                       const companyName = taskCompany?.name || t.nameCompany;
+                      const isCompleted = (t.status || "").toUpperCase() === "COMPLETED";
                       return (
                         <div
                           key={`cal-task-${t.idTask}`}
@@ -879,20 +890,26 @@ const TasksPage = () => {
                             handleOpenTaskDetail(t.idTask);
                           }}
                           style={{
-                            backgroundColor: hexToRgba(compColor, 0.12),
-                            borderColor: hexToRgba(compColor, 0.38),
+                            backgroundColor: hexToRgba(compColor, isCompleted ? 0.06 : 0.12),
+                            borderColor: hexToRgba(compColor, isCompleted ? 0.2 : 0.38),
                           }}
-                          className="px-1.5 py-0.5 rounded-[6px] border text-[10px] font-medium flex items-center gap-1 transition-all truncate cursor-pointer hover:opacity-90"
+                          className={`px-1.5 py-0.5 rounded-[6px] border text-[10px] font-medium flex items-center gap-1 transition-all truncate cursor-pointer hover:opacity-90 ${
+                            isCompleted ? "opacity-60" : ""
+                          }`}
                           title={`${t.title}${companyName ? ` (${companyName})` : ""} - ${t.status}`}
                         >
                           <span
                             className="w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: compColor }}
+                            style={{ backgroundColor: isCompleted ? "#10B981" : compColor }}
                           />
-                          <span className="truncate flex-1 text-[#1C1C1E]">{t.title}</span>
-                          {t.priority === "HIGH" && (
+                          <span className={`truncate flex-1 text-[#1C1C1E] ${isCompleted ? "line-through text-[#6E6E73]" : ""}`}>
+                            {t.title}
+                          </span>
+                          {isCompleted ? (
+                            <CheckCircle2 size={10} strokeWidth={2} className="text-[#10B981] shrink-0" />
+                          ) : t.priority === "HIGH" ? (
                             <Flame size={10} strokeWidth={2} className="text-[#EF4444] shrink-0" />
-                          )}
+                          ) : null}
                         </div>
                       );
                     })}

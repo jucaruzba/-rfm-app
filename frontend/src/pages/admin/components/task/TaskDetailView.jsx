@@ -128,6 +128,7 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
 
   const handleClose = () => {
     setIsEditing(false);
+    if (onTaskUpdated) onTaskUpdated();
     if (onClose) onClose();
   };
 
@@ -265,10 +266,14 @@ const TaskDetailView = ({ isOpen, onClose, taskId, onTaskUpdated }) => {
   const handleStatusChange = async (newStatus) => {
     setUpdatingStatus(true);
     try {
-      await taskService.updateStatus(taskId, newStatus);
-      setTask({ ...task, status: newStatus });
+      const updated = await taskService.updateStatus(taskId, newStatus);
+      if (updated) {
+        setTask(updated);
+      } else {
+        setTask((prev) => ({ ...prev, status: newStatus }));
+      }
       toast.success(`Status updated to ${newStatus}`);
-      onTaskUpdated();
+      if (onTaskUpdated) onTaskUpdated();
     } catch (err) {
       console.error("Status update error", err);
       toast.error("Status update failed");
@@ -815,9 +820,14 @@ const handleConfirmDeletePending = async (id) => {
                       activeColor: "bg-[#10B981]/10 text-[#10B981] border-[#10B981]",
                     },
                   ].map(({ value, label, icon: Icon, activeColor }) => {
+                    const currentStatus = (task.status || "").toUpperCase();
+                    const targetStatus = value.toUpperCase();
                     const isActive =
-                      task.status === value ||
-                      (value === "IN_PROGRESS" && task.status === "PROGRESS");
+                      currentStatus === targetStatus ||
+                      (targetStatus === "IN_PROGRESS" && currentStatus === "PROGRESS") ||
+                      (targetStatus === "PROGRESS" && currentStatus === "IN_PROGRESS") ||
+                      (targetStatus === "BLOCK" && currentStatus === "BLOCKED") ||
+                      (targetStatus === "BLOCKED" && currentStatus === "BLOCK");
                     return (
                       <button
                         key={value}

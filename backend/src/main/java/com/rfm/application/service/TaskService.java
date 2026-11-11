@@ -238,6 +238,57 @@ public class TaskService {
 
 	@Transactional
 	public TaskDTO update(Long id, TaskRequest request) {
+		if (id != null && id < 0) {
+			long pos = -id;
+			long epochDay = pos % 10000000L;
+			long parentTaskId = pos / 10000000L;
+			LocalDate occStart = LocalDate.ofEpochDay(epochDay);
+
+			Task parent = taskRepository.findById(parentTaskId)
+					.orElseThrow(() -> new RuntimeException("Parent task not found for virtual occurrence"));
+
+			List<Task> series = taskRepository.findAllInSeries(parentTaskId);
+			Task existing = series.stream().filter(t -> occStart.equals(t.getStartDate())).findFirst().orElse(null);
+			if (existing != null) {
+				return update(existing.getIdTask(), request);
+			}
+
+			long durationDays = (parent.getEndDate() != null && parent.getStartDate() != null)
+					? java.time.temporal.ChronoUnit.DAYS.between(parent.getStartDate(), parent.getEndDate())
+					: 0;
+			LocalDate occEnd = (parent.getEndDate() != null) ? occStart.plusDays(durationDays) : null;
+
+			LocalDate reqStart = request.startDate() != null ? request.startDate() : occStart;
+			LocalDate reqEnd = request.endDate() != null ? request.endDate() : (reqStart != null ? reqStart.plusDays(durationDays) : occEnd);
+
+			Task newChild = Task.builder()
+					.title(request.title() != null ? request.title() : parent.getTitle())
+					.description(request.description() != null ? request.description() : parent.getDescription())
+					.startDate(reqStart)
+					.endDate(reqEnd)
+					.idCompany(request.idCompany() != null ? request.idCompany() : parent.getIdCompany())
+					.externalReferenceName(request.externalReferenceName() != null ? request.externalReferenceName() : parent.getExternalReferenceName())
+					.idUserAssigned(request.idUserAssigned() != null ? request.idUserAssigned() : parent.getIdUserAssigned())
+					.idNode(parent.getIdNode())
+					.status(request.status() != null ? request.status() : "PENDING")
+					.repeatType(request.repeatType() != null ? request.repeatType() : parent.getRepeatType())
+					.repeatEndDate(parent.getRepeatEndDate())
+					.parentTaskId(parentTaskId)
+					.priority(request.priority() != null ? request.priority().toUpperCase() : (parent.getPriority() != null ? parent.getPriority() : "NORMAL"))
+					.seriesId(parent.getSeriesId())
+					.build();
+
+			Task savedTask = taskRepository.save(newChild);
+			if ("COMPLETED".equalsIgnoreCase(savedTask.getStatus())) {
+				handleRollingRecurrenceOnComplete(savedTask);
+				checkAndAutoFlipOnboardingCompany(savedTask.getIdCompany());
+			}
+			if (request.idUserAssigned() != null) {
+				sendTaskAssignmentNotification(savedTask, false);
+			}
+			return mapToDTO(savedTask);
+		}
+
 		Task task = taskRepository.findById(id).orElseThrow(() -> new RuntimeException("Task does not exist"));
 
 		boolean userAssignmentChanged = !java.util.Objects.equals(task.getIdUserAssigned(), request.idUserAssigned());
@@ -337,6 +388,10 @@ public class TaskService {
 		// Proyección de ocurrencias virtuales de tareas recurrentes para rango de calendario (solo si no se filtra por un estado diferente a PENDING)
 		boolean canHaveVirtualOccurrences = (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status) || "PENDING".equalsIgnoreCase(status));
 		if (start != null && end != null && canHaveVirtualOccurrences) {
+			// Consultar TODAS las tareas existentes en BD en este rango de fechas (sin filtro de status) para no generar
+			// ocurrencias virtuales si una fecha ya fue completada, iniciada o bloqueada en base de datos.
+			List<Task> allExistingTasksInRange = taskRepository.findFilters(idCompany, null, idUser, null, start, end);
+
 			List<Task> rootRecurring = taskRepository.findRootRecurringTasks(idCompany, idUser);
 			for (Task root : rootRecurring) {
 				if (root.getStartDate() == null || root.getRepeatType() == null || root.getRepeatType() == RepeatType.NONE) {
@@ -362,9 +417,9 @@ public class TaskService {
 					if (!occStart.isBefore(start)) {
 						final LocalDate currentOccDate = occStart;
 						// Evitar duplicar si ya existe en BD para esta serie en esta fecha
-						boolean alreadyInDb = resultList.stream().anyMatch(dto -> 
-							(parentId.equals(dto.parentTaskId()) || parentId.equals(dto.idTask())) &&
-							currentOccDate.equals(dto.startDate())
+						boolean alreadyInDb = allExistingTasksInRange.stream().anyMatch(dbTask -> 
+							(parentId.equals(dbTask.getParentTaskId()) || parentId.equals(dbTask.getIdTask())) &&
+							currentOccDate.equals(dbTask.getStartDate())
 						);
 
 						if (!alreadyInDb) {
@@ -410,6 +465,8 @@ public class TaskService {
 				if (targetStatus.equalsIgnoreCase(s)) return true;
 				if ("IN_PROGRESS".equalsIgnoreCase(targetStatus) && "PROGRESS".equalsIgnoreCase(s)) return true;
 				if ("PROGRESS".equalsIgnoreCase(targetStatus) && "IN_PROGRESS".equalsIgnoreCase(s)) return true;
+				if ("BLOCK".equalsIgnoreCase(targetStatus) && "BLOCKED".equalsIgnoreCase(s)) return true;
+				if ("BLOCKED".equalsIgnoreCase(targetStatus) && "BLOCK".equalsIgnoreCase(s)) return true;
 				return false;
 			}).collect(Collectors.toList());
 		}
