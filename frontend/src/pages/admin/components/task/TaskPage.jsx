@@ -146,7 +146,7 @@ const TasksPage = () => {
         end: endDate || null,
         page: 0,
         size: pageSize,
-        sort: ["startDate,desc", "idTask,desc"],
+        sort: ["startDate,asc", "idTask,asc"],
       });
 
       const items = response.content || [];
@@ -189,7 +189,7 @@ const TasksPage = () => {
         end: endDate || null,
         page: nextPage,
         size: pageSize,
-        sort: ["startDate,desc", "idTask,desc"],
+        sort: ["startDate,asc", "idTask,asc"],
       });
 
       const nextItems = response.content || [];
@@ -490,10 +490,10 @@ const TasksPage = () => {
       const timeA = getTaskTime(a);
       const timeB = getTaskTime(b);
 
-      if (timeB !== timeA) {
-        return timeB - timeA; // Más reciente a más antigua
+      if (timeA !== timeB) {
+        return timeA - timeB; // Fecha más antigua/próxima primero (ascendente)
       }
-      return (b.idTask || 0) - (a.idTask || 0); // Desempate por ID descendente
+      return (a.idTask || 0) - (b.idTask || 0); // Desempate por ID ascendente
     });
   }, [tasks]);
 
