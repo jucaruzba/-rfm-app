@@ -146,7 +146,7 @@ const TasksPage = () => {
         end: endDate || null,
         page: 0,
         size: pageSize,
-        sort: ["idTask,desc"],
+        sort: ["startDate,desc", "idTask,desc"],
       });
 
       const items = response.content || [];
@@ -189,7 +189,7 @@ const TasksPage = () => {
         end: endDate || null,
         page: nextPage,
         size: pageSize,
-        sort: ["idTask,desc"],
+        sort: ["startDate,desc", "idTask,desc"],
       });
 
       const nextItems = response.content || [];
@@ -453,9 +453,48 @@ const TasksPage = () => {
     return formatUsDate(date);
   };
 
-  // Ordenar tareas en modo lista: lo más reciente primero (por ID descendente)
+  // Ordenar tareas en modo lista: lo más reciente primero (por fecha de tarea descendente, y desempate por ID)
   const sortedTasks = useMemo(() => {
-    return [...tasks].sort((a, b) => (b.idTask || 0) - (a.idTask || 0));
+    return [...tasks].sort((a, b) => {
+      const getTaskTime = (t) => {
+        if (!t?.startDate) return -Infinity;
+        if (Array.isArray(t.startDate)) {
+          const [y, m, d] = t.startDate;
+          return new Date(Number(y), Number(m) - 1, Number(d)).getTime();
+        }
+        if (typeof t.startDate === "string") {
+          const cleanStr = t.startDate.includes("T") ? t.startDate.split("T")[0] : t.startDate.trim();
+          if (cleanStr.includes("-")) {
+            const parts = cleanStr.split("-").map(Number);
+            if (parts.length === 3) {
+              if (parts[0] > 1000) return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+              return new Date(parts[2], parts[0] - 1, parts[1]).getTime();
+            }
+          }
+          if (cleanStr.includes("/")) {
+            const parts = cleanStr.split("/").map(Number);
+            if (parts.length === 3) {
+              if (parts[0] > 1000) return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+              return new Date(parts[2], parts[0] - 1, parts[1]).getTime();
+            }
+          }
+          const parsed = Date.parse(cleanStr);
+          if (!isNaN(parsed)) return parsed;
+        }
+        if (t.startDate instanceof Date) {
+          return t.startDate.getTime();
+        }
+        return 0;
+      };
+
+      const timeA = getTaskTime(a);
+      const timeB = getTaskTime(b);
+
+      if (timeB !== timeA) {
+        return timeB - timeA; // Más reciente a más antigua
+      }
+      return (b.idTask || 0) - (a.idTask || 0); // Desempate por ID descendente
+    });
   }, [tasks]);
 
   // Generación de días del mes para el calendario (inicia en Domingo)

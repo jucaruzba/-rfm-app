@@ -1,4 +1,4 @@
-const CACHE_NAME = "rfm-pwa-v1";
+const CACHE_NAME = "rfm-pwa-v2";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/logo.png",
@@ -26,6 +26,12 @@ self.addEventListener("activate", (event) => {
       )
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {

@@ -13,8 +13,22 @@ if (typeof window !== 'undefined') {
 
   if ('serviceWorker' in navigator && window.isSecureContext) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
-    })
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => {
+          reg.onupdatefound = () => {
+            const installing = reg.installing;
+            if (installing) {
+              installing.onstatechange = () => {
+                if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                  installing.postMessage({ type: 'SKIP_WAITING' });
+                }
+              };
+            }
+          };
+        })
+        .catch(() => {});
+    });
   }
 }
 
